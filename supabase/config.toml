@@ -157,18 +157,17 @@ enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
 #
-# Set to the real production URL (was left at the Supabase CLI's
-# http://127.0.0.1:3000 scaffold default — confirmed live: invite emails
-# were redirecting to localhost because of this). Update again once
-# tpa.ppmedenhaag.nl (TAD custom-domain plan) goes live.
-site_url = "https://ppme-tpa.netlify.app"
+# Set to the real production URL. tpa.ppmedenhaag.nl (TAD custom-domain
+# plan) is now live, so this points there instead of the Netlify subdomain.
+site_url = "https://tpa.ppmedenhaag.nl"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 # redirectTo targets not on this list are silently ignored in favor of
 # site_url, even when passed explicitly (see invite-user.mts) — both
 # need to be correct, not just one.
-additional_redirect_urls = ["https://ppme-tpa.netlify.app", "http://127.0.0.1:3000", "http://localhost:8888"]
+# The Netlify subdomain is kept here too so it still works as a fallback/preview URL.
+additional_redirect_urls = ["https://tpa.ppmedenhaag.nl", "https://ppme-tpa.netlify.app", "http://127.0.0.1:3000", "http://localhost:8888"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
