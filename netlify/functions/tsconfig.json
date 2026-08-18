@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    // pdfkit is CommonJS with an `export =` default (see @types/pdfkit);
+    // esbuild (netlify.toml's bundler) interops it at build time, this
+    // makes `tsc` agree.
+    "esModuleInterop": true,
+    // The notification copy is read straight out of `public/locales/*.json`
+    // (esbuild inlines it at bundle time) rather than being restated in
+    // TypeScript, so translators and the i18n parity test see one set of
+    // strings — see `lib/notifications.ts`.
+    "resolveJsonModule": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["./**/*.mts", "./**/*.ts"]
+}

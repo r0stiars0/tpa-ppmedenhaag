@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+/*
+ * PPME brand tokens (docs/PRD-PPME-TPA.md §1 "Design Direction").
+ * Sampled from the PPME logo; validated pixel-accurate against the
+ * Figma Make prototype (2026-07-01) across all 15 reviewed screens.
+ */
+@theme {
+  --color-ppme-primary: #0d50a0;
+  --color-ppme-primary-dark: #0a3e7a;
+  --color-ppme-bg: #ffffff;
+  --color-ppme-bg-alt: #f8f9fa;
+  --color-ppme-accent: #c8a415;
+  --color-ppme-text: #333333;
+  --color-ppme-danger: #d32f2f;
+  --color-ppme-success: #4caf50;
+
+  --font-sans: "Open Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-ppme-bg-alt text-ppme-text font-sans antialiased;
+    line-height: 1.6;
+  }
+
+  /* Minimum 44px tap targets per PRD interaction spec. */
+  button,
+  a[role="button"] {
+    min-height: 44px;
+  }
+}

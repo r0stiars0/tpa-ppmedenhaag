@@ -1,0 +1,60 @@
+-- ============================================================
+-- 014 — anon and authenticated may not create objects in the
+--       public schema (ADR-027)
+--
+-- Found by the production drift check the TAD prescribes,
+-- `supabase db diff --linked --schema public`, which is read-only and
+-- had never been run against Frankfurt. It reported no object drift at
+-- all — not a table, column, constraint, index, enum, function, trigger
+-- or policy differs from these migrations — and one privilege
+-- difference that turned out to be real:
+--
+--     GRANT ALL ON SCHEMA "public" TO "anon";
+--     GRANT ALL ON SCHEMA "public" TO "authenticated";
+--
+-- `ALL` on a schema is USAGE **and CREATE**. Migration 007 grants only
+-- `usage`, so nothing in this repo ever asked for CREATE; it is
+-- Supabase's own default for a project of that vintage, applied at
+-- provisioning time and inherited silently. The repo was therefore a
+-- partial description of production's privileges, which is exactly the
+-- state the drift check exists to catch.
+--
+-- ── What CREATE on a schema actually allows ─────────────────────────
+-- Creating objects in it: tables, views, functions, types. It is not a
+-- read of anybody's data and it is not reachable through PostgREST,
+-- which issues DML and RPC and never DDL. So this is hardening rather
+-- than a breach being closed, and it is written down that way in
+-- ADR-027 rather than dressed up as one.
+--
+-- What it is worth is the sharp edge underneath: `anon` is the role
+-- behind the publishable key that ships inside the app bundle, so it is
+-- held by anyone who opens the site, and `authenticated` is every
+-- signed-in parent. A role reachable by the public should hold the
+-- privileges the product needs and no others, and neither of these
+-- needs to create anything. Postgres also ORs permissive policies but
+-- has no equivalent safety net for privileges: a grant nobody intended
+-- simply sits there.
+--
+-- ── USAGE stays, and must ───────────────────────────────────────────
+-- PostgREST resolves every table it exposes through the schema, so
+-- revoking USAGE would take the API down for both roles. Only CREATE is
+-- withdrawn, which is why this is a `revoke create` and not a
+-- `revoke all`. RLS-42 asserts both halves — CREATE gone, USAGE intact
+-- — because "we revoked too much" and "we revoked nothing" fail
+-- identically in a migration that returns no rows.
+--
+-- ── service_role is deliberately left alone ─────────────────────────
+-- It keeps CREATE. The key behind it never leaves the server, it
+-- bypasses RLS entirely by design, and CREATE adds nothing to what an
+-- account that can already read and write every row could do. Revoking
+-- it would trade no real exposure for the risk of breaking a Supabase
+-- platform operation that runs as that role. The roles worth narrowing
+-- are the two the internet can reach.
+--
+-- ── No policy, table or function is touched ─────────────────────────
+-- This migration is two REVOKE statements. An otherwise unchanged
+-- pgTAP run is the evidence that nothing else moved.
+-- ============================================================
+
+revoke create on schema public from anon;
+revoke create on schema public from authenticated;

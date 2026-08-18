@@ -1,0 +1,31 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  # Pinned, not inherited from Netlify's default, which has changed before
+  # and is the kind of change nothing here would survive quietly:
+  # `@supabase/supabase-js` constructs a RealtimeClient inside
+  # `createClient()`, and that throws at construction on any runtime with
+  # no global `WebSocket` — which Node only has unflagged from 22. Every
+  # Function holding the service-role key calls `createClient`, so a
+  # runtime below 22 takes out every notification and every report
+  # Function at once, on the first request rather than at build time.
+  # CI's `node-version` is pinned to the same value.
+  NODE_VERSION = "22"
+
+[functions]
+  node_bundler = "esbuild"
+
+# SPA fallback: client-side routing (react-router) owns all non-asset paths.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[context.deploy-preview]
+  command = "npm run build"
+
+[context.production]
+  command = "npm run build"
