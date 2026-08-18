@@ -68,7 +68,7 @@ export interface EmailTemplate {
 export type TemplateVars = Record<string, string>
 
 /** The app itself. `{{app_url}}` is filled from this at send time. */
-export const APP_URL = 'https://ppme-tpa.netlify.app'
+export const APP_URL = 'https://tpa.ppmedenhaag.nl'
 
 function escapeHtml(value: string): string {
   return value
