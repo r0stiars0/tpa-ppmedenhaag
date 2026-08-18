@@ -1,5 +1,7 @@
 # TPA PPME Den Haag
 
+Thanks to original and main contributor: [radnan80](https://github.com/radnan80).
+
 Progress-tracking PWA for PPME Den Haag's TPA (Taman Penitipan Al-Quran) program —
 attendance, homework, Yanbu'a/Quran/Murajaah progress, and year-end reports for
 tutors, parents, and students.
