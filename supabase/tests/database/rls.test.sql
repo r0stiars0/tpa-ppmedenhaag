@@ -2776,6 +2776,125 @@ insert into _tap_log(line) select is(
 
 reset role;
 
+-- ============================================================
+-- RLS-53…RLS-58 — the session DELETE boundary (migration 017,
+-- TAD ADR-035)
+--
+-- `attendance` grants no tutor DELETE on purpose: correcting a register
+-- is a tutor's job, destroying one is not. But `attendance.session_id`
+-- cascades, and `sessions_tutor_rw` was `for all` — and a cascade is not
+-- filtered by the child table's policies. So the withheld privilege was
+-- reachable through the parent row.
+--
+-- The pair RLS-53/RLS-54 is the whole finding: the direct delete is
+-- refused (and always was), the delete through the parent is refused now.
+-- Asserting only the second would pass just as well against a schema that
+-- had broken the first.
+--
+-- A filtered DELETE is silent — it matches 0 rows rather than raising —
+-- so every refusal here is asserted by what survives it, not by an error.
+-- ============================================================
+set local role authenticated;
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';
+set local request.jwt.claim.role to 'authenticated';
+
+insert into _tap_log(line) select is(
+  (select count(*) from public.attendance where session_id = 'e0000000-0000-0000-0000-00000000000a'),
+  2::bigint,
+  'RLS-53: Class A''s session has a register before any deletion is attempted'
+);
+
+-- The refusal that already held: no DELETE policy on attendance.
+delete from public.attendance where session_id = 'e0000000-0000-0000-0000-00000000000a';
+insert into _tap_log(line) select is(
+  (select count(*) from public.attendance where session_id = 'e0000000-0000-0000-0000-00000000000a'),
+  2::bigint,
+  'RLS-53: a tutor''s direct DELETE on attendance destroys nothing — the register is not theirs to delete'
+);
+
+-- The refusal this migration adds: the same outcome via the parent row.
+delete from public.sessions where id = 'e0000000-0000-0000-0000-00000000000a';
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where id = 'e0000000-0000-0000-0000-00000000000a'),
+  1::bigint,
+  'RLS-54: …and the cascade route is closed too — a tutor cannot DELETE a session of their own class'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.attendance where session_id = 'e0000000-0000-0000-0000-00000000000a'),
+  2::bigint,
+  'RLS-54: …so the register survives both attempts intact'
+);
+
+-- Anti-regression: the three verbs the app actually uses still work.
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where class_id = 'c0000000-0000-0000-0000-00000000000a'),
+  1::bigint,
+  'RLS-55: a tutor still SELECTs their own class''s sessions'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.sessions (class_id, date, tutor_id)
+     values ('c0000000-0000-0000-0000-00000000000a', current_date + 7,
+             '70000000-0000-0000-0000-000000000001') $$,
+  'RLS-55: …and still INSERTs one (the getOrCreateTodaySession path)'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ update public.sessions set date = current_date + 8
+      where class_id = 'c0000000-0000-0000-0000-00000000000a'
+        and date = current_date + 7 $$,
+  'RLS-55: …and still UPDATEs one'
+);
+
+-- The row scope did not move: another class stays out of reach.
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where class_id = 'c0000000-0000-0000-0000-00000000000b'),
+  0::bigint,
+  'RLS-56: the split did not widen the row scope — Class B''s sessions stay invisible to T1'
+);
+delete from public.sessions where id = 'e0000000-0000-0000-0000-00000000000b';
+reset role;
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where id = 'e0000000-0000-0000-0000-00000000000b'),
+  1::bigint,
+  'RLS-56: …and T1''s delete against a class they do not teach left it standing (asserted from outside RLS)'
+);
+
+-- A family reads sessions and never writes them.
+set local role authenticated;
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000001';
+-- Scoped to the fixture row, not a class count: RLS-55 above adds a
+-- second Class A session, so a count would be asserting the wrong thing.
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where id = 'e0000000-0000-0000-0000-00000000000a'),
+  1::bigint,
+  'RLS-57: P1 still reads the sessions of the class their child attends'
+);
+delete from public.sessions where id = 'e0000000-0000-0000-0000-00000000000a';
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where id = 'e0000000-0000-0000-0000-00000000000a'),
+  1::bigint,
+  'RLS-57: …and a parent still cannot delete one'
+);
+
+-- Admin keeps DELETE, and the cascade still works for them — the
+-- erasure path this migration must not break.
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';
+insert into _tap_log(line) select lives_ok(
+  $$ delete from public.sessions where id = 'e0000000-0000-0000-0000-00000000000a' $$,
+  'RLS-58: admin can still DELETE a session (sessions_admin_all keeps every verb)'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where id = 'e0000000-0000-0000-0000-00000000000a'),
+  0::bigint,
+  'RLS-58: …the session is gone'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.attendance where session_id = 'e0000000-0000-0000-0000-00000000000a'),
+  0::bigint,
+  'RLS-58: …and the register cascades away with it, so the admin correction path is intact'
+);
+
+reset role;
+
 -- ---------- done ----------
 reset role;
 insert into _tap_log(line) select * from finish();
