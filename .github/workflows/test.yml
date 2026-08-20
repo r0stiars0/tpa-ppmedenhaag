@@ -1,0 +1,66 @@
+name: Tests
+on: [pull_request]
+
+env:
+  # Dummy values so the client guard clause doesn't throw during build/e2e —
+  # no real Supabase calls are exercised by the current test suite.
+  VITE_SUPABASE_URL: https://placeholder.supabase.co
+  VITE_SUPABASE_ANON_KEY: placeholder-anon-key
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # 22, not 20. `@supabase/supabase-js` builds a RealtimeClient
+          # inside `createClient()`, which needs a global `WebSocket` and
+          # throws at construction without one — Node only has that
+          # unflagged from 22. Node 20 is also out of support as of April
+          # 2026. This is not a test-only constraint: every Function
+          # holding the service-role key calls `createClient`, so the
+          # deployed runtime is pinned to match in netlify.toml. Keep the
+          # two in step.
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run typecheck:functions
+      - run: npm run test
+      - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # 22, not 20. `@supabase/supabase-js` builds a RealtimeClient
+          # inside `createClient()`, which needs a global `WebSocket` and
+          # throws at construction without one — Node only has that
+          # unflagged from 22. Node 20 is also out of support as of April
+          # 2026. This is not a test-only constraint: every Function
+          # holding the service-role key calls `createClient`, so the
+          # deployed runtime is pinned to match in netlify.toml. Keep the
+          # two in step.
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  # RLS automated suite (test-plan.md §3, RLS-01..42 + NC-01..18 + WH checks,
+  # 231 pgTAP assertions) — merge gate for any migration change per the test
+  # plan. Runs against a fresh local Postgres (Docker, via the Supabase CLI's
+  # own stack) built from supabase/migrations, never against the live/linked
+  # project — no secrets required.
+  rls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase start
+      - run: supabase test db --local supabase/tests/database
