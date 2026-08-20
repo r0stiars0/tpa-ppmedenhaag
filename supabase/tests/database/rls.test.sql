@@ -2580,6 +2580,367 @@ insert into _tap_log(line) select ok(
 -- does not. An assertion here would pass in one and fail in the other
 -- while saying nothing about the migration under test.
 
+-- ============================================================
+-- RLS-43…RLS-52 — a row-scoped policy guarding column-scoped secrets
+-- (migration 016, TAD ADR-034)
+--
+-- `yer_tutor_rw` is `for all` and gates only `student_id`. RLS has no
+-- column granularity, so before migration 016 every column a tutor's
+-- USING/WITH CHECK let them reach was theirs to write — including the
+-- four that encode publication state and integrity rather than authored
+-- content: a tutor could publish their own report with no PDF behind it
+-- (firing the real "report ready" push), falsify the attendance
+-- snapshot `generate-year-end-drafts` computed, repoint `pdf_path` at
+-- another family's deterministic object, or delete the row outright.
+-- Migration 016 narrows the grant the same way migration 012 narrowed
+-- `notifications` to `update (read_at)`, without touching a single
+-- policy predicate — `yer_tutor_rw`'s row-level rule, and migration
+-- 013's self-exclusion (ADR-023) inside it, are exactly as before.
+--
+-- New, isolated fixtures rather than the RLS-15…21 rows: by this point
+-- in the file those have been published, edited and renamed by WH-10
+-- and everything after it, and this block needs to know its own
+-- starting state exactly, not "whatever the file above left behind".
+insert into public.classes (id, name, schedule, tutor_ids)
+values ('11000000-0000-0000-0000-000000000001', 'Class G (RLS-43 test)', 'Senin 10:00', array['70000000-0000-0000-0000-000000000001']::uuid[]);
+
+insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous, created_at, updated_at)
+values ('12000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'p43@test.local', '', now(), '{}', '{}', false, false, now(), now());
+insert into public.users (id, email, full_name, role, locale)
+values ('12000000-0000-0000-0000-000000000001', 'p43@test.local', 'Parent RLS43', 'parent', 'id');
+
+insert into public.students (id, parent_id, user_id, full_name, class_id, date_of_birth)
+values ('13000000-0000-0000-0000-000000000001', '12000000-0000-0000-0000-000000000001', null, 'P43 Child (RLS-43 test)', '11000000-0000-0000-0000-000000000001', '2015-01-01');
+
+-- draft: the refusal block (RLS-43…46) and the permitted-edit half of
+-- RLS-48/50. published: the admin refusal/permitted block (RLS-47/49)
+-- and FR-006's other half of RLS-48. A third, untouched draft is left
+-- for RLS-52 (service_role), so the delete in RLS-51 is the only thing
+-- that ever removes it.
+insert into public.year_end_reports (student_id, academic_year, tutor_id, status)
+values
+  ('13000000-0000-0000-0000-000000000001', '2025/2026', '70000000-0000-0000-0000-000000000001', 'draft'),
+  ('13000000-0000-0000-0000-000000000001', '2024/2025', '70000000-0000-0000-0000-000000000001', 'published'),
+  ('13000000-0000-0000-0000-000000000001', '2023/2024', '70000000-0000-0000-0000-000000000001', 'draft');
+
+set local role authenticated;
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';
+set local request.jwt.claim.role to 'authenticated';
+
+-- ---- RLS-43…46: the sharpest four, all refused at the grant, not the
+-- row — T1 genuinely owns every row touched below (yer_tutor_rw's
+-- USING/WITH CHECK would allow all four), so a bare row-count check
+-- would prove nothing; `permission denied for table` has to be raised
+-- before RLS is even asked, which is what distinguishes a column-level
+-- GRANT from a policy that merely filters silently (contrast RLS-20).
+insert into _tap_log(line) select throws_ok(
+  $$ update public.year_end_reports set status = 'published'
+     where student_id = '13000000-0000-0000-0000-000000000001' and academic_year = '2025/2026' $$,
+  '42501', null,
+  'RLS-43: a tutor cannot flip their own report to published by direct UPDATE — that walks around publish-report''s narrative gate and the PDF it guarantees'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ update public.year_end_reports set pdf_path = 'd0000000-0000-0000-0000-000000000003/2025-2026.pdf'
+     where student_id = '13000000-0000-0000-0000-000000000001' and academic_year = '2025/2026' $$,
+  '42501', null,
+  'RLS-43: …nor repoint pdf_path at another family''s deterministic object'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ update public.year_end_reports set attendance_present = 99, attendance_rate = 100.00
+     where student_id = '13000000-0000-0000-0000-000000000001' and academic_year = '2025/2026' $$,
+  '42501', null,
+  'RLS-43: …nor rewrite the attendance snapshot generate-year-end-drafts computed'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ delete from public.year_end_reports
+     where student_id = '13000000-0000-0000-0000-000000000001' and academic_year = '2025/2026' $$,
+  '42501', null,
+  'RLS-43: …nor delete their own class''s report — no soft-delete, no audit trail, so this is the row''s only protection'
+);
+
+-- ---- RLS-48: the anti-regression half, and the more important one —
+-- every ReportEdit column, on a draft and on an already-published
+-- report (FR-006's post-publish edit), still succeeds for the
+-- authoring tutor after the same grant that refused RLS-43…46.
+insert into _tap_log(line) select lives_ok(
+  $$ update public.year_end_reports set
+       narrative = 'Alhamdulillah, kemajuan tahun ini baik.',
+       yanbua_grade = 'mumtaz', yanbua_notes = 'Lancar',
+       quran_grade = 'jayyid', quran_notes = 'Tajwid baik',
+       murajaah_grade = 'jayyid_jiddan', murajaah_notes = 'Rutin',
+       overall_grade = 'mumtaz'
+     where student_id = '13000000-0000-0000-0000-000000000001' and academic_year = '2025/2026' $$,
+  'RLS-48: T1 can still write all eight ReportEdit columns on their own draft report'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ update public.year_end_reports set
+       narrative = 'Correction after publish.',
+       yanbua_grade = 'jayyid', yanbua_notes = null,
+       quran_grade = 'jayyid', quran_notes = null,
+       murajaah_grade = 'jayyid', murajaah_notes = null,
+       overall_grade = 'jayyid'
+     where student_id = '13000000-0000-0000-0000-000000000001' and academic_year = '2024/2025' $$,
+  'RLS-48: …and on their own already-published report — FR-006''s post-publish edit is unaffected'
+);
+
+-- ---- RLS-50: the trigger the grant list never names. Column privilege
+-- checks look only at the statement's own target-column list; a trigger
+-- writing a column the client never mentioned is a different question
+-- Postgres answers separately, and `trg_year_end_reports_touch` is not
+-- in the eight-column grant.
+--
+-- `fn_touch_updated_at()` sets `updated_at := now()`, and this entire
+-- file runs as one outer transaction — `now()` is `transaction_timestamp()`,
+-- frozen for the whole script, so a "before/after" pair captured with two
+-- `select now()`-derived reads would be identical regardless of whether
+-- the trigger fired. A sentinel far in the past, written directly as the
+-- table owner before the tutor's edit, sidesteps that rather than fights it.
+reset role;
+update public.year_end_reports set updated_at = '2000-01-01T00:00:00Z'
+  where student_id = '13000000-0000-0000-0000-000000000001' and academic_year = '2024/2025';
+set local role authenticated;
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';
+set local request.jwt.claim.role to 'authenticated';
+
+insert into _tap_log(line) select lives_ok(
+  $$ update public.year_end_reports set narrative = 'trigger check'
+     where student_id = '13000000-0000-0000-0000-000000000001' and academic_year = '2024/2025' $$,
+  'RLS-50: …the permitted narrative edit itself succeeds'
+);
+insert into _tap_log(line) select ok(
+  (select updated_at > '2000-01-01T00:00:00Z'::timestamptz from public.year_end_reports
+     where student_id = '13000000-0000-0000-0000-000000000001' and academic_year = '2024/2025'),
+  'RLS-50: …and moves updated_at off the sentinel — the touch trigger fires despite the column not being in the grant list'
+);
+
+-- ---- RLS-47: admin holds `yer_admin_all` (`for all using (fn_is_admin())`),
+-- but admin authenticates as the same Postgres `authenticated` role as
+-- every tutor — the column grant is per-role, not per-app-role, so it
+-- refuses admin here exactly as it refuses a tutor. publish-report.mts
+-- already 403s any caller who is not the authoring tutor, admin
+-- included, so this closes the one route left for admin to reach status
+-- directly rather than taking anything admin legitimately used.
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';
+
+insert into _tap_log(line) select throws_ok(
+  $$ update public.year_end_reports set status = 'draft'
+     where student_id = '13000000-0000-0000-0000-000000000001' and academic_year = '2024/2025' $$,
+  '42501', null,
+  'RLS-47: admin cannot flip status by direct UPDATE either — publication state belongs to publish-report, not to any authenticated session'
+);
+
+-- ---- RLS-49: admin keeps exactly ADR-014(e)'s promise — content
+-- editing of drafts and published reports — and nothing beyond it.
+insert into _tap_log(line) select lives_ok(
+  $$ update public.year_end_reports set narrative = 'Admin correction.', overall_grade = 'jayyid_jiddan'
+     where student_id = '13000000-0000-0000-0000-000000000001' and academic_year = '2024/2025' $$,
+  'RLS-49: admin can still edit narrative/grades on a published report (ADR-014(e))'
+);
+
+-- ---- RLS-52: service_role — used only by publish-report and
+-- generate-year-end-drafts — is untouched. The revoke names
+-- `anon, authenticated` alone, and service_role bypasses RLS and grants
+-- entirely by Supabase platform default, not by anything this schema
+-- grants it.
+set local role service_role;
+insert into _tap_log(line) select lives_ok(
+  $$ update public.year_end_reports set status = 'published', pdf_path = '13000000-0000-0000-0000-000000000001/2023-2024.pdf', published_at = now()
+     where student_id = '13000000-0000-0000-0000-000000000001' and academic_year = '2023/2024' $$,
+  'RLS-52: service_role can still write status, pdf_path and published_at — publish-report''s own write path'
+);
+
+-- ---- RLS-51: GDPR art. 17 — deleting a student still removes their
+-- year_end_reports rows, even though `authenticated` no longer holds
+-- DELETE on the table at all. `student_id … on delete cascade` is
+-- enforced by Postgres' own referential-integrity trigger on `students`,
+-- which runs independent of the deleting role's privileges on the
+-- *referencing* table — proven here rather than assumed, the same
+-- standard migration 012's own comment invoked for `notifications`.
+set local role authenticated;
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';
+
+insert into _tap_log(line) select is(
+  (select count(*) from public.year_end_reports where student_id = '13000000-0000-0000-0000-000000000001'),
+  3::bigint,
+  'RLS-51: all three fixture reports exist immediately before the deletion that cascades them away'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ delete from public.students where id = '13000000-0000-0000-0000-000000000001' $$,
+  'RLS-51: admin can delete the student (students_admin_all + the unrevoked table grant on students)'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.year_end_reports where student_id = '13000000-0000-0000-0000-000000000001'),
+  0::bigint,
+  'RLS-51: …and the cascade takes every one of their year_end_reports rows with it, with no direct DELETE grant on the table in sight'
+);
+
+reset role;
+
+-- ============================================================
+-- RLS-53…RLS-58 — the session DELETE boundary (migration 017,
+-- TAD ADR-035)
+--
+-- `attendance` grants no tutor DELETE on purpose: correcting a register
+-- is a tutor's job, destroying one is not. But `attendance.session_id`
+-- cascades, and `sessions_tutor_rw` was `for all` — and a cascade is not
+-- filtered by the child table's policies. So the withheld privilege was
+-- reachable through the parent row.
+--
+-- The pair RLS-53/RLS-54 is the whole finding: the direct delete is
+-- refused (and always was), the delete through the parent is refused now.
+-- Asserting only the second would pass just as well against a schema that
+-- had broken the first.
+--
+-- A filtered DELETE is silent — it matches 0 rows rather than raising —
+-- so every refusal here is asserted by what survives it, not by an error.
+-- ============================================================
+set local role authenticated;
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';
+set local request.jwt.claim.role to 'authenticated';
+
+insert into _tap_log(line) select is(
+  (select count(*) from public.attendance where session_id = 'e0000000-0000-0000-0000-00000000000a'),
+  2::bigint,
+  'RLS-53: Class A''s session has a register before any deletion is attempted'
+);
+
+-- The refusal that already held: no DELETE policy on attendance.
+delete from public.attendance where session_id = 'e0000000-0000-0000-0000-00000000000a';
+insert into _tap_log(line) select is(
+  (select count(*) from public.attendance where session_id = 'e0000000-0000-0000-0000-00000000000a'),
+  2::bigint,
+  'RLS-53: a tutor''s direct DELETE on attendance destroys nothing — the register is not theirs to delete'
+);
+
+-- The refusal this migration adds: the same outcome via the parent row.
+delete from public.sessions where id = 'e0000000-0000-0000-0000-00000000000a';
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where id = 'e0000000-0000-0000-0000-00000000000a'),
+  1::bigint,
+  'RLS-54: …and the cascade route is closed too — a tutor cannot DELETE a session of their own class'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.attendance where session_id = 'e0000000-0000-0000-0000-00000000000a'),
+  2::bigint,
+  'RLS-54: …so the register survives both attempts intact'
+);
+
+-- Anti-regression: the three verbs the app actually uses still work.
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where class_id = 'c0000000-0000-0000-0000-00000000000a'),
+  1::bigint,
+  'RLS-55: a tutor still SELECTs their own class''s sessions'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.sessions (class_id, date, tutor_id)
+     values ('c0000000-0000-0000-0000-00000000000a', current_date + 7,
+             '70000000-0000-0000-0000-000000000001') $$,
+  'RLS-55: …and still INSERTs one (the getOrCreateTodaySession path)'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ update public.sessions set date = current_date + 8
+      where class_id = 'c0000000-0000-0000-0000-00000000000a'
+        and date = current_date + 7 $$,
+  'RLS-55: …and still UPDATEs one'
+);
+
+-- The row scope did not move: another class stays out of reach.
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where class_id = 'c0000000-0000-0000-0000-00000000000b'),
+  0::bigint,
+  'RLS-56: the split did not widen the row scope — Class B''s sessions stay invisible to T1'
+);
+delete from public.sessions where id = 'e0000000-0000-0000-0000-00000000000b';
+reset role;
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where id = 'e0000000-0000-0000-0000-00000000000b'),
+  1::bigint,
+  'RLS-56: …and T1''s delete against a class they do not teach left it standing (asserted from outside RLS)'
+);
+
+-- A family reads sessions and never writes them.
+set local role authenticated;
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000001';
+-- Scoped to the fixture row, not a class count: RLS-55 above adds a
+-- second Class A session, so a count would be asserting the wrong thing.
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where id = 'e0000000-0000-0000-0000-00000000000a'),
+  1::bigint,
+  'RLS-57: P1 still reads the sessions of the class their child attends'
+);
+delete from public.sessions where id = 'e0000000-0000-0000-0000-00000000000a';
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where id = 'e0000000-0000-0000-0000-00000000000a'),
+  1::bigint,
+  'RLS-57: …and a parent still cannot delete one'
+);
+
+-- Admin keeps DELETE, and the cascade still works for them — the
+-- erasure path this migration must not break.
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';
+insert into _tap_log(line) select lives_ok(
+  $$ delete from public.sessions where id = 'e0000000-0000-0000-0000-00000000000a' $$,
+  'RLS-58: admin can still DELETE a session (sessions_admin_all keeps every verb)'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where id = 'e0000000-0000-0000-0000-00000000000a'),
+  0::bigint,
+  'RLS-58: …the session is gone'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.attendance where session_id = 'e0000000-0000-0000-0000-00000000000a'),
+  0::bigint,
+  'RLS-58: …and the register cascades away with it, so the admin correction path is intact'
+);
+
+-- ============================================================
+-- RLS-59 — a session records who taught it (migration 017,
+-- TAD ADR-036)
+--
+-- `sessions_tutor_insert` gated `class_id` and nothing else, so a tutor
+-- could attribute a session of their own class to any other user. Every
+-- sibling recording policy pins the actor — `yanbua_tutor_insert` and
+-- `quran_tutor_insert` both carry `tutor_id = auth.uid()`, which RLS-05
+-- asserts — and ADR-014(b) defines the column as "who recorded this"
+-- (RLS-24, RLS-39). This is the one table where that meaning was
+-- documented but not enforced.
+--
+-- Dates here avoid current_date + 7/+8, which RLS-55 above already used
+-- for Class A: `sessions` is `unique (class_id, date)`, so a collision
+-- would fail for the wrong reason.
+-- ============================================================
+set local role authenticated;
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';
+set local request.jwt.claim.role to 'authenticated';
+
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.sessions (class_id, date, tutor_id)
+     values ('c0000000-0000-0000-0000-00000000000a', current_date + 9,
+             '70000000-0000-0000-0000-000000000002') $$,
+  '42501', null,
+  'RLS-59: a tutor cannot attribute a session of their own class to a colleague'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.sessions (class_id, date, tutor_id)
+     values ('c0000000-0000-0000-0000-00000000000a', current_date + 10,
+             '70000000-0000-0000-0000-000000000001') $$,
+  'RLS-59: …and recording one under their own id still works (the getOrCreateTodaySession path)'
+);
+
+-- The clause lives in the tutor policy only. Migration 017 moved admin
+-- into `sessions_admin_all`, so ADR-014's super admin is untouched by it
+-- — including the ADR-014(b) case where an admin records for a class
+-- they do not teach.
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.sessions (class_id, date, tutor_id)
+     values ('c0000000-0000-0000-0000-00000000000b', current_date + 11,
+             '70000000-0000-0000-0000-000000000002') $$,
+  'RLS-59: admin still records a session for a class it does not teach, under another tutor''s id (ADR-014(b))'
+);
+
+reset role;
+
 -- ---------- done ----------
 reset role;
 insert into _tap_log(line) select * from finish();

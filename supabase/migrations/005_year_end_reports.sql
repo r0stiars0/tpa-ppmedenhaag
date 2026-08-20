@@ -43,7 +43,13 @@ create table public.year_end_reports (
   overall_grade       report_grade,
 
   -- stats snapshot, computed at draft generation time by
-  -- generate-year-end-drafts (not user-editable via the API)
+  -- generate-year-end-drafts. ~~(not user-editable via the API)~~ — WRONG,
+  -- and found the hard way: RLS is row-scoped, so `yer_tutor_rw` below
+  -- granted a tutor UPDATE on every column of their own class's reports,
+  -- these four included, until migration 016 narrowed the grant to
+  -- exactly the eight authored columns (TAD ADR-034). Read this
+  -- comment as describing product intent,
+  -- not an enforced boundary, until 016.
   attendance_present  smallint not null default 0,
   attendance_absent   smallint not null default 0,
   attendance_late     smallint not null default 0,
