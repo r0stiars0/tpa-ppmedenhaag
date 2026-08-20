@@ -1,8 +1,13 @@
 -- ============================================================
--- TPA PPME Den Haag — Migration 017: session DELETE boundary
+-- TPA PPME Den Haag — Migration 017: session write boundaries
 --
--- Closes a privilege the attendance policies deliberately withhold and
--- the sessions policy accidentally hands back, TAD ADR-035.
+-- Two independent defects in the same policy set, fixed in one rewrite
+-- because they touch the same statements:
+--
+--   * DELETE, which the attendance policies deliberately withhold and
+--     the sessions policy accidentally handed back (TAD ADR-035);
+--   * `tutor_id`, which every sibling recording policy pins to the
+--     caller and this one did not (TAD ADR-036).
 --
 -- ── The mechanism ─────────────────────────────────────────────
 -- `attendance` (migration 003) has policies for INSERT, SELECT and
@@ -63,9 +68,21 @@ create policy sessions_tutor_read on public.sessions
   for select to authenticated
   using (class_id in (select public.fn_my_classes()));
 
+-- `tutor_id = auth.uid()` pins the actor, matching every sibling
+-- recording policy (`yanbua_tutor_insert`, `quran_tutor_insert`, which
+-- RLS-05 asserts) and enforcing the meaning ADR-014(b) already gives the
+-- column: "who recorded this". Without it a tutor could attribute a
+-- session of their own class to a colleague — the one table where that
+-- meaning was documented but not enforced. See ADR-036.
+--
+-- This is safe to add only because the admin term moved out of this
+-- policy above: while `or public.fn_is_admin()` sat in the same clause,
+-- pinning the actor here would have constrained admin too and broken
+-- ADR-014(b)'s "records for a class it does not teach".
 create policy sessions_tutor_insert on public.sessions
   for insert to authenticated
-  with check (class_id in (select public.fn_my_classes()));
+  with check (class_id in (select public.fn_my_classes())
+              and tutor_id = auth.uid());
 
 create policy sessions_tutor_update on public.sessions
   for update to authenticated

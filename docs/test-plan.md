@@ -127,6 +127,7 @@ Run as SQL scripts with `set role authenticated; set request.jwt.claims` per per
 | RLS-56 | The split did not widen the row scope: Class B's sessions stay invisible to T1, and T1's `DELETE` against one leaves it standing — asserted from outside RLS, because a filtered delete and a successful one look identical from inside the session that issued it |
 | RLS-57 | `sessions_family_read` is untouched — P1 still reads the sessions of the class their child attends, and still cannot delete one. The family policy was already SELECT-only; this pins that the tutor-policy split did not disturb it |
 | RLS-58 | **Admin keeps DELETE, and the cascade with it.** The erasure path this migration must not break: admin deletes a session, it goes, and its register cascades away — the same relationship GDPR art. 17 relies on from `students` (RLS-51) |
+| RLS-59 | **A session records who taught it** (migration 017, TAD ADR-036) — a tutor cannot attribute a session of their own class to a colleague (`42501`, a `WITH CHECK` refusal rather than a silent filter, since this is an INSERT); recording one under their own id still works, which is the `getOrCreateTodaySession` path; and **admin still records a session for a class it does not teach, under another tutor's id** — the ADR-014(b) case that only survives because ADR-035 moved the admin term into its own policy first |
 
 **Gate: all RLS tests green in CI is a merge requirement for any migration change, and a launch requirement before real data entry (DPIA risk R1).**
 

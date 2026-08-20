@@ -2893,6 +2893,52 @@ insert into _tap_log(line) select is(
   'RLS-58: …and the register cascades away with it, so the admin correction path is intact'
 );
 
+-- ============================================================
+-- RLS-59 — a session records who taught it (migration 017,
+-- TAD ADR-036)
+--
+-- `sessions_tutor_insert` gated `class_id` and nothing else, so a tutor
+-- could attribute a session of their own class to any other user. Every
+-- sibling recording policy pins the actor — `yanbua_tutor_insert` and
+-- `quran_tutor_insert` both carry `tutor_id = auth.uid()`, which RLS-05
+-- asserts — and ADR-014(b) defines the column as "who recorded this"
+-- (RLS-24, RLS-39). This is the one table where that meaning was
+-- documented but not enforced.
+--
+-- Dates here avoid current_date + 7/+8, which RLS-55 above already used
+-- for Class A: `sessions` is `unique (class_id, date)`, so a collision
+-- would fail for the wrong reason.
+-- ============================================================
+set local role authenticated;
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';
+set local request.jwt.claim.role to 'authenticated';
+
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.sessions (class_id, date, tutor_id)
+     values ('c0000000-0000-0000-0000-00000000000a', current_date + 9,
+             '70000000-0000-0000-0000-000000000002') $$,
+  '42501', null,
+  'RLS-59: a tutor cannot attribute a session of their own class to a colleague'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.sessions (class_id, date, tutor_id)
+     values ('c0000000-0000-0000-0000-00000000000a', current_date + 10,
+             '70000000-0000-0000-0000-000000000001') $$,
+  'RLS-59: …and recording one under their own id still works (the getOrCreateTodaySession path)'
+);
+
+-- The clause lives in the tutor policy only. Migration 017 moved admin
+-- into `sessions_admin_all`, so ADR-014's super admin is untouched by it
+-- — including the ADR-014(b) case where an admin records for a class
+-- they do not teach.
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.sessions (class_id, date, tutor_id)
+     values ('c0000000-0000-0000-0000-00000000000b', current_date + 11,
+             '70000000-0000-0000-0000-000000000002') $$,
+  'RLS-59: admin still records a session for a class it does not teach, under another tutor''s id (ADR-014(b))'
+);
+
 reset role;
 
 -- ---------- done ----------
