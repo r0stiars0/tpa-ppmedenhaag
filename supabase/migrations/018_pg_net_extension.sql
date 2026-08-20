@@ -1,0 +1,64 @@
+-- ============================================================
+-- TPA PPME Den Haag — Migration 018: install pg_net
+--
+-- Migration 009 builds the whole database-webhook path on
+-- `net.http_post`, and migration 010's five triggers call it through
+-- `fn_post_webhook`. Neither migration ever creates the extension that
+-- provides it. On the hosted Frankfurt project that went unnoticed
+-- because pg_net was enabled there by hand, through the dashboard,
+-- before those migrations were written — so the repo has never been a
+-- complete description of the schema it needs, in exactly the way
+-- migration 014's ADR-027 drift check exists to catch.
+--
+-- ── How this surfaced ─────────────────────────────────────────
+-- It did not surface for months, because the RLS suite that depends on
+-- it had never actually been run by anything. `.github/workflows/test.yml`
+-- was lost when this repository moved to a new remote (`main` begins at a
+-- squashed initial commit sharing no ancestor with the pre-migration
+-- history), and the workflow triggers `on: [pull_request]`, so with no
+-- workflow file on the base branch there was never a run to fail.
+-- Restoring the workflow made the suite execute for the first time, and
+-- it aborted immediately:
+--
+--   psql:supabase/tests/database/rls.test.sql:733:
+--     ERROR:  relation "net.http_request_queue" does not exist
+--   Parse errors: No plan found in TAP output
+--
+-- Not one assertion ran — the file dies before `finish()` emits a plan,
+-- so pg_prove reports 0 tests rather than 231 failures. The WH-01…WH-13
+-- block reads `net.http_request_queue` directly (30+ references) to
+-- assert what each trigger queues: the target URL, the
+-- `x-webhook-secret` header, and that the body carries only a row id and
+-- never the absence `reason` (DPIA R4). Those assertions cannot be
+-- skipped around; they need the extension.
+--
+-- ── Why an extension was missing rather than broken ───────────
+-- `pg_net` ships in the Supabase Postgres image and is simply not
+-- installed: `select * from pg_available_extensions where name = 'pg_net'`
+-- reports `default_version = 0.20.4, installed_version = null` on a
+-- fresh `supabase start`. Nothing in `supabase/config.toml` enables an
+-- extension either — the CLI has no such key, which is why this belongs
+-- in a migration and not in configuration.
+--
+-- ── Ordering, and why a late number is safe ───────────────────
+-- This sits after the migrations that use it, which reads backwards but
+-- is correct: 009 and 010 only name `net.http_post` *inside function
+-- bodies*, which Postgres does not resolve until the function is
+-- executed. Nothing calls one during migration, so load order is
+-- unaffected; what matters is that the extension exists before a trigger
+-- first fires, and every migration has run by then. The number is 018
+-- rather than 016 because 016 and 017 are taken by the report and
+-- session write-boundary work in flight (ADR-034…036).
+--
+-- ── Effect on the hosted project: none ────────────────────────
+-- `if not exists` makes this a no-op wherever pg_net is already enabled,
+-- which includes Frankfurt. No schema is specified: pg_net creates and
+-- owns the `net` schema for its own objects regardless of where the
+-- extension itself is registered, so naming one here would risk
+-- diverging from however the dashboard installed it without changing
+-- what `net.http_post` resolves to.
+--
+-- No data migration: this installs an extension and writes nothing.
+-- ============================================================
+
+create extension if not exists pg_net;
