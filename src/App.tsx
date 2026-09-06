@@ -17,6 +17,7 @@ import { RegistrationsPage } from './features/admin/RegistrationsPage'
 import { ClassesPage } from './features/admin/ClassesPage'
 import { StudentsPage } from './features/admin/StudentsPage'
 import { TutorAttendanceReviewPage } from './features/admin/TutorAttendanceReviewPage'
+import { UsersPage } from './features/admin/UsersPage'
 import { RequireAdmin } from './components/RequireAdmin'
 
 function Gate() {
@@ -97,6 +98,14 @@ function Gate() {
           element={
             <RequireAdmin>
               <TutorAttendanceReviewPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <RequireAdmin>
+              <UsersPage />
             </RequireAdmin>
           }
         />

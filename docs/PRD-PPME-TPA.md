@@ -486,6 +486,15 @@ Digital attendance management system allowing tutors to record student presence/
 - There is no tutor-absence notification (unlike FR-005 for students); this is a review record, not an alert.
 - *Implementation status: **built** — capture + register in TAD ADR-041 / migration 022 (`public.tutor_attendance`, `fn_class_tutors`); the admin review timeline at `/admin/tutor-attendance` in ADR-041(g), same table, no new policy.*
 
+**FR-009: User Directory & Role Management**
+- Priority: Medium
+- A Beheer screen ("Pengguna" / "Gebruikers") lists every account, with a free-text name/email search and a role filter. An admin can edit a user's display name and role inline. Creating, inviting and rejecting accounts stays on the Registrations screen; there is no delete.
+- The signed-in admin cannot change their own role (the control is disabled, and the server refuses it), and the last remaining admin cannot be demoted.
+- Changing a tutor to another role first shows the groups that tutor is assigned to and, on confirmation, removes them from those groups' tutor lists in the same step. Changing a parent or a linked 16+ student to another role warns that they keep their guardian links / self-login (those are relationships, not the role) but does not sever them.
+- Every role change is recorded — who changed whose role, from what to what, when — in an admin-only log. A name-only edit is not logged. The log is not shown in the app yet.
+- *User story:* As the TPA head, I can correct someone's role or the spelling of their name from one screen, without asking a developer to run SQL, and I can see afterwards that a role was changed and by whom.
+- *Implementation status: **built** — TAD ADR-042 / migration 023 (`public.user_role_changes`, `fn_admin_update_user`, `fn_admin_user_role_impact`); screen at `/admin/users`.*
+
 #### 1.4. Non-Functional Requirements
 *   **Performance:** Attendance submission must complete within 2 seconds on 4G connection; Netlify CDN ensures fast asset delivery across EU
 *   **Security:** Google OAuth 2.0 authentication; role-based access control (tutors mark, parents view own children only); all data encrypted at rest (AES-256) and in transit (TLS 1.3); GDPR-compliant EU data residency

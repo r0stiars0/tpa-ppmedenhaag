@@ -449,7 +449,7 @@ Jika peramban memblokir izin notifikasi, layar menampilkan penjelasan untuk memb
 
 ## 12. Kelola (Khusus Admin)
 
-Hanya bisa diakses oleh akun dengan peran Admin, lewat ubin **Kelola** di Beranda. Terdiri dari empat sub-halaman dengan menu tab di bagian atas: **Pendaftaran · Grup · Santri · Kehadiran Guru**.
+Hanya bisa diakses oleh akun dengan peran Admin, lewat ubin **Kelola** di Beranda. Terdiri dari lima sub-halaman dengan menu tab di bagian atas: **Pendaftaran · Grup · Santri · Kehadiran Guru · Pengguna**.
 
 ### 12.1 Pendaftaran
 
@@ -538,6 +538,25 @@ Layar untuk meninjau kehadiran seorang guru secara berkala. Kehadiran guru dicat
 
 Layar ini **hanya untuk melihat** — koreksi kehadiran dilakukan di layar Kehadiran grup yang bersangkutan. Orang tua dan santri tidak pernah melihat kehadiran guru.
 
+### 12.5 Pengguna
+
+Daftar semua akun yang sudah terdaftar, untuk memperbaiki **nama** atau **peran** seseorang. Pembuatan dan penolakan akun tetap dilakukan di [§12.1 Pendaftaran](#121-pendaftaran); di sini tidak ada tombol hapus.
+
+| Elemen | Fungsi |
+|---|---|
+| **Cari nama atau email** | Menyaring daftar berdasarkan potongan nama atau alamat email. |
+| Penyaring peran | **Semua peran** / Admin / Guru / Orang Tua / Santri. |
+| **Ubah** | Membuka formulir baris: kolom **Nama Lengkap** dan pilihan **Peran**. Tekan **Simpan** atau **Batal**. |
+
+Beberapa aturan pengaman:
+
+- Pada baris akun Anda sendiri, pilihan **Peran** dinonaktifkan — Anda tidak dapat mengubah peran sendiri. Namanya tetap bisa diubah.
+- **Admin terakhir** tidak dapat diturunkan perannya. Beri peran Admin ke orang lain dulu.
+- Menurunkan peran seorang **guru** yang masih terdaftar di satu atau beberapa grup akan memunculkan konfirmasi yang menyebutkan grup-grup itu; jika Anda lanjutkan, guru tersebut sekaligus dikeluarkan dari daftar guru grup-grup itu.
+- Menurunkan peran seorang **orang tua** atau **santri 16+ dengan login** hanya memberi peringatan bahwa tautan wali / login mandiri mereka tetap ada — tautan itu **tidak** diputus (itu hubungan, bukan peran).
+
+Setiap perubahan peran dicatat (siapa, dari peran apa ke apa, kapan) di log internal yang hanya dapat dilihat admin; perbaikan nama saja tidak dicatat. Log itu belum ditampilkan di aplikasi.
+
 ---
 
 ## 13. Akun dengan Peran Ganda
@@ -587,7 +606,8 @@ Untuk memudahkan komunikasi dua bahasa di lingkungan TPA, berikut padanan istila
 | Rapor | Rapport | — |
 | Kelola | Beheer | Menu khusus admin. |
 | Pendaftaran | Registraties | — |
+| Pengguna | Gebruikers | Sub-halaman admin untuk mengubah nama dan peran akun. |
 
 ---
 
-*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **12.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026), serta **§5.1 dilengkapi dengan bagian "Kehadiran guru"** dan **§12.4 ditambahkan untuk layar peninjauan "Kehadiran Guru" admin** (ADR-041, September 2026). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF dibuat ulang dari teks ini dengan `scripts/gen-manual-pdf.mjs`; layar §12.4 belum memiliki tangkapan layar.*
+*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **12.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026), serta **§5.1 dilengkapi dengan bagian "Kehadiran guru"** dan **§12.4 ditambahkan untuk layar peninjauan "Kehadiran Guru" admin** (ADR-041, September 2026), dan **§12.5 ditambahkan untuk layar "Pengguna" admin** (ADR-042, September 2026). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF dibuat ulang dari teks ini dengan `scripts/gen-manual-pdf.mjs`; layar §12.4 dan §12.5 belum memiliki tangkapan layar.*

@@ -449,7 +449,7 @@ Als de browser meldingsrechten blokkeert, toont het scherm uitleg om deze handma
 
 ## 12. Beheer (alleen beheerder)
 
-Alleen toegankelijk voor een account met de rol Beheerder, via de tegel **Beheer** op het startscherm. Bestaat uit vier subpagina's met een tabmenu bovenaan: **Registraties · Groepen · Leerlingen · Aanwezigheid docenten**.
+Alleen toegankelijk voor een account met de rol Beheerder, via de tegel **Beheer** op het startscherm. Bestaat uit vijf subpagina's met een tabmenu bovenaan: **Registraties · Groepen · Leerlingen · Aanwezigheid docenten · Gebruikers**.
 
 ### 12.1 Registraties
 
@@ -538,6 +538,25 @@ Scherm om de aanwezigheid van een docent periodiek na te kijken. De aanwezigheid
 
 Dit scherm is **alleen om te bekijken** — corrigeren gebeurt op het Aanwezigheidsscherm van de betreffende groep. Ouders en leerlingen zien de aanwezigheid van docenten nooit.
 
+### 12.5 Gebruikers
+
+Een lijst van alle bestaande accounts, om iemands **naam** of **rol** te corrigeren. Accounts aanmaken en afwijzen blijft op [§12.1 Registraties](#121-registraties); hier is geen verwijderknop.
+
+| Element | Functie |
+|---|---|
+| **Zoek op naam of e-mail** | Filtert de lijst op een deel van de naam of het e-mailadres. |
+| Rolfilter | **Alle rollen** / Beheerder / Docent / Ouder / Leerling. |
+| **Bewerken** | Opent het regelformulier: veld **Volledige naam** en keuzelijst **Rol**. Tik **Opslaan** of **Annuleren**. |
+
+Enkele beveiligingen:
+
+- Op de regel van uw eigen account is de keuzelijst **Rol** uitgeschakeld — u kunt uw eigen rol niet wijzigen. De naam blijft wel te bewerken.
+- De **laatst overgebleven beheerder** kan niet worden teruggezet. Geef eerst iemand anders de rol Beheerder.
+- Zet u een **docent** die nog aan een of meer groepen is toegewezen op een andere rol, dan verschijnt een bevestiging die die groepen noemt; gaat u door, dan wordt de docent meteen uit de docentenlijst van die groepen gehaald.
+- Zet u een **ouder** of een **leerling van 16+ met login** op een andere rol, dan is er alleen een waarschuwing dat hun verzorger­koppeling / eigen login blijft bestaan — die wordt **niet** verbroken (het is een relatie, geen rol).
+
+Elke rolwijziging wordt vastgelegd (wie, van welke rol naar welke, wanneer) in een intern logboek dat alleen beheerders kunnen inzien; alleen een naam corrigeren wordt niet vastgelegd. Dat logboek is nog niet in de app zichtbaar.
+
 ---
 
 ## 13. Accounts met een dubbele rol
@@ -587,7 +606,8 @@ Om tweetalige communicatie binnen de TPA te vergemakkelijken, hier de belangrijk
 | Rapport | Rapor | — |
 | Beheer | Kelola | Menu alleen voor de beheerder. |
 | Registraties | Pendaftaran | — |
+| Gebruikers | Pengguna | Beheersubpagina om naam en rol van een account te wijzigen. |
 
 ---
 
-*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **12.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026), en met **§5.1 aangevuld voor de sectie "Aanwezigheid docenten"** en **§12.4 toegevoegd voor het beheerdersscherm "Aanwezigheid docenten"** (ADR-041, september 2026). De indeling kan in latere app-versies licht afwijken. De PDF-versie is uit deze tekst opnieuw gegenereerd met `scripts/gen-manual-pdf.mjs`; het scherm van §12.4 heeft nog geen schermafbeelding.*
+*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **12.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026), met **§5.1 aangevuld voor de sectie "Aanwezigheid docenten"** en **§12.4 toegevoegd voor het beheerdersscherm "Aanwezigheid docenten"** (ADR-041, september 2026), en met **§12.5 toegevoegd voor het beheerdersscherm "Gebruikers"** (ADR-042, september 2026). De indeling kan in latere app-versies licht afwijken. De PDF-versie is uit deze tekst opnieuw gegenereerd met `scripts/gen-manual-pdf.mjs`; de schermen van §12.4 en §12.5 hebben nog geen schermafbeelding.*
