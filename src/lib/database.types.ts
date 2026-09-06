@@ -593,6 +593,48 @@ export type Database = {
         }
         Relationships: []
       }
+      tutor_attendance: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string | null
+          session_id: string
+          status: Database["public"]["Enums"]["attendance_status"]
+          tutor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          session_id: string
+          status: Database["public"]["Enums"]["attendance_status"]
+          tutor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          session_id?: string
+          status?: Database["public"]["Enums"]["attendance_status"]
+          tutor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutor_attendance_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tutor_attendance_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string
@@ -807,6 +849,13 @@ export type Database = {
           p_user_id?: string
         }
         Returns: string
+      }
+      fn_class_tutors: {
+        Args: { p_class: string }
+        Returns: {
+          full_name: string
+          user_id: string
+        }[]
       }
       fn_current_role: {
         Args: never

@@ -440,6 +440,7 @@ Digital attendance management system allowing tutors to record student presence/
 *   *As a parent, I want to be notified if my child is marked absent, so that I am aware of any attendance issues.*
 *   *As a parent, I want to view my child's attendance history, so that I can monitor their consistency.*
 *   *As a TPA admin, I want to see aggregate attendance reports, so that I can identify students with concerning absence patterns.*
+*   *As the TPA head, I want tutor attendance recorded on the same register and reviewable per tutor over time, so that I can monitor tutor turnout periodically.*
 
 #### 1.3. Functional Requirements
 
@@ -475,6 +476,15 @@ Digital attendance management system allowing tutors to record student presence/
 - A `sessions` row can only be created for a date that is one of the group's meeting days — enforced in the database (`trg_sessions_meeting_day`, TAD ADR-037) for every caller including admin. Editing an already-recorded session is not restricted.
 - Parents and 16+ students see the meeting days read-only on the child's attendance screen.
 - *Implementation status: **built** (TAD ADR-037, migration 019). `classes.meeting_days` is a `dow` array (0=Sunday…6=Saturday); the free-text `schedule` field is kept for the time range.*
+
+**FR-008: Tutor Attendance**
+- Priority: Medium
+- The class-scope Attendance screen has an "Ustadz" section below the student roster listing the tutors assigned to the selected class, each with the same Present / Late / Absent (with reason) control a student row has.
+- A tutor of the class, or an admin, records it; it is submitted together with the student roster for the same session and the confirm dialog states the student count and the tutor count separately. It rides the FR-007 schedule stepper, so a missed session's tutor attendance can be backfilled through the current academic year exactly as student attendance can.
+- **A TPA admin can review a tutor's attendance over a date range** — a Beheer screen where the admin picks a tutor and sees a present-rate and a dated list across all classes that tutor teaches — so tutor attendance can be checked periodically.
+- Tutor attendance is visible only to an admin and to a tutor of that class. Parents and 16+ students never see it. The absence reason is treated exactly like the student one — shown in-app only, never in a notification or an export.
+- There is no tutor-absence notification (unlike FR-005 for students); this is a review record, not an alert.
+- *Implementation status: **built** — capture + register in TAD ADR-041 / migration 022 (`public.tutor_attendance`, `fn_class_tutors`); the admin review timeline ships in the immediately following PR, same ADR.*
 
 #### 1.4. Non-Functional Requirements
 *   **Performance:** Attendance submission must complete within 2 seconds on 4G connection; Netlify CDN ensures fast asset delivery across EU

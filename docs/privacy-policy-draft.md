@@ -23,6 +23,7 @@ is belegd bij het IT-team van PPME Den Haag, bereikbaar via `[e-mailadres]`.
 | Accountgegevens | Naam, e-mailadres, Google-account-ID, taalvoorkeur | Ouders, docenten (ustadz), beheerders, leerlingen van 16+ met eigen account |
 | Leerlinggegevens | Naam, geboortedatum, inschrijfdatum, klas | Leerlingen (merendeels jonger dan 16) |
 | Aanwezigheid | Aanwezig/afwezig/te laat per les, eventuele reden (bijv. ziek) | Leerlingen |
+| Aanwezigheid van docenten | Aanwezig/afwezig/te laat per les, eventuele reden | Docenten (ustadz) |
 | Leervoortgang | Yanbu'a-niveau en -pagina's, Quran-leesvoortgang, memorisatie (murajaah), beoordelingen en notities van docenten | Leerlingen |
 | Meldingen | Web Push-abonnementsgegevens (technische sleutels, geen inhoud) | Gebruikers die meldingen inschakelen |
 | Toegangsaanvraag | Uw naam en een vrije toelichting die u zelf invult vóór goedkeuring | Personen die zijn ingelogd maar nog geen account hebben |
@@ -139,6 +140,14 @@ afgedwongen in de database zelf — niet alleen in het scherm:
 | Leerling van 16+ | Uitsluitend de eigen gegevens, die hij of zij niet zelf kan wijzigen |
 | Beheerder | Alle leerlingen en alle gegevens — ook wijzigen |
 
+**Aanwezigheid van docenten.** Op dezelfde presentielijst wordt ook
+vastgelegd of de docenten van de groep aanwezig waren, zodat de
+TPA-leiding dit periodiek kan nakijken. Deze gegevens zijn alleen
+zichtbaar voor beheerders en voor de andere docenten van diezelfde
+groep — nooit voor ouders of leerlingen. Een reden bij afwezigheid
+wordt net zo behandeld als die van een leerling: alleen in de app te
+zien, nooit in een melding of een export.
+
 Beheerders zijn vrijwilligers van de TPA-commissie. Zij hebben deze bredere toegang
 omdat zij het programma draaiende houden: een les overnemen als een docent afwezig
 is, een verkeerd geregistreerde afwezigheid corrigeren, een jaarrapport afronden.
@@ -233,6 +242,7 @@ PPME Den Haag, dapat dihubungi melalui `[alamat email]`.
 | Data akun | Nama, alamat email, ID akun Google, preferensi bahasa | Orang tua, ustadz, admin, santri 16+ dengan akun sendiri |
 | Data santri | Nama, tanggal lahir, tanggal pendaftaran, kelas | Santri (sebagian besar di bawah 16 tahun) |
 | Kehadiran | Hadir/absen/terlambat per sesi, alasan (mis. sakit) | Santri |
+| Kehadiran ustadz | Hadir/absen/terlambat per sesi, alasan | Ustadz |
 | Progres belajar | Level dan halaman Yanbu'a, progres tilawah Al-Quran, hafalan (murajaah), penilaian dan catatan ustadz | Santri |
 | Notifikasi | Data langganan Web Push (kunci teknis, bukan isi) | Pengguna yang mengaktifkan notifikasi |
 | Permintaan akses | Nama Anda dan keterangan bebas yang Anda isi sendiri sebelum disetujui | Orang yang sudah login tetapi belum memiliki akun |
@@ -345,6 +355,13 @@ di dalam basis data — bukan hanya di tampilan aplikasi:
 | Ustadz | Hanya santri di kelas yang diampu |
 | Santri 16+ | Hanya data diri sendiri, dan tidak dapat mengubahnya |
 | Admin | Seluruh santri dan seluruh data — termasuk mengubahnya |
+
+**Kehadiran ustadz.** Pada daftar hadir yang sama juga dicatat apakah
+para ustadz kelas itu hadir, agar pimpinan TPA dapat meninjaunya secara
+berkala. Data ini hanya terlihat oleh admin dan oleh ustadz lain di
+kelas yang sama — tidak pernah oleh orang tua atau santri. Alasan bila
+berhalangan diperlakukan sama seperti alasan santri: hanya terlihat di
+aplikasi, tidak pernah dalam notifikasi atau ekspor.
 
 Admin adalah relawan pengurus TPA. Mereka memiliki akses yang lebih luas karena
 merekalah yang menjaga program tetap berjalan: menggantikan ustadz yang berhalangan,

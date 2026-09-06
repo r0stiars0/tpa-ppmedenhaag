@@ -161,10 +161,12 @@ Di bagian bawah:
 
 | Elemen | Fungsi |
 |---|---|
-| **Kirim Kehadiran** | Membuka kotak konfirmasi berisi jumlah santri yang akan dikirim (santri asisten yang menjadi bagian dari grup — lihat catatan di bawah — tidak dihitung). |
+| **Kirim Kehadiran** | Membuka kotak konfirmasi. Kotak itu menyebut jumlah santri yang akan dikirim (santri asisten yang menjadi bagian dari grup — lihat catatan di bawah — tidak dihitung) dan, pada baris terpisah, jumlah ustadz (lihat **Kehadiran ustadz** di bawah). |
 | **Konfirmasi** / **Batal** | Konfirmasi mengirim data ke server; Batal membatalkan tanpa mengirim apa pun. |
 
 **Catatan khusus — santri asisten**: jika seorang santri berusia 16+ juga membantu mengajar di grup itu, namanya tetap muncul di daftar hadir dengan status yang sudah tersimpan (tanda "Hadir" default), tetapi baris itu **tidak bisa diubah olehnya sendiri** — hanya ustadz lain atau admin yang bisa mencatat kehadirannya. Keterangan ini muncul langsung di bawah namanya di layar.
+
+**Kehadiran ustadz**: di bawah daftar santri ada bagian **"Kehadiran ustadz"** yang memuat setiap ustadz grup itu dengan tombol **Hadir / Terlambat / Absen** yang sama (dan kolom alasan yang sama saat Absen). Bagian ini dikirim bersama daftar santri saat Anda menekan **Kirim Kehadiran**. Seorang ustadz boleh mencatat kehadirannya sendiri maupun rekan segrupnya. Jika grup belum punya ustadz terdaftar, muncul keterangan untuk menetapkannya lewat menu **Kelola**. Catatan kehadiran ustadz **hanya terlihat oleh admin dan oleh ustadz lain di grup yang sama** — tidak pernah oleh orang tua atau santri — dan dipakai pimpinan TPA untuk meninjau kehadiran ustadz secara berkala.
 
 **Status offline**: jika koneksi internet terputus saat mengirim, aplikasi menyimpan data itu di perangkat dan menampilkan pesan *"Anda sedang offline. Data akan dikirim saat kembali online."* — data akan otomatis terkirim begitu koneksi kembali, tanpa perlu mencatat ulang.
 
@@ -574,4 +576,4 @@ Untuk memudahkan komunikasi dua bahasa di lingkungan TPA, berikut padanan istila
 
 ---
 
-*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **12.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF dibuat ulang dari teks dan tangkapan layar yang sama yang telah diperbarui.*
+*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **12.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026), serta **§5.1 dilengkapi dengan bagian "Kehadiran ustadz"** (ADR-041, September 2026). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF perlu dibuat ulang dari teks yang telah diperbarui ini.*

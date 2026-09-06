@@ -11,6 +11,7 @@ const {
   supabaseMock,
   queueMock,
   submitAttendanceMock,
+  submitTutorAttendanceMock,
   confirmPracticeMock,
   insertYanbuaProgressMock,
   insertQuranProgressMock,
@@ -18,6 +19,7 @@ const {
   supabaseMock: { auth: { getSession: vi.fn() } },
   queueMock: { list: vi.fn(), remove: vi.fn(), markAttempt: vi.fn() },
   submitAttendanceMock: vi.fn(),
+  submitTutorAttendanceMock: vi.fn(),
   confirmPracticeMock: vi.fn(),
   insertYanbuaProgressMock: vi.fn(),
   insertQuranProgressMock: vi.fn(),
@@ -25,7 +27,10 @@ const {
 
 vi.mock('../../src/lib/supabase', () => ({ supabase: supabaseMock }))
 vi.mock('../../src/lib/offlineQueue', () => ({ offlineQueue: queueMock }))
-vi.mock('../../src/features/attendance/api', () => ({ submitAttendance: submitAttendanceMock }))
+vi.mock('../../src/features/attendance/api', () => ({
+  submitAttendance: submitAttendanceMock,
+  submitTutorAttendance: submitTutorAttendanceMock,
+}))
 vi.mock('../../src/features/murajaah/api', () => ({ confirmPractice: confirmPracticeMock }))
 vi.mock('../../src/features/yanbua/api', () => ({ insertYanbuaProgress: insertYanbuaProgressMock }))
 vi.mock('../../src/features/quran/api', () => ({ insertQuranProgress: insertQuranProgressMock }))
@@ -35,7 +40,11 @@ const { replayQueue } = await import('../../src/lib/offlineReplay')
 const SESSION = { access_token: 'a-token' }
 
 function entry(
-  overrides: Partial<{ id: string; kind: 'attendance' | 'murajaah' | 'yanbua' | 'quran'; payload: unknown }>,
+  overrides: Partial<{
+    id: string
+    kind: 'attendance' | 'tutor_attendance' | 'murajaah' | 'yanbua' | 'quran'
+    payload: unknown
+  }>,
 ) {
   return { id: 'e1', kind: 'attendance' as const, payload: {}, createdAt: '2026-08-16T09:00:00.000Z', attempts: 0, ...overrides }
 }
@@ -46,6 +55,7 @@ beforeEach(() => {
   queueMock.remove.mockResolvedValue(undefined)
   queueMock.markAttempt.mockResolvedValue(undefined)
   submitAttendanceMock.mockResolvedValue(undefined)
+  submitTutorAttendanceMock.mockResolvedValue(undefined)
   confirmPracticeMock.mockResolvedValue({ id: 'log1' })
   insertYanbuaProgressMock.mockResolvedValue({ id: 'yp1' })
   insertQuranProgressMock.mockResolvedValue({ id: 'qp1' })
@@ -77,6 +87,30 @@ describe('replayQueue', () => {
     expect(submitAttendanceMock).toHaveBeenCalledWith([{ session_id: 's1' }])
     expect(queueMock.remove).toHaveBeenCalledWith('e1')
     expect(queueMock.markAttempt).not.toHaveBeenCalled()
+  })
+
+  it('replays a tutor_attendance entry and removes it on success', async () => {
+    const e = entry({ kind: 'tutor_attendance', payload: [{ session_id: 's1', tutor_id: 'u1' }] })
+    queueMock.list.mockResolvedValue([e])
+
+    await replayQueue()
+
+    expect(submitTutorAttendanceMock).toHaveBeenCalledWith([{ session_id: 's1', tutor_id: 'u1' }])
+    expect(submitAttendanceMock).not.toHaveBeenCalled()
+    expect(queueMock.remove).toHaveBeenCalledWith('e1')
+    expect(queueMock.markAttempt).not.toHaveBeenCalled()
+  })
+
+  it('records a real tutor_attendance failure instead of dropping the entry', async () => {
+    const e = entry({ kind: 'tutor_attendance', payload: [{ session_id: 's1', tutor_id: 'u1' }] })
+    queueMock.list.mockResolvedValue([e])
+    const rlsDenied = { code: '42501', message: 'permission denied' }
+    submitTutorAttendanceMock.mockRejectedValue(rlsDenied)
+
+    await replayQueue()
+
+    expect(queueMock.remove).not.toHaveBeenCalled()
+    expect(queueMock.markAttempt).toHaveBeenCalledWith(e, rlsDenied)
   })
 
   it('replays a murajaah entry and removes it on success', async () => {

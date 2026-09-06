@@ -15,7 +15,7 @@
  */
 import { getErrorMessage } from './errors'
 
-export type QueueKind = 'attendance' | 'murajaah' | 'yanbua' | 'quran'
+export type QueueKind = 'attendance' | 'tutor_attendance' | 'murajaah' | 'yanbua' | 'quran'
 
 export interface QueueEntry<T = unknown> {
   id: string

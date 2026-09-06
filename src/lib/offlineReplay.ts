@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { offlineQueue, type QueueEntry } from './offlineQueue'
-import { submitAttendance } from '../features/attendance/api'
+import { submitAttendance, submitTutorAttendance } from '../features/attendance/api'
 import { confirmPractice } from '../features/murajaah/api'
 import { insertYanbuaProgress } from '../features/yanbua/api'
 import { insertQuranProgress } from '../features/quran/api'
@@ -10,6 +10,14 @@ import { isUniqueViolation } from './errors'
 async function replayEntry(entry: QueueEntry): Promise<void> {
   if (entry.kind === 'attendance') {
     await submitAttendance(entry.payload as TablesInsert<'attendance'>[])
+    return
+  }
+
+  // Tutor attendance (TAD ADR-041) upserts on (session_id, tutor_id),
+  // the same idempotency `submitAttendance` relies on, so a replay of an
+  // entry that already reached the server is a harmless no-op.
+  if (entry.kind === 'tutor_attendance') {
+    await submitTutorAttendance(entry.payload as TablesInsert<'tutor_attendance'>[])
     return
   }
 

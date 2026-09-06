@@ -161,10 +161,12 @@ Onderaan:
 
 | Element | Functie |
 |---|---|
-| **Aanwezigheid versturen** | Opent een bevestigingsvak met het aantal leerlingen dat wordt verstuurd (een leerling-assistent die deel uitmaakt van de groep — zie de opmerking hieronder — telt niet mee). |
+| **Aanwezigheid versturen** | Opent een bevestigingsvak. Dat noemt het aantal leerlingen dat wordt verstuurd (een leerling-assistent die deel uitmaakt van de groep — zie de opmerking hieronder — telt niet mee) en, op een aparte regel, het aantal ustadz (zie **Aanwezigheid ustadz** hieronder). |
 | **Bevestigen** / **Annuleren** | Bevestigen verstuurt de gegevens naar de server; Annuleren stopt zonder iets te versturen. |
 
 **Bijzonderheid — leerling-assistent**: als een leerling van 16+ ook meehelpt met lesgeven in die groep, blijft haar/zijn naam op de presentielijst staan met een reeds opgeslagen status (standaard "Aanwezig"), maar die regel **kan niet door haarzelf/hemzelf** worden aangepast — alleen een andere ustadz of de beheerder kan haar/zijn aanwezigheid registreren. Deze uitleg staat direct onder de naam op het scherm.
+
+**Aanwezigheid ustadz**: onder de leerlingenlijst staat een sectie **"Aanwezigheid ustadz"** met elke ustadz van die groep en dezelfde knoppen **Aanwezig / Te laat / Afwezig** (en hetzelfde redenveld bij Afwezig). Deze sectie wordt samen met de presentielijst verstuurd als u op **Aanwezigheid versturen** tikt. Een ustadz mag zowel de eigen aanwezigheid als die van een collega uit dezelfde groep registreren. Heeft de groep nog geen ustadz toegewezen, dan verschijnt een aanwijzing om dat via **Beheer** te doen. Aanwezigheidsgegevens van ustadz zijn **alleen zichtbaar voor de beheerder en voor de andere ustadz van dezelfde groep** — nooit voor ouders of leerlingen — en de TPA-leiding gebruikt ze om de aanwezigheid van ustadz periodiek na te kijken.
 
 **Offline-status**: als de internetverbinding wegvalt tijdens het versturen, slaat de app de gegevens lokaal op en toont *"U bent offline. Gegevens worden verzonden zodra u weer online bent."* — de gegevens worden automatisch verstuurd zodra de verbinding terugkeert, zonder dat u opnieuw hoeft te registreren.
 
@@ -574,4 +576,4 @@ Om tweetalige communicatie binnen de TPA te vergemakkelijken, hier de belangrijk
 
 ---
 
-*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **12.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026). De indeling kan in latere app-versies licht afwijken. De PDF-versie is uit dezelfde bijgewerkte tekst en schermafbeeldingen opnieuw gegenereerd.*
+*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **12.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026), en met **§5.1 aangevuld voor de sectie "Aanwezigheid ustadz"** (ADR-041, september 2026). De indeling kan in latere app-versies licht afwijken. De PDF-versie moet uit deze bijgewerkte tekst opnieuw worden gegenereerd.*

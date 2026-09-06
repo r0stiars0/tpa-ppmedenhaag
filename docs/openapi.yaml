@@ -167,6 +167,57 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/ForbiddenRLS' }
 
+  /tutor_attendance:
+    get:
+      tags: [attendance]
+      summary: Get tutor attendance records
+      description: |
+        Per-session attendance for the tutors of a class (TAD ADR-041).
+        RLS: Admin — any class; Tutor — sessions in own classes.
+        **Parents and 16+ students have no policy on this table and get an
+        empty array** — tutor attendance is staff data with no family
+        stake. Names for the UI come from `POST /rpc/fn_class_tutors`.
+      parameters:
+        - $ref: '#/components/parameters/select'
+        - name: session_id
+          in: query
+          schema: { type: string }
+        - name: tutor_id
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Tutor attendance rows
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TutorAttendance' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [attendance]
+      summary: Record tutor attendance (Tutor — own classes; Admin — any)
+      description: |
+        Bulk upsert supported (array body), `on_conflict=session_id,tutor_id`
+        — the register replays whole from the offline queue, so re-sending
+        an already-stored row is a no-op. Unlike `/attendance` this fires
+        **no** notification: there is no tutor-absence push (ADR-041(b)).
+        The subject `tutor_id` must be named in the session's class
+        `tutor_ids` or the row is rejected by RLS.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/TutorAttendanceInsert'
+                - type: array
+                  items: { $ref: '#/components/schemas/TutorAttendanceInsert' }
+      responses:
+        '201': { description: Created }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ForbiddenRLS' }
+
   /assignments:
     get:
       tags: [assignments]
@@ -490,6 +541,42 @@ paths:
       responses:
         '204': { description: Updated }
         '403': { $ref: '#/components/responses/ForbiddenRLS' }
+
+  /rpc/fn_class_tutors:
+    post:
+      tags: [attendance]
+      summary: The tutors named in a class's tutor_ids (id + name)
+      description: |
+        Added in migration 022 (TAD ADR-041). `security definer`. Returns
+        `{ user_id, full_name }` for every id in `classes.tutor_ids` of
+        `p_class`, ordered by name — the labels for the attendance
+        register's tutor section and the admin review timeline. The
+        entitlement check (admin, or a tutor of `p_class`) is folded into
+        the `WHERE`, so a caller who is neither gets an empty array, not a
+        403 — the `fn_student_guardians` pattern. Needed because
+        `users_self_read` does not expose other users to a tutor.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_class]
+              properties:
+                p_class: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The class's tutors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    user_id: { type: string, format: uuid }
+                    full_name: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
   /rpc/fn_my_family_students:
     post:
@@ -1802,6 +1889,23 @@ components:
       properties:
         session_id: { type: string, format: uuid }
         student_id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/AttendanceStatusEnum' }
+        reason: { type: string }
+    TutorAttendance:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        session_id: { type: string, format: uuid }
+        tutor_id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/AttendanceStatusEnum' }
+        reason: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+    TutorAttendanceInsert:
+      type: object
+      required: [session_id, tutor_id, status]
+      properties:
+        session_id: { type: string, format: uuid }
+        tutor_id: { type: string, format: uuid }
         status: { $ref: '#/components/schemas/AttendanceStatusEnum' }
         reason: { type: string }
 
