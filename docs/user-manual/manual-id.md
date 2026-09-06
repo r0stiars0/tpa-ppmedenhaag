@@ -129,7 +129,7 @@ Sama seperti tampilan ustadz, ditambah bagian **"Kelola"** di bagian bawah — s
 Layar untuk mencatat kehadiran per grup. Layar terbuka pada sesi terkini
 grup — hari ini jika grup bertemu hari ini, jika tidak maka hari
 pertemuan terakhir sebelumnya. Hari pertemuan sebuah grup diatur oleh
-admin pada grup tersebut (lihat **12.2 Grup → Hari pertemuan**).
+admin pada grup tersebut (lihat [§12.2](#122-grup) → Hari pertemuan).
 
 | Elemen | Fungsi |
 |---|---|
@@ -562,4 +562,4 @@ Untuk memudahkan komunikasi dua bahasa di lingkungan TPA, berikut padanan istila
 
 ---
 
-*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **12.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF panduan ini belum dibuat ulang untuk perubahan tersebut.*
+*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **12.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF dibuat ulang dari teks dan tangkapan layar yang sama yang telah diperbarui.*

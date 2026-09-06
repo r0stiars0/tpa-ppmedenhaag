@@ -129,7 +129,7 @@ Hetzelfde als de ustadz-weergave, plus een sectie **"Beheer"** onderaan — de e
 Het scherm om de aanwezigheid per groep te registreren. Het opent op de
 huidige les van de groep — vandaag als de groep vandaag samenkomt, anders
 de meest recente lesdag daarvoor. Welke dagen een groep samenkomt, stelt
-de beheerder in bij de groep (zie **8. Groepsbeheer → Lesdagen**).
+de beheerder in bij de groep (zie [§12.2](#122-groepen) → Lesdagen).
 
 | Element | Functie |
 |---|---|
@@ -562,4 +562,4 @@ Om tweetalige communicatie binnen de TPA te vergemakkelijken, hier de belangrijk
 
 ---
 
-*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **12.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026). De indeling kan in latere app-versies licht afwijken. De PDF-versie van deze handleiding is voor die wijziging nog niet opnieuw gegenereerd.*
+*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **12.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026). De indeling kan in latere app-versies licht afwijken. De PDF-versie is uit dezelfde bijgewerkte tekst en schermafbeeldingen opnieuw gegenereerd.*
