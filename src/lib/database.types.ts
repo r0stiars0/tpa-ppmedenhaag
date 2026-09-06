@@ -172,6 +172,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          meeting_days: number[]
           name: string
           schedule: string | null
           tutor_ids: string[]
@@ -179,6 +180,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          meeting_days?: number[]
           name: string
           schedule?: string | null
           tutor_ids?: string[]
@@ -186,6 +188,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          meeting_days?: number[]
           name?: string
           schedule?: string | null
           tutor_ids?: string[]

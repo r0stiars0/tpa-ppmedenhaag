@@ -142,16 +142,21 @@ values
 -- overlap is expressed as two extra uuids in `tutor_ids`, which changes
 -- no count, no audience (a tutor is never a notification recipient) and
 -- nothing the harness reads.
-insert into public.classes (id, name, schedule, tutor_ids)
+-- `meeting_days` (migration 019, ADR-037): dow integers, 0=Sunday … 6=Saturday.
+-- Grup A meets Saturdays only; Grup B meets Wednesday + Saturday, so the fixture
+-- exercises a multi-day group — the attendance stepper stepping within a week, and
+-- the family read-only "Lesdagen" label showing more than one day. The `schedule`
+-- free text is kept in step with `meeting_days` for legibility.
+insert into public.classes (id, name, schedule, meeting_days, tutor_ids)
 values
-  ('a4000000-0000-0000-0000-000000000001', 'Grup A', 'Sabtu 10:00-12:00', array[
+  ('a4000000-0000-0000-0000-000000000001', 'Grup A', 'Sabtu 10:00-12:00', '{6}', array[
     'a1000000-0000-0000-0000-000000000001',   -- Ustadz Ahmad
     'd1000000-0000-0000-0000-000000000001',   -- Ustadzah Aminah (her own son is in Grup B)
     'd1000000-0000-0000-0000-000000000003',   -- Ustadzah Laila, admin (her own daughter is in Grup B)
     'd1000000-0000-0000-0000-000000000002',   -- Bapak Hasan — OVERLAP: his own daughter Khadijah is in this class (RLS-36)
     'd1000000-0000-0000-0000-000000000004'    -- Aisyah — OVERLAP: her own 16+ record is in this class (RLS-37, ADR-023)
   ]::uuid[]),
-  ('a4000000-0000-0000-0000-000000000002', 'Grup B', 'Minggu 09:00-11:00', array[
+  ('a4000000-0000-0000-0000-000000000002', 'Grup B', 'Rabu & Sabtu 09:00-11:00', '{3,6}', array[
     'a1000000-0000-0000-0000-000000000001',   -- Ustadz Ahmad
     'b1000000-0000-0000-0000-000000000001',   -- Ustadz Baru
     'd1000000-0000-0000-0000-000000000002',   -- Bapak Hasan (the disjoint half: he teaches here, his child is in Grup A)
