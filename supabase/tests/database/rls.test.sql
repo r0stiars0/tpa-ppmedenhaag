@@ -3743,11 +3743,16 @@ insert into _tap_log(line) select lives_ok(
   'RLS-85: admin records tutor attendance for a class it does not tutor'
 );
 
--- RLS-86: fn_class_tutors — names for the entitled, nothing for anyone else.
+-- RLS-86: fn_class_tutors — names for the entitled, nothing for anyone
+-- else. Class C's `tutor_ids` has been appended to by earlier blocks
+-- (RLS-34-area), so this asserts that TP's two known co-tutors come back
+-- **with a full_name** rather than an exact row count.
 set local request.jwt.claim.sub to 'b0000000-0000-0000-0000-000000000001';  -- TP
 insert into _tap_log(line) select is(
-  (select count(*) from public.fn_class_tutors('c0000000-0000-0000-0000-00000000000c')),
-  2::bigint, 'RLS-86: a tutor of Class C gets its two tutors from fn_class_tutors'
+  (select count(*) from public.fn_class_tutors('c0000000-0000-0000-0000-00000000000c')
+     where user_id in ('b0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002')
+       and full_name is not null),
+  2::bigint, 'RLS-86: a tutor of Class C gets its co-tutors from fn_class_tutors, with names'
 );
 set local request.jwt.claim.sub to 'b0000000-0000-0000-0000-000000000003';  -- P4 (guardian, not a tutor)
 insert into _tap_log(line) select is(
