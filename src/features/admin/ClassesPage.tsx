@@ -4,6 +4,7 @@ import { AdminSectionNav } from '../../components/AdminSectionNav'
 import { getErrorMessage } from '../../lib/errors'
 import { createClass, fetchAllClasses, fetchUsersForLink, updateClass, type AdminClass, type DirectoryUser } from './api'
 import { TUTOR_LINK_ROLES } from '../../lib/enrolmentLinks'
+import { formatDayList } from '../../lib/weekdays'
 import { ClassForm } from './ClassForm'
 
 export function ClassesPage() {
@@ -33,7 +34,7 @@ export function ClassesPage() {
 
   useEffect(load, [])
 
-  async function handleCreate(data: { name: string; schedule: string | null; tutor_ids: string[] }) {
+  async function handleCreate(data: { name: string; schedule: string | null; meeting_days: number[]; tutor_ids: string[] }) {
     setSaving(true)
     setError(null)
     try {
@@ -47,7 +48,7 @@ export function ClassesPage() {
     }
   }
 
-  async function handleUpdate(id: string, data: { name: string; schedule: string | null; tutor_ids: string[] }) {
+  async function handleUpdate(id: string, data: { name: string; schedule: string | null; meeting_days: number[]; tutor_ids: string[] }) {
     setSaving(true)
     setError(null)
     try {
@@ -108,6 +109,7 @@ export function ClassesPage() {
                   <div>
                     <p className="font-medium text-ppme-text">{cls.name}</p>
                     {cls.schedule && <p className="text-sm text-ppme-text/60">{cls.schedule}</p>}
+                    <p className="text-xs text-ppme-text/60">{formatDayList(cls.meeting_days, t)}</p>
                     <p className="mt-1 text-xs text-ppme-text/50">{tutorNames(cls.tutor_ids)}</p>
                   </div>
                   <button
