@@ -1425,7 +1425,22 @@ components:
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
-        schedule: { type: string, nullable: true }
+        schedule:
+          type: string
+          nullable: true
+          description: >-
+            Free-text time range ("Sabtu 10:00-12:00"). The *days* the group
+            meets are `meeting_days`; this field is not parsed.
+        meeting_days:
+          type: array
+          items: { type: integer, minimum: 0, maximum: 6 }
+          description: >-
+            Weekday(s) the group meets, as `dow` integers — 0=Sunday … 6=Saturday
+            (matches Postgres `extract(dow …)` and JS `Date#getDay()`). Non-empty,
+            no duplicates (CHECK). Admin-write only. A `sessions` row can only be
+            created for a date whose weekday is in this set —
+            `trg_sessions_meeting_day` rejects any other INSERT, for every caller
+            including admin (TAD ADR-037).
         tutor_ids:
           type: array
           items: { type: string, format: uuid }

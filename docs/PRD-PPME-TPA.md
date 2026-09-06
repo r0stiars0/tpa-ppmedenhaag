@@ -462,6 +462,14 @@ Digital attendance management system allowing tutors to record student presence/
 - Priority: Medium
 - Provide a summary view showing attendance percentage per student over time (weekly/monthly).
 
+**FR-007: Class Meeting-Day Schedule**
+- Priority: Medium
+- When creating or editing a group, an admin selects the weekday(s) it meets from Monday–Sunday checkboxes; Saturday is preselected and more than one day is allowed.
+- The attendance register is driven by that schedule: it opens on the current scheduled session (today if a meeting day, otherwise the most recent past meeting day) and a prev/next stepper walks the group's meeting days back through the current academic year so a missed week can be recorded after the fact.
+- A `sessions` row can only be created for a date that is one of the group's meeting days — enforced in the database (`trg_sessions_meeting_day`, TAD ADR-037) for every caller including admin. Editing an already-recorded session is not restricted.
+- Parents and 16+ students see the meeting days read-only on the child's attendance screen.
+- *Implementation status: **built** (TAD ADR-037, migration 019). `classes.meeting_days` is a `dow` array (0=Sunday…6=Saturday); the free-text `schedule` field is kept for the time range.*
+
 #### 1.4. Non-Functional Requirements
 *   **Performance:** Attendance submission must complete within 2 seconds on 4G connection; Netlify CDN ensures fast asset delivery across EU
 *   **Security:** Google OAuth 2.0 authentication; role-based access control (tutors mark, parents view own children only); all data encrypted at rest (AES-256) and in transit (TLS 1.3); GDPR-compliant EU data residency
@@ -475,11 +483,11 @@ Digital attendance management system allowing tutors to record student presence/
 3.  Integration with school/formal education attendance systems — separate concern
 
 #### 1.6. User Flows
-1.  Tutor opens app → Selects "Attendance" → Current session auto-detected by date/time
+1.  Tutor opens app → Selects "Attendance" → The current *scheduled* session is auto-selected (today if the group meets today, otherwise its most recent past meeting day — FR-007)
 2.  Student roster displayed → Tutor taps each student to mark Present (default) or Absent
     *   If Absent: Modal appears for reason selection
 3.  Tutor reviews and submits → Confirmation shown → Parents notified of absences
-4.  Tutor can edit attendance within same day if corrections needed
+4.  Tutor can step back through the group's meeting days to any session in the current academic year to correct it, or to record a week that was missed (FR-007)
 
 #### 1.7. Design & Technical Considerations
 *   **Design Assets:** [TBD - Simple, mobile-first UI with large tap targets for quick marking]
