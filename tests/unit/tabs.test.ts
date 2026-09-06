@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ADMIN_SECTION_TABS, NAV_TABS } from '../../src/components/tabs'
+import { ADMIN_SECTION_TABS, NAV_TABS, bottomNavTabs } from '../../src/components/tabs'
 
 /**
  * Guards the two properties that ADR-014's nav rework depends on, both of
@@ -28,5 +28,32 @@ describe('navigation tabs', () => {
       expect(tab.to.startsWith('/admin/')).toBe(true)
       expect(topLevel.has(tab.to)).toBe(false)
     }
+  })
+
+  it('appends Rapport for every role and Beheer only for admin in the mobile bar', () => {
+    for (const role of ['tutor', 'parent', 'student', undefined]) {
+      expect(bottomNavTabs(role).map((tab) => tab.to)).toEqual([
+        '/attendance',
+        '/assignments',
+        '/yanbua',
+        '/quran',
+        '/murajaah',
+        '/reports',
+      ])
+    }
+    expect(bottomNavTabs('admin').map((tab) => tab.to)).toEqual([
+      '/attendance',
+      '/assignments',
+      '/yanbua',
+      '/quran',
+      '/murajaah',
+      '/reports',
+      '/admin',
+    ])
+  })
+
+  it('does not mutate NAV_TABS when building the mobile bar', () => {
+    bottomNavTabs('admin')
+    expect(NAV_TABS).toHaveLength(5)
   })
 })

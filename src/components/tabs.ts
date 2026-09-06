@@ -14,6 +14,23 @@ export const NAV_TABS = [
   { to: '/murajaah', key: 'nav.murajaah' },
 ] as const
 
+// The mobile bottom nav carries the five operational tabs plus the two
+// destinations that have no other home on a phone: Rapport (every role
+// reads year-end reports since ADR-014, and the `/reports` link in
+// `TopNav` is `sm:` and up only) and — for admin — Beheer, the entry
+// into `/admin/*` that on desktop is a `DesktopTabs` tab. Seven labels
+// do not fit five-across at a 44px tap target, so the bar scrolls
+// horizontally (see `BottomTabNav`); these two are appended here rather
+// than in `NAV_TABS` so the prototype-validated five, and `tabs.test.ts`
+// which pins them, are untouched.
+export function bottomNavTabs(
+  role: string | undefined,
+): ReadonlyArray<{ to: string; key: string }> {
+  const tabs: { to: string; key: string }[] = [...NAV_TABS, { to: '/reports', key: 'nav.laporan' }]
+  if (role === 'admin') tabs.push({ to: '/admin', key: 'nav.kelola' })
+  return tabs
+}
+
 // The enrollment/setup screens, which stay admin-only (`RequireAdmin`).
 // These are *not* top-level tabs: 5 operational + 3 enrollment would be
 // 8 entries in a mobile bottom nav that only fits 5 at a 44px tap target,

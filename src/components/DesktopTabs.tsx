@@ -25,6 +25,15 @@ import { ScopeSwitch } from './ScopeSwitch'
  * `tabs.test.ts`), and a scope is not a destination. It renders nothing
  * unless the signed-in person holds more than one relationship and is
  * on one of the six screens a scope changes.
+ *
+ * The tabs sit in their own `overflow-x-auto` track so they scroll
+ * rather than clip when the row runs out of room — six labels at the
+ * larger text a device or a longer translation can impose will not fit
+ * a landscape phone (`sm` starts at 640px), and without this the last
+ * tab, "Beheer", simply disappeared with no way to reach it. Same
+ * pattern `AdminSectionNav` already uses. The scope switch stays a
+ * sibling of the track, `shrink-0`, so it is always visible on the
+ * right no matter how far the tabs are scrolled.
  */
 export function DesktopTabs() {
   const { t } = useTranslation()
@@ -33,28 +42,31 @@ export function DesktopTabs() {
 
   return (
     <nav
-      className="hidden gap-1 border-b border-black/5 bg-white px-4 sm:flex"
+      className="hidden border-b border-black/5 bg-white px-4 sm:flex"
       aria-label={t('app.name')}
     >
-      {tabs.map(({ to, key }) => (
-        <NavLink
-          key={to}
-          to={to}
-          className={({ isActive }) =>
-            `min-h-11 border-b-2 px-3 py-3 text-sm font-medium ${
-              isActive
-                ? 'border-ppme-primary text-ppme-primary'
-                : 'border-transparent text-ppme-text/60 hover:text-ppme-text'
-            }`
-          }
-        >
-          {t(key)}
-        </NavLink>
-      ))}
+      <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
+        {tabs.map(({ to, key }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              `min-h-11 shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium ${
+                isActive
+                  ? 'border-ppme-primary text-ppme-primary'
+                  : 'border-transparent text-ppme-text/60 hover:text-ppme-text'
+              }`
+            }
+          >
+            {t(key)}
+          </NavLink>
+        ))}
+      </div>
       {/* `self-center` rather than stretching: the tabs keep their
           underline on the bottom border of the row, which they would
-          lose if the row aligned everything to its centre. */}
-      <ScopeSwitch className="ml-auto self-center" />
+          lose if the row aligned everything to its centre. `shrink-0`
+          keeps it off the scrollable track. */}
+      <ScopeSwitch className="ml-2 shrink-0 self-center" />
     </nav>
   )
 }
