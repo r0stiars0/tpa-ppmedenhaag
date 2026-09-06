@@ -628,9 +628,15 @@ database immediately, with the link row retained (`unlinked_at`) for
 audit — DPIA gains R14 for the custody/separation case and re-proves R1
 for the new model. Verified against a real local Postgres+RLS stack:
 `supabase test db` 334/334 (RLS-65…77 added), full Vitest 544/544,
-`typecheck` + `typecheck:functions` + `build` green. `scripts/verify-push.mjs`
-updated for the join-table model but not re-run here (needs the live app
-+ a real push service). Docs: ADR-040 in the TAD, a PRD FAQ pair,
+`typecheck` + `typecheck:functions` + `build` green. **The push fan-out
+was verified on a real Android device** (test-plan §6): an absence about
+Umar — two active guardians in the fixture — reached both guardians'
+phones/rows, while a removed guardian and an unrelated family got
+nothing; `scripts/verify-push.mjs` §2c automates the same assertions.
+A latent bug found while wiring that up is fixed in the same PR
+(`fn_my_family_flags(p_user)` — `push-subscribe` runs on the service-role
+client, which has no `auth.uid()`, so every guardian's subscribe was
+500ing). Docs: ADR-040 in the TAD, a PRD FAQ pair,
 openapi (`student_guardians` schema + the four RPCs), DPIA R1/R6/R12/R14,
 both privacy-policy halves, the user manual (both languages), test-plan
 §3.5 + §4.5f.
