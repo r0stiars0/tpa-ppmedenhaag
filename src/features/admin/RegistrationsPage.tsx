@@ -3,7 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { AdminSectionNav } from '../../components/AdminSectionNav'
 import type { Database } from '../../lib/database.types'
 import { getErrorMessage } from '../../lib/errors'
-import { fetchPendingRegistrations, inviteUser, registerUser, type PendingRegistration } from './api'
+import {
+  fetchPendingRegistrations,
+  inviteUser,
+  registerUser,
+  rejectRegistration,
+  type PendingRegistration,
+} from './api'
 
 type UserRole = Database['public']['Enums']['user_role']
 
@@ -21,6 +27,7 @@ export function RegistrationsPage() {
   const [error, setError] = useState<string | null>(null)
   const [drafts, setDrafts] = useState<Record<string, { full_name: string; role: UserRole }>>({})
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [rejectingId, setRejectingId] = useState<string | null>(null)
 
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteFullName, setInviteFullName] = useState('')
@@ -83,6 +90,20 @@ export function RegistrationsPage() {
       setError(getErrorMessage(err))
     } finally {
       setSavingId(null)
+    }
+  }
+
+  async function handleReject(user: PendingRegistration) {
+    if (!window.confirm(t('admin.confirmReject', { email: user.email }))) return
+    setRejectingId(user.id)
+    setError(null)
+    try {
+      await rejectRegistration(user.id)
+      setPending((prev) => prev.filter((p) => p.id !== user.id))
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setRejectingId(null)
     }
   }
 
@@ -205,14 +226,26 @@ export function RegistrationsPage() {
                   </select>
                 </label>
 
-                <button
-                  type="button"
-                  disabled={savingId === user.id || !draft.full_name.trim()}
-                  onClick={() => void handleRegister(user)}
-                  className="min-h-11 w-full rounded-lg bg-ppme-primary px-4 font-semibold text-white shadow-sm hover:bg-ppme-primary-dark disabled:opacity-60"
-                >
-                  {savingId === user.id ? t('common.loading') : t('admin.register')}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={
+                      savingId === user.id || rejectingId === user.id || !draft.full_name.trim()
+                    }
+                    onClick={() => void handleRegister(user)}
+                    className="min-h-11 flex-1 rounded-lg bg-ppme-primary px-4 font-semibold text-white shadow-sm hover:bg-ppme-primary-dark disabled:opacity-60"
+                  >
+                    {savingId === user.id ? t('common.loading') : t('admin.register')}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={savingId === user.id || rejectingId === user.id}
+                    onClick={() => void handleReject(user)}
+                    className="min-h-11 flex-1 rounded-lg bg-ppme-danger px-4 font-semibold text-white shadow-sm hover:bg-ppme-danger/90 disabled:opacity-60"
+                  >
+                    {rejectingId === user.id ? t('common.loading') : t('admin.reject')}
+                  </button>
+                </div>
               </li>
             )
           })}

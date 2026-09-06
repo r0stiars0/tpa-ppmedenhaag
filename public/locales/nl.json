@@ -331,6 +331,8 @@
     "assignRole": "Rol",
     "fullName": "Volledige naam",
     "register": "Registreren",
+    "reject": "Weigeren",
+    "confirmReject": "De aanvraag van {{email}} weigeren? Het account wordt verwijderd. Deze persoon kan opnieuw inloggen en verschijnt dan als een nieuwe aanvraag.",
     "registrationDescription": "Toelichting van de gebruiker",
     "classesTitle": "Groepenbeheer",
     "newClass": "Nieuwe groep",

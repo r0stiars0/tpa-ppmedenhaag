@@ -331,6 +331,8 @@
     "assignRole": "Peran",
     "fullName": "Nama Lengkap",
     "register": "Daftarkan",
+    "reject": "Tolak",
+    "confirmReject": "Tolak permintaan dari {{email}}? Akun akan dihapus. Orang tersebut dapat masuk lagi dan muncul sebagai permintaan baru.",
     "registrationDescription": "Keterangan dari pengguna",
     "classesTitle": "Manajemen Grup",
     "newClass": "Grup Baru",

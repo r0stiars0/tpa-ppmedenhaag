@@ -1342,6 +1342,50 @@ paths:
         '409': { description: Email is already registered }
         '500': { description: Server misconfigured, or invite succeeded but profile creation failed (still recoverable via the pending-registrations flow) }
 
+  /reject-registration:
+    post:
+      tags: [functions, admin]
+      summary: Reject an unapproved registration (Admin only)
+      description: |
+        The mirror of `/invite-user` (TAD ADR-039): deletes the pending
+        `auth.users` row for `{ id }` via `auth.admin.deleteUser` under
+        `SUPABASE_SERVICE_ROLE_KEY`. Same in-code admin check (`authenticateCaller`
+        + `public.users.role`), since `auth.users` is not PostgREST-exposed
+        and has no RLS layer.
+
+        Refuses with **409** if the id already has a `public.users` row —
+        deleting it would cascade away a real profile (`public.users.id
+        references auth.users (id) on delete cascade`, migration 002). The
+        staged `registration_requests` row (migration 020), if any, is
+        removed by its own cascade to `auth.users`; no explicit delete.
+
+        Not a blocklist: nothing stops the same Google account signing in
+        again, which re-creates `auth.users` and returns the person to the
+        pending list as a fresh entry.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string, format: uuid, description: The pending auth.users id from fn_pending_registrations }
+      responses:
+        '200':
+          description: Rejected — the auth.users row (and any registration_requests row) is deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+        '400': { description: Missing id, invalid JSON, or a GoTrue error (e.g. id not found) }
+        '401': { description: Missing/invalid Authorization header or session }
+        '403': { description: Caller is authenticated but not an admin }
+        '409': { description: That id already has a public.users profile and cannot be rejected }
+        '500': { description: Server misconfigured, or the profile-existence lookup failed }
+
 components:
   securitySchemes:
     bearerAuth:

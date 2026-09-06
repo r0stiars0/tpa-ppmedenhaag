@@ -1210,30 +1210,34 @@ When someone signs in with Google for the first time and has no account yet, the
 *   **FR-003: Confirmation state.** After a successful submission the screen shows a "request received, an admin will review it" message instead of the plain "contact the admin" line, and keeps showing it on reload.
 *   **FR-004: Admin context.** On the Registrations page, a pending entry's editable name field is pre-filled with the applicant's submitted name (still editable), and the note, when present, is shown read-only above it. Entries with no submission (invited accounts, or sign-ins from before this feature) appear exactly as before.
 *   **FR-005: Cleanup on approval.** Once the admin creates the account, the submitted request — including the free-text note — is deleted automatically.
+*   **FR-006: Reject a request.** The Registrations page has a "Reject" button beside "Register" on each pending entry. It asks for confirmation (naming the email), then deletes the pending account and its submitted request. Rejecting an entry whose account has meanwhile been created is refused. Rejection is not a ban: the same Google account can sign in again and will reappear as a new pending entry — the confirmation dialog says so.
 
 #### 7.4. Non-Functional Requirements
-*   **Security/Privacy:** The request is visible only to the submitting user and to admins (enforced at the database layer). The free-text note may contain a child's name, so it is treated as personal data: deleted on approval, deleted on rejection (see §8), and never exposed to other users. See DPIA draft and TAD ADR-038.
+*   **Security/Privacy:** The request is visible only to the submitting user and to admins (enforced at the database layer). The free-text note may contain a child's name, so it is treated as personal data: deleted on approval, deleted on rejection, and never exposed to other users. See DPIA draft and TAD ADR-038 / ADR-039.
 *   **i18n:** All new copy is available in Bahasa Indonesia and Dutch.
 
 #### 7.5. Non-Goals (Out of Scope)
-*   An admin "reject" action for an unwanted request (tracked separately as TAD ADR-039).
-*   Any automatic expiry of a request that is never approved.
+*   A "banned email" / blocklist so a rejected address cannot sign in again — this app has no such concept and this feature does not add one.
+*   Any automatic expiry of a request that is never approved and never rejected.
 *   Letting the applicant choose or suggest their own role.
 
 #### 7.6. User Flows
 1.  User signs in with Google → lands on the unauthorized screen → name field pre-filled from their Google profile.
 2.  User edits the name if needed, optionally writes a note, taps submit → screen switches to the "request received" state.
-3.  Admin opens Registrations → sees the email, the submitted name (pre-filled, editable) and the note (read-only) → picks a role → registers the account.
-4.  The request row is deleted; the user, on their next load, is taken into the app.
+3.  Admin opens Registrations → sees the email, the submitted name (pre-filled, editable) and the note (read-only).
+4a. Admin picks a role → registers the account → the request row is deleted; the user, on their next load, is taken into the app.
+4b. *or* Admin clicks Reject → confirms → the pending account and its request are deleted and the entry disappears from the list.
 
 #### 7.7. Design & Technical Considerations
 *   A dedicated `registration_requests` staging table rather than a provisional row in the accounts table, so "registered" keeps its single meaning. Database-enforced cleanup by trigger. See TAD ADR-038 and migration 020.
+*   Reject has no database mechanism — the pending entry is an `auth.users` row with no profile, outside PostgREST/RLS — so it is an admin-only Netlify Function (`reject-registration`, TAD ADR-039) using the service-role key, mirroring `invite-user`.
 
 #### 7.8. Acceptance Criteria
 *   **AC-001:** A signed-in user with no profile can submit a name and note, and the admin sees both on the Registrations page.
 *   **AC-002:** Re-opening the screen after submitting shows the "request received" state and the previously entered values.
 *   **AC-003:** After the admin registers the account, no `registration_requests` row remains for that user.
 *   **AC-004:** A pending entry with no submission still shows a blank, editable name field and no note.
+*   **AC-005:** Rejecting a pending entry removes it from the list and deletes its account and request; rejecting an entry whose account already exists is refused.
 
 ---
 

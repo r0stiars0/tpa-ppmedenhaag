@@ -61,7 +61,7 @@ Jika akun Google Anda belum terdaftar oleh admin TPA, setelah masuk Anda akan me
 | **Keterangan** | Opsional. Teks bebas: siapa Anda, untuk anak yang mana, mengapa Anda memerlukan akses. |
 | **Kirim permintaan** | Mengirim data ke admin. Tombol nonaktif selama bidang nama masih kosong. |
 
-Setelah dikirim, teks di atas berubah menjadi **"Permintaan Anda telah diterima. Admin akan meninjaunya sesegera mungkin."** Anda tetap di layar ini — permintaan itu sendiri tidak memberi akses. Anda dapat membuka formulir lagi dan memperbaiki data Anda selama admin belum mendaftarkan Anda. Begitu itu terjadi, saat memuat berikutnya Anda otomatis masuk ke aplikasi. Lihat juga [§12.1](#121-pendaftaran).
+Setelah dikirim, teks di atas berubah menjadi **"Permintaan Anda telah diterima. Admin akan meninjaunya sesegera mungkin."** Anda tetap di layar ini — permintaan itu sendiri tidak memberi akses. Anda dapat membuka formulir lagi dan memperbaiki data Anda selama admin belum mendaftarkan Anda. Begitu itu terjadi, saat memuat berikutnya Anda otomatis masuk ke aplikasi. Admin juga dapat **menolak** permintaan (lihat [§12.1](#121-pendaftaran)); setelah itu Anda tetap bisa masuk lagi dan mengajukan permintaan baru.
 
 > Catatan: pada versi pengembangan (developer), muncul kotak tambahan "Dev only — local fixture sign-in" untuk menguji berbagai akun contoh tanpa Google. Kotak ini **tidak pernah muncul** di aplikasi produksi/nyata dan tidak relevan bagi pengguna sehari-hari.
 
@@ -469,8 +469,7 @@ Hanya bisa diakses oleh akun dengan peran Admin, lewat ubin **Kelola** di Berand
 | **Nama Lengkap** | Sudah terisi dengan nama yang diberikan orang tersebut sendiri; kosong jika tidak ada (misalnya untuk akun yang diundang). Selalu dapat Anda ubah sebelum mendaftarkan. |
 | **Peran** | Sama seperti di atas. |
 | **Daftarkan** | Menyelesaikan pendaftaran orang tersebut — baris otomatis hilang dari daftar setelah berhasil, dan permintaan (beserta keterangannya) dihapus. |
-
-> Tidak ada tombol untuk menolak/menghapus pendaftaran yang menunggu — pilihannya hanya mendaftarkan atau membiarkannya menunggu.
+| **Tolak** | Menghapus pendaftaran yang menunggu. Muncul dulu pertanyaan konfirmasi berisi alamat email. Setelah dikonfirmasi, akun (yang belum terdaftar) beserta permintaannya dihapus dan baris hilang dari daftar. **Menolak bukan pemblokiran**: pengguna Google yang sama dapat masuk lagi dan akan muncul sebagai pendaftaran menunggu yang baru. Pendaftaran yang akunnya sudah terlanjur dibuat tidak dapat ditolak. |
 
 ### 12.2 Grup
 
