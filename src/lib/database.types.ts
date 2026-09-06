@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.15"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -467,6 +462,48 @@ export type Database = {
           },
         ]
       }
+      student_guardians: {
+        Row: {
+          created_at: string
+          id: string
+          relation: string | null
+          student_id: string
+          unlinked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          relation?: string | null
+          student_id: string
+          unlinked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          relation?: string | null
+          student_id?: string
+          unlinked_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_guardians_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_guardians_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           class_id: string | null
@@ -478,7 +515,6 @@ export type Database = {
           enrollment_date: string
           full_name: string
           id: string
-          parent_id: string
           user_id: string | null
         }
         Insert: {
@@ -491,7 +527,6 @@ export type Database = {
           enrollment_date?: string
           full_name: string
           id?: string
-          parent_id: string
           user_id?: string | null
         }
         Update: {
@@ -504,7 +539,6 @@ export type Database = {
           enrollment_date?: string
           full_name?: string
           id?: string
-          parent_id?: string
           user_id?: string | null
         }
         Relationships: [
@@ -528,13 +562,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "surahs"
             referencedColumns: ["surah_num"]
-          },
-          {
-            foreignKeyName: "students_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "students_user_id_fkey"
@@ -770,6 +797,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fn_admin_save_student: {
+        Args: {
+          p_class_id?: string
+          p_dob: string
+          p_full_name: string
+          p_guardians: Json
+          p_id?: string
+          p_user_id?: string
+        }
+        Returns: string
+      }
       fn_current_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
@@ -778,15 +816,54 @@ export type Database = {
       fn_my_children: { Args: never; Returns: string[] }
       fn_my_class_students: { Args: never; Returns: string[] }
       fn_my_classes: { Args: never; Returns: string[] }
+      fn_my_family_flags: {
+        Args: { p_user?: string }
+        Returns: {
+          is_parent: boolean
+          is_self: boolean
+        }[]
+      }
+      fn_my_family_students: {
+        Args: never
+        Returns: {
+          full_name: string
+          id: string
+          is_guardian: boolean
+          is_self: boolean
+          user_id: string
+        }[]
+      }
+      fn_my_recordable_students: { Args: never; Returns: string[] }
       fn_my_student_id: { Args: never; Returns: string }
       fn_pending_registrations: {
         Args: never
         Returns: {
-          id: string
-          email: string
           created_at: string
-          full_name: string | null
-          description: string | null
+          description: string
+          email: string
+          full_name: string
+          id: string
+        }[]
+      }
+      fn_post_webhook: {
+        Args: { fn_path: string; op: string; record_id: string; tbl: string }
+        Returns: undefined
+      }
+      fn_student_guardians: {
+        Args: { p_student: string }
+        Returns: {
+          email: string
+          full_name: string
+          relation: string
+          user_id: string
+        }[]
+      }
+      fn_valid_dow_set: { Args: { days: number[] }; Returns: boolean }
+      fn_webhook_config: {
+        Args: never
+        Returns: {
+          base_url: string
+          secret: string
         }[]
       }
     }
@@ -955,6 +1032,16 @@ export const Constants = {
       locale: ["id", "nl"],
       murajaah_frequency: ["daily", "3x_week", "weekly"],
       murajaah_quality: ["hafal_lancar", "hafal_kurang_lancar", "belum_hafal"],
+      notification_event: [
+        "absence",
+        "newAssignment",
+        "assignmentDueTomorrow",
+        "jilidMilestone",
+        "surahMemorized",
+        "murajaahReminder",
+        "reportReady",
+        "weeklyDigest",
+      ],
       quran_quality: [
         "mumtaz",
         "jayyid_jiddan",
@@ -975,3 +1062,4 @@ export const Constants = {
     },
   },
 } as const
+

@@ -8,11 +8,12 @@ type UserRole = Database['public']['Enums']['user_role']
  *
  * ── What this is not ────────────────────────────────────────────────
  * It is not an authorization boundary, and it is not a policy. The
- * database has never constrained either link: `students.parent_id` is a
- * plain FK to `users(id)` and `classes.tutor_ids` a plain uuid array,
- * both without a role check, which is the fact ADR-019 is built on and
- * RLS-28…RLS-34 pin. Anything reachable through SQL stays reachable;
- * these two lists decide only what a dropdown shows an administrator.
+ * database has never constrained either link: a `student_guardians` row
+ * (ADR-040; formerly `students.parent_id`) and `classes.tutor_ids` are
+ * both plain FKs with no role check, which is the fact ADR-019 is built
+ * on and RLS-28…RLS-34 pin. Anything reachable through SQL stays
+ * reachable; these two lists decide only what a dropdown shows an
+ * administrator.
  *
  * That is why the code lives here rather than beside the queries. A
  * capability decides what to offer and RLS decides what comes back

@@ -6,7 +6,7 @@ import { useViewScope } from '../../context/ViewScopeContext'
 import { isSelfRecord } from '../../lib/capabilities'
 import { ChildPicker } from '../../components/ChildPicker'
 import type { SurahRef } from '../../lib/quran'
-import { getErrorMessage } from '../../lib/errors'
+import { getErrorMessage, isUniqueViolation } from '../../lib/errors'
 import { computeBestStreak, computeStreak, isStreakCurrent } from '../../lib/murajaah'
 import { isNetworkError } from '../../lib/network'
 import { offlineQueue } from '../../lib/offlineQueue'
@@ -40,6 +40,7 @@ export function FamilyMurajaahView() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [queued, setQueued] = useState(false)
+  const [alreadyConfirmed, setAlreadyConfirmed] = useState(false)
   const [quality, setQuality] = useState<MurajaahQuality>('hafal_lancar')
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
@@ -103,11 +104,14 @@ export function FamilyMurajaahView() {
     [i18n.language],
   )
 
-  // Only a *parent of this child* can confirm home practice, and that is
-  // a question about the selected student rather than about the account
-  // (ADR-025). RLS says exactly that: `mlog_parent_insert` requires
-  // `confirmed_by = auth.uid()` AND the assignment's student to be in
-  // `fn_my_children()`, which is `parent_id`-scoped. A 16+ self-login
+  // Only a *guardian of this child* can confirm home practice, and that
+  // is a question about the selected student rather than about the
+  // account (ADR-025). RLS says exactly that: `mlog_parent_insert`
+  // requires `confirmed_by = auth.uid()` AND the assignment's student to
+  // be in `fn_my_children()` — since ADR-040 an active `student_guardians`
+  // link. Any of a child's guardians may confirm; the first to do so on a
+  // given day wins (`unique (assignment_id, date)`), and the others see
+  // "already confirmed today". A 16+ self-login
   // santri looking at their own record has no write policy here at all,
   // matching the PRD's "parent confirms" design — the point is a parent
   // verifying practice happened at home, not self-report.
@@ -128,6 +132,7 @@ export function FamilyMurajaahView() {
     setConfirmingId(assignment.id)
     setError(null)
     setQueued(false)
+    setAlreadyConfirmed(false)
     const row: TablesInsert<'murajaah_log'> = {
       assignment_id: assignment.id,
       confirmed_by: profile.id,
@@ -154,6 +159,21 @@ export function FamilyMurajaahView() {
         }
         setLogs((prev) => [optimistic, ...prev])
         setQueued(true)
+      } else if (isUniqueViolation(err)) {
+        // Another guardian of this child already confirmed today
+        // (`murajaah_log` is one row per assignment per day, ADR-040 D4).
+        // That is not an error — surface their confirmation and say so.
+        try {
+          const existing = await fetchAllLogsForAssignments([assignment.id])
+          setLogs((prev) => {
+            const seen = new Set(prev.map((l) => l.id))
+            return [...existing.filter((l) => !seen.has(l.id)), ...prev]
+          })
+        } catch {
+          // The confirm still landed with the other guardian; a failed
+          // refetch just means this screen is momentarily stale.
+        }
+        setAlreadyConfirmed(true)
       } else {
         setError(getErrorMessage(err))
       }
@@ -183,6 +203,11 @@ export function FamilyMurajaahView() {
       {error && <p className="rounded-lg bg-ppme-danger/10 p-3 text-sm text-ppme-danger">{error}</p>}
       {queued && (
         <p className="rounded-lg bg-ppme-primary/10 p-3 text-sm text-ppme-primary">{t('common.offline')}</p>
+      )}
+      {alreadyConfirmed && (
+        <p className="rounded-lg bg-ppme-primary/10 p-3 text-sm text-ppme-primary">
+          {t('errors.alreadyConfirmed')}
+        </p>
       )}
 
       {loading ? (

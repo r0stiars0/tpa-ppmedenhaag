@@ -357,10 +357,12 @@ Dit scherm is **alleen om te bekijken** — een ustadz kan geen murajaah bevesti
 | **Kies kind** | Zoals bij andere schermen. |
 | Kaart met actief doel | Surah, versbereik, frequentie, **aantal dagen/weken op rij (streak)**, en het beste record indien van toepassing. |
 | **Kwaliteit** (keuzelijst) | Vloeiend gememoriseerd / Gememoriseerd, nog niet vloeiend / Nog niet gememoriseerd — te kiezen vóór het bevestigen. |
-| **✓ Murajaah voltooid** (knop) | Registreert dat de murajaah van vandaag is gedaan. **Alleen zichtbaar voor een ouder** — als u een leerling van 16+ bent die de eigen gegevens bekijkt, is deze knop niet beschikbaar; alleen een ouder kan murajaah bevestigen, ook al kan de leerling wel de eigen voortgang zien. |
+| **✓ Murajaah voltooid** (knop) | Registreert dat de murajaah van vandaag is gedaan. **Alleen zichtbaar voor een ouder/verzorger** — als u een leerling van 16+ bent die de eigen gegevens bekijkt, is deze knop niet beschikbaar; alleen een ouder/verzorger kan murajaah bevestigen, ook al kan de leerling wel de eigen voortgang zien. |
 | **Voltooide memorisatie** & **Bevestigingsgeschiedenis** | Net als bij de ustadz-weergave. |
 
 **Offline-status**: als een bevestiging niet kan worden verstuurd door een netwerkprobleem, verschijnt *"U bent offline..."* en wordt deze tijdelijk lokaal bewaard totdat automatisch opnieuw kan worden verstuurd.
+
+**Al bevestigd**: heeft een kind meer dan één ouder/verzorger, dan kan elk van hen de murajaah van die dag bevestigen. De eerste bevestiging telt; bevestigt een tweede ouder/verzorger daarna nog eens voor dezelfde dag, dan verschijnt *"Murajaah is vandaag al bevestigd."* en verandert er niets.
 
 ---
 
@@ -502,7 +504,7 @@ Groepsformulier (hetzelfde voor nieuw aanmaken of bewerken):
 | Element | Functie |
 |---|---|
 | **+ Nieuwe leerling** | Opent het formulier voor een nieuwe leerling. |
-| Kaart per leerling | Naam, label **"Eigen account"** (als de leerling een eigen Google-login heeft, bijvoorbeeld een leerling van 16+), groep, en naam van de ouder. |
+| Kaart per leerling | Naam, label **"Eigen account"** (als de leerling een eigen Google-login heeft, bijvoorbeeld een leerling van 16+), groep, en de namen van de gekoppelde ouders/verzorgers. |
 | **Bewerken** | Opent het bewerkingsformulier. |
 
 Leerlingformulier:
@@ -513,7 +515,7 @@ Leerlingformulier:
 |---|---|
 | **Volledige naam** | Verplicht. |
 | **Geboortedatum** | Verplicht. |
-| **Ouder** | Verplicht te kiezen uit de lijst van geregistreerde gebruikers. |
+| **Ouders / verzorgers** | Verplicht — **minstens één**. Kies elke ouder/verzorger uit de lijst van geregistreerde gebruikers en voeg met **"+ Ouder / verzorger toevoegen"** zo nodig een tweede (of meer) toe. Per regel kan een optionele relatie worden ingevuld (bijv. "moeder", "vader", "voogd"). Alle gekoppelde ouders/verzorgers krijgen **dezelfde** toegang: zij zien de voortgang, ontvangen de meldingen en kunnen thuisoefening bevestigen — er is geen "hoofd"-ouder. De verwijderknop **−** is uitgeschakeld zolang er nog maar één regel is; een kind moet altijd minstens één ouder/verzorger houden. Een ouder/verzorger verwijderen laat de toegang direct vervallen; dat de koppeling ooit heeft bestaan blijft geregistreerd voor controle. |
 | **Groep** | Optioneel — kan leeg blijven als de leerling nog niet in een groep is geplaatst. |
 | **Koppel zelfstandig account** | Optioneel — verschijnt alleen als er een account van het type "leerling" bestaat dat nog aan geen enkele leerling is gekoppeld. Dit is de manier om de Google-login van een leerling (meestal 16+) te koppelen aan bestaande leerlinggegevens, bijvoorbeeld wanneer de leerling net een eigen account heeft aangemaakt. |
 | **Opslaan** / **Annuleren** | Opslaan of annuleren. |

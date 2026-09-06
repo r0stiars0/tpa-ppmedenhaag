@@ -4,17 +4,16 @@ import { AdminSectionNav } from '../../components/AdminSectionNav'
 import { getErrorMessage } from '../../lib/errors'
 import { PARENT_LINK_ROLES, selfLoginAccountsToOffer } from '../../lib/enrolmentLinks'
 import {
-  createStudent,
   fetchAllClasses,
   fetchAllStudents,
   fetchUnlinkedStudentAccounts,
   fetchUsersForLink,
-  updateStudent,
+  saveStudent,
   type AdminClass,
   type AdminStudent,
   type DirectoryUser,
 } from './api'
-import { StudentForm } from './StudentForm'
+import { StudentForm, type StudentFormValue } from './StudentForm'
 
 export function StudentsPage() {
   const { t } = useTranslation()
@@ -53,17 +52,11 @@ export function StudentsPage() {
 
   useEffect(load, [])
 
-  async function handleCreate(data: {
-    full_name: string
-    date_of_birth: string
-    class_id: string | null
-    parent_id: string
-    user_id: string | null
-  }) {
+  async function handleCreate(data: StudentFormValue) {
     setSaving(true)
     setError(null)
     try {
-      await createStudent(data)
+      await saveStudent(data)
       setCreating(false)
       load()
     } catch (err) {
@@ -73,20 +66,11 @@ export function StudentsPage() {
     }
   }
 
-  async function handleUpdate(
-    id: string,
-    data: {
-      full_name: string
-      date_of_birth: string
-      class_id: string | null
-      parent_id: string
-      user_id: string | null
-    },
-  ) {
+  async function handleUpdate(id: string, data: StudentFormValue) {
     setSaving(true)
     setError(null)
     try {
-      await updateStudent(id, data)
+      await saveStudent({ ...data, id })
       setEditingId(null)
       load()
     } catch (err) {
@@ -183,7 +167,10 @@ export function StudentsPage() {
                       )}
                     </div>
                     <p className="mt-0.5 text-sm text-ppme-text/60">
-                      {s.class?.name ?? '—'} · {s.parent?.full_name ?? '—'}
+                      {s.class?.name ?? '—'} ·{' '}
+                      {s.guardians.length > 0
+                        ? s.guardians.map((g) => g.full_name).join(', ')
+                        : '—'}
                     </p>
                   </div>
                   <button

@@ -59,6 +59,7 @@ const ALI = 'a5000000-0000-0000-0000-000000000001' // Ibu Siti's child, Kelas A
 const ZAINAB = 'a5000000-0000-0000-0000-000000000002' // Ibu Siti's second child, Kelas A
 const FATIMAH = 'a5000000-0000-0000-0000-000000000003' // Bapak Rudi's child, Kelas A, 16+ self-login
 const YUSUF = 'a5000000-0000-0000-0000-000000000005' // Ustadzah Aminah's own child, Kelas B
+const UMAR = 'a5000000-0000-0000-0000-000000000004' // Kelas B; TWO active guardians — Ibu Siti + Bapak Rudi (ADR-040)
 const SALMA = 'a5000000-0000-0000-0000-000000000007' // Ustadzah Laila's own child, Kelas B
 // The two overlap personas (ADR-023, ADR-024) and the disjoint
 // tutor-parent, for the scope-switch gates in section 9.
@@ -427,6 +428,43 @@ try {
   )
   await clearTray(siti.page)
   markPresent(ZAINAB)
+
+  console.log('\n2c. two guardians of one child — both notified (ADR-040)')
+  // Umar has two active `student_guardians` links in the fixture — Ibu
+  // Siti and Bapak Rudi — the "two parents" arrangement `students.parent_id`
+  // could not express. One absence must fan out to *both*, each on its
+  // own (user, event, child, date) tag, as a real push. This is the same
+  // pipeline as §2, exercised once for the join-table recipient set.
+  markAbsent(UMAR)
+  const sitiUmar = await waitForNotification(siti.page)
+  const rudiUmar = await waitForNotification(rudi.page)
+  check(
+    'guardian 1 (Ibu Siti) received Umar’s absence',
+    sitiUmar.some((n) => n.body.startsWith('Umar ')),
+    JSON.stringify(sitiUmar.map((n) => n.body)),
+  )
+  check(
+    'guardian 2 (Bapak Rudi) received the same absence',
+    rudiUmar.some((n) => n.body.startsWith('Umar ')),
+    JSON.stringify(rudiUmar.map((n) => n.body)),
+  )
+  check(
+    '…each on their own (user, event, child, date) tag',
+    sitiUmar.some((n) => n.tag === `absence:${SITI.id}:${UMAR}:${today}`) &&
+      rudiUmar.some((n) => n.tag === `absence:${RUDI.id}:${UMAR}:${today}`),
+    JSON.stringify([...sitiUmar, ...rudiUmar].map((n) => n.tag)),
+  )
+  check(
+    'the notification centre has one row per guardian, not one for the child',
+    Number(
+      sql(
+        `select count(*) from public.notifications where student_id='${UMAR}' and event='absence' and event_date='${today}'`,
+      ),
+    ) === 2,
+  )
+  await clearTray(siti.page)
+  await clearTray(rudi.page)
+  markPresent(UMAR)
 
   console.log('\n3. recipient locale drives the copy')
   sql(`update public.users set locale='nl' where id='${RUDI.id}'`)
@@ -862,7 +900,7 @@ try {
   // is in Kelas B, which nothing above has touched.
   check(
     'a quiet week is not summarised',
-    digest.body.recorded < Number(sql('select count(*) from public.students where parent_id is not null')),
+    digest.body.recorded < Number(sql('select count(*) from public.students')),
     JSON.stringify(digest.body),
   )
 
@@ -889,14 +927,18 @@ try {
   check(
     'each row names a child of that family and nobody else',
     sql(`select count(*) from public.notifications n
-         join public.students s on s.id = n.student_id
-         where n.user_id='${SITI.id}' and s.parent_id <> '${SITI.id}'`) === '0',
+         where n.user_id='${SITI.id}'
+           and not exists (select 1 from public.student_guardians g
+                           where g.student_id = n.student_id and g.user_id = n.user_id
+                             and g.unlinked_at is null)`) === '0',
   )
   check(
     'CROSS-FAMILY: the other parent’s rows are all about their own child',
     sql(`select count(*) from public.notifications n
-         join public.students s on s.id = n.student_id
-         where n.user_id='${RUDI.id}' and s.parent_id <> '${RUDI.id}'`) === '0',
+         where n.user_id='${RUDI.id}'
+           and not exists (select 1 from public.student_guardians g
+                           where g.student_id = n.student_id and g.user_id = n.user_id
+                             and g.unlinked_at is null)`) === '0',
   )
   check(
     'the in-app row carries the detail the lock screen may not — the jilid number',
@@ -923,12 +965,15 @@ try {
   // which asserted the bug ADR-022 fixed rather than the property worth
   // having: a tutor whose own child attends *should* have rows. The
   // invariant underneath it is about relationships and holds for every
-  // account whatever its role — every row is addressed to that child's
-  // own parent, or to that child's own 16+ login, and to nobody else.
+  // account whatever its role — every row is addressed to an active
+  // guardian of that child (ADR-040), or to that child's own 16+ login,
+  // and to nobody else.
   check(
-    'every notification row is addressed to that child’s own parent or the child themselves',
+    'every notification row is addressed to a guardian of that child or the child themselves',
     sql(`select count(*) from public.notifications n join public.students s on s.id = n.student_id
-         where n.user_id <> s.parent_id
+         where not exists (select 1 from public.student_guardians g
+                           where g.student_id = s.id and g.user_id = n.user_id
+                             and g.unlinked_at is null)
            and (s.user_id is null or n.user_id <> s.user_id)`) === '0',
   )
 

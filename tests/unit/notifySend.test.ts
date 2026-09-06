@@ -48,17 +48,28 @@ const SUB = (id: string) => ({
 const TODAY = '2026-08-15'
 
 interface Rows {
-  students?: { id: string; full_name: string; parent_id: string; user_id: string | null }[]
+  students?: { id: string; full_name: string; parent_id?: string; user_id: string | null }[]
+  /** Active `student_guardians` rows. Defaults to one per student, from `parent_id`. */
+  guardians?: { student_id: string; user_id: string }[]
   users?: { id: string; locale: string; push_sub: unknown }[]
   studentsError?: unknown
+  guardiansError?: unknown
   usersError?: unknown
 }
 
+/** The guardian set `audiencesForStudents` reads, derived from `parent_id` when not given. */
+function guardianRowsFor(rows: Rows): { student_id: string; user_id: string }[] {
+  if (rows.guardians) return rows.guardians
+  return (rows.students ?? []).flatMap((s) =>
+    s.parent_id ? [{ student_id: s.id, user_id: s.parent_id }] : [],
+  )
+}
+
 /**
- * Enough of a Supabase client for the orchestration: two `select …in`
- * reads, and the `upsert` the notification centre rows go through. Every
- * call is recorded, because the order of the two writes is one of the
- * things being asserted.
+ * Enough of a Supabase client for the orchestration: three `select …in`
+ * reads (`students`, `student_guardians`, `users`), and the `upsert` the
+ * notification centre rows go through. Every call is recorded, because
+ * the order of the two writes is one of the things being asserted.
  */
 function fakeClient(rows: Rows) {
   const calls: string[] = []
@@ -74,6 +85,13 @@ function fakeClient(rows: Rows) {
                 data: rows.studentsError ? null : (rows.students ?? []),
                 error: rows.studentsError ?? null,
               })
+            }
+            if (table === 'student_guardians') {
+              const payload = {
+                data: rows.guardiansError ? null : guardianRowsFor(rows),
+                error: rows.guardiansError ?? null,
+              }
+              return { is: () => Promise.resolve(payload) }
             }
             return Promise.resolve({
               data: rows.usersError ? null : (rows.users ?? []),
@@ -146,6 +164,7 @@ describe('notifyStudents — the sequence every sender shares', () => {
     expect(result.skipped).toBeUndefined()
     expect(calls).toEqual([
       'select:students',
+      'select:student_guardians',
       'select:users',
       'select:notifications',
       'upsert:notifications',

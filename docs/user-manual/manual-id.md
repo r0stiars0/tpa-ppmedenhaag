@@ -357,10 +357,12 @@ Layar ini **hanya untuk melihat** — ustadz tidak bisa mengonfirmasi murajaah u
 | **Pilih Anak** | Sama seperti layar lain. |
 | Kartu target aktif | Surah, rentang ayat, frekuensi, **jumlah hari/minggu berturut-turut (streak)**, dan rekor terbaik jika ada. |
 | **Kualitas** (dropdown) | Hafal Lancar / Hafal Kurang Lancar / Belum Hafal — dipilih sebelum mengonfirmasi. |
-| **✓ Selesai Murajaah** (tombol) | Mencatat bahwa murajaah hari ini sudah dilakukan. **Hanya muncul untuk orang tua** — jika Anda santri 16+ yang melihat data Anda sendiri, tombol ini tidak tersedia; hanya orang tua yang bisa mengonfirmasi murajaah, walaupun santri bisa melihat progresnya. |
+| **✓ Selesai Murajaah** (tombol) | Mencatat bahwa murajaah hari ini sudah dilakukan. **Hanya muncul untuk orang tua/wali** — jika Anda santri 16+ yang melihat data Anda sendiri, tombol ini tidak tersedia; hanya orang tua/wali yang bisa mengonfirmasi murajaah, walaupun santri bisa melihat progresnya. |
 | **Hafalan Selesai** & **Riwayat Konfirmasi** | Sama seperti tampilan ustadz. |
 
 **Status offline**: jika konfirmasi gagal terkirim karena jaringan, tampil pesan *"Anda sedang offline..."* dan tercatat sementara di perangkat sampai bisa dikirim ulang otomatis.
+
+**Sudah dikonfirmasi**: jika seorang anak punya lebih dari satu orang tua/wali, masing-masing bisa mengonfirmasi murajaah hari itu. Konfirmasi pertama yang berlaku; jika orang tua/wali kedua mengonfirmasi lagi untuk hari yang sama, muncul pesan *"Murajaah hari ini sudah dikonfirmasi."* dan tidak ada yang berubah.
 
 ---
 
@@ -502,7 +504,7 @@ Formulir Grup (sama untuk buat baru maupun ubah):
 | Elemen | Fungsi |
 |---|---|
 | **+ Santri Baru** | Membuka formulir santri baru. |
-| Kartu tiap santri | Nama, lencana **"Akun sendiri"** (jika santri punya login Google sendiri, misalnya santri 16+), grup, dan nama orang tua. |
+| Kartu tiap santri | Nama, lencana **"Akun sendiri"** (jika santri punya login Google sendiri, misalnya santri 16+), grup, dan nama orang tua/wali yang tertaut. |
 | **Ubah** | Membuka formulir edit. |
 
 Formulir Santri:
@@ -513,7 +515,7 @@ Formulir Santri:
 |---|---|
 | **Nama Lengkap** | Wajib diisi. |
 | **Tanggal Lahir** | Wajib diisi. |
-| **Orang Tua** | Wajib dipilih dari daftar pengguna terdaftar. |
+| **Orang tua / wali** | Wajib — **minimal satu**. Pilih tiap orang tua/wali dari daftar pengguna terdaftar, dan gunakan **"+ Tambah orang tua / wali"** untuk menambah yang kedua (atau lebih) bila perlu. Tiap baris boleh diberi keterangan hubungan opsional (mis. "ibu", "ayah", "wali"). Semua orang tua/wali yang tertaut memperoleh akses **yang sama**: melihat perkembangan, menerima notifikasi, dan mengonfirmasi latihan di rumah — tidak ada orang tua "utama". Tombol hapus **−** nonaktif selama baris tinggal satu; seorang anak harus selalu punya minimal satu orang tua/wali. Melepas tautan orang tua/wali langsung mengakhiri aksesnya; catatan bahwa tautan itu pernah ada tetap disimpan untuk audit. |
 | **Grup** | Opsional — bisa dikosongkan jika belum ditempatkan di grup. |
 | **Tautkan Akun Login Mandiri** | Opsional — hanya muncul jika ada akun bertipe "santri" yang belum tertaut ke santri manapun. Ini cara untuk menghubungkan login Google milik santri (biasanya yang sudah 16+) ke data santri yang sudah ada, misalnya saat santri baru saja membuat akunnya sendiri. |
 | **Simpan** / **Batal** | Menyimpan atau membatalkan. |

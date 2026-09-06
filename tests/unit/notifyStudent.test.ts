@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  type Audience,
   buildAudiences,
   dispatch,
   type DispatchDeps,
+  type GuardiansByStudent,
   type StudentAudience,
   recordNotifications,
   reportable,
@@ -26,9 +28,9 @@ const SUB = (id: string) => ({
 /**
  * An account row as `audiencesForStudents` loads it. There is no `role`
  * on it, and that is the subject of half the cases below: since ADR-022
- * the recipient rule is the child's own `parent_id`/`user_id`, and what
- * role the account behind those columns happens to hold is not a
- * question this module can ask.
+ * the recipient rule is the child's own guardian links / `user_id`, and
+ * what role the account behind them happens to hold is not a question
+ * this module can ask.
  */
 const account = (id: string, locale: 'id' | 'nl' = 'id'): UserRow => ({
   id,
@@ -36,27 +38,83 @@ const account = (id: string, locale: 'id' | 'nl' = 'id'): UserRow => ({
   push_sub: SUB(id),
 })
 
-const student = (over: Partial<StudentRow> = {}): StudentRow => ({
-  id: 'student-1',
-  full_name: 'Ali Rahman',
-  parent_id: 'parent-1',
-  user_id: null,
-  ...over,
-})
+/**
+ * A student row plus its *active guardian* user_ids — since ADR-040 the
+ * audience is built from the `student_guardians` set, not a single
+ * `parent_id` column. `parent_id` is still accepted here as a shorthand
+ * for "one guardian" so the existing single-guardian cases read
+ * unchanged; `guardians` gives an explicit set.
+ */
+type TestStudent = StudentRow & { guardians: string[] }
+
+const student = (
+  over: Partial<StudentRow> & { parent_id?: string; guardians?: string[] } = {},
+): TestStudent => {
+  const { parent_id, guardians, ...rest } = over
+  return {
+    id: 'student-1',
+    full_name: 'Ali Rahman',
+    user_id: null,
+    guardians: guardians ?? [parent_id ?? 'parent-1'],
+    ...rest,
+  }
+}
+
+/** Runs the real `buildAudiences` with the guardian map the tests imply. */
+function build(students: TestStudent[], users: UserRow[], audience: Audience): StudentAudience[] {
+  const map: GuardiansByStudent = new Map()
+  for (const s of students) map.set(s.id, s.guardians)
+  return buildAudiences(students, map, users, audience)
+}
 
 describe('who receives a notification about a child', () => {
   it('sends to the child’s own parent', () => {
-    const [audience] = buildAudiences([student()], [account('parent-1')], 'parent')
+    const [audience] = build([student()], [account('parent-1')], 'parent')
     expect(audience.recipients.map((r) => r.userId)).toEqual(['parent-1'])
     expect(audience.childFullName).toBe('Ali Rahman')
+  })
+
+  it('sends to EVERY active guardian of the child (ADR-040)', () => {
+    // A child with two guardians — two parents, or a parent and a
+    // guardian. Both are recipients (D5), each their own delivery and
+    // their own notification-centre row.
+    const [audience] = build(
+      [student({ guardians: ['mum-1', 'dad-1'] })],
+      [account('mum-1'), account('dad-1')],
+      'parent',
+    )
+    expect(audience.recipients.map((r) => r.userId)).toEqual(['mum-1', 'dad-1'])
+  })
+
+  it('does not double a guardian who is also the child’s own self-login account', () => {
+    // A 16+ santri who is also listed as their own guardian: a family
+    // audience must still be one delivery to them.
+    const [audience] = build(
+      [student({ guardians: ['gran-1', 'self-1'], user_id: 'self-1' })],
+      [account('gran-1'), account('self-1')],
+      'family',
+    )
+    expect(audience.recipients.map((r) => r.userId)).toEqual(['gran-1', 'self-1'])
+  })
+
+  it('a removed guardian is simply not in the set the builder is given', () => {
+    // `audiencesForStudents` filters `student_guardians` on
+    // `unlinked_at IS NULL`, so an unlinked guardian never reaches
+    // `buildAudiences` — asserted here as "only the active ones are
+    // paired", the shape the query hands over.
+    const [audience] = build(
+      [student({ guardians: ['still-here-1'] })],
+      [account('still-here-1'), account('removed-1')],
+      'parent',
+    )
+    expect(audience.recipients.map((r) => r.userId)).toEqual(['still-here-1'])
   })
 
   it('NEVER pairs a child with another family’s parent', () => {
     // The property test-plan §1 calls "a GDPR incident, not a bug".
     // Two families' rows arrive in one batch — a class roster — and each
     // child must resolve to their own parent only.
-    const audiences = buildAudiences(
-      [
+    const audiences = build([
         student({ id: 'child-a', full_name: 'Ali', parent_id: 'parent-1' }),
         student({ id: 'child-b', full_name: 'Fatimah', parent_id: 'parent-2' }),
       ],
@@ -75,10 +133,10 @@ describe('who receives a notification about a child', () => {
     const rows = [student({ user_id: 'student-user-1' })]
     const users = [account('parent-1'), account('student-user-1')]
 
-    expect(buildAudiences(rows, users, 'parent')[0].recipients.map((r) => r.userId)).toEqual([
+    expect(build(rows, users, 'parent')[0].recipients.map((r) => r.userId)).toEqual([
       'parent-1',
     ])
-    expect(buildAudiences(rows, users, 'family')[0].recipients.map((r) => r.userId)).toEqual([
+    expect(build(rows, users, 'family')[0].recipients.map((r) => r.userId)).toEqual([
       'parent-1',
       'student-user-1',
     ])
@@ -87,8 +145,7 @@ describe('who receives a notification about a child', () => {
   it('does not notify the same account twice', () => {
     // Defensive: if a 16+ student's own account were also recorded as
     // the parent contact, a family audience must still be one delivery.
-    const audiences = buildAudiences(
-      [student({ parent_id: 'user-1', user_id: 'user-1' })],
+    const audiences = build([student({ parent_id: 'user-1', user_id: 'user-1' })],
       [account('user-1')],
       'family',
     )
@@ -105,8 +162,7 @@ describe('who receives a notification about a child', () => {
     // There is no role on `UserRow` to set any more, which is the point:
     // the case cannot regress by someone re-adding a role test here,
     // because the data to test would have to come back first.
-    const [audience] = buildAudiences(
-      [student({ parent_id: 'tutor-parent-1' })],
+    const [audience] = build([student({ parent_id: 'tutor-parent-1' })],
       [account('tutor-parent-1')],
       'parent',
     )
@@ -119,8 +175,7 @@ describe('who receives a notification about a child', () => {
     // not. An admin who is a parent is a recipient here exactly like any
     // other parent, and exactly as narrowly: the other family's child in
     // the same batch resolves to their own parent alone.
-    const audiences = buildAudiences(
-      [
+    const audiences = build([
         student({ id: 'own', full_name: 'Salma', parent_id: 'admin-parent-1' }),
         student({ id: 'other', full_name: 'Ali', parent_id: 'parent-2' }),
       ],
@@ -142,8 +197,7 @@ describe('who receives a notification about a child', () => {
     // neither, so there is no column through which they could appear.
     // The account is passed in deliberately, as `audiencesForStudents`
     // would if some other row made it a recipient elsewhere.
-    const audiences = buildAudiences(
-      [
+    const audiences = build([
         student({ id: 'pupil-a', parent_id: 'parent-1' }),
         student({ id: 'pupil-b', parent_id: 'parent-2' }),
       ],
@@ -159,8 +213,7 @@ describe('who receives a notification about a child', () => {
     // Both halves in one audience, which is the case the two rules have
     // to hold simultaneously for. The same account is `parent_id` on one
     // row and teaches the other; only the first reaches them.
-    const audiences = buildAudiences(
-      [
+    const audiences = build([
         student({ id: 'own-child', full_name: 'Yusuf', parent_id: 'tutor-parent-1' }),
         student({ id: 'pupil', full_name: 'Ali', parent_id: 'parent-2' }),
       ],
@@ -191,8 +244,7 @@ describe('who receives a notification about a child', () => {
       student({ id: 'classmate-a', full_name: 'Ali', parent_id: 'parent-2' }),
       student({ id: 'classmate-b', full_name: 'Zainab', parent_id: 'parent-3' }),
     ]
-    const audiences = buildAudiences(
-      roster,
+    const audiences = build(roster,
       [account('tutor-parent-1'), account('parent-2'), account('parent-3')],
       'family',
     )
@@ -214,8 +266,7 @@ describe('who receives a notification about a child', () => {
     // hands them nothing extra at all, because the audience is built from
     // `user_id` and `parent_id` and neither says anything about who
     // teaches.
-    const audiences = buildAudiences(
-      [
+    const audiences = build([
         student({ id: 'sa-own', full_name: 'Aisyah', parent_id: 'parent-4', user_id: 'sa-1' }),
         student({ id: 'classmate', full_name: 'Ali', parent_id: 'parent-2' }),
       ],
@@ -243,7 +294,7 @@ describe('who receives a notification about a child', () => {
       student({ id: 's2', parent_id: 'parent-2' }),
       student({ id: 's3', parent_id: 'parent-3' }),
     ]
-    const recipients = buildAudiences(rows, users, 'parent').flatMap((a) => a.recipients)
+    const recipients = build(rows, users, 'parent').flatMap((a) => a.recipients)
     expect(recipients.map((r) => r.userId)).toEqual(['parent-1', 'parent-2', 'parent-3'])
     expect(recipients.every((r) => r.subscription === null)).toBe(true)
   })
@@ -263,7 +314,7 @@ describe('who receives a notification about a child', () => {
       student({ id: 's1', parent_id: 'tutor-parent-1' }),
       student({ id: 's2', parent_id: 'admin-parent-1' }),
     ]
-    const recipients = buildAudiences(rows, users, 'family').flatMap((a) => a.recipients)
+    const recipients = build(rows, users, 'family').flatMap((a) => a.recipients)
     expect(recipients.map((r) => [r.userId, r.subscription !== null])).toEqual([
       ['tutor-parent-1', false],
       ['admin-parent-1', true],
@@ -273,7 +324,7 @@ describe('who receives a notification about a child', () => {
   it('mixes reachable and unreachable recipients in one family audience', () => {
     const users: UserRow[] = [account('parent-1'), { ...account('self-1'), push_sub: null }]
     const rows = [student({ parent_id: 'parent-1', user_id: 'self-1' })]
-    const [audience] = buildAudiences(rows, users, 'family')
+    const [audience] = build(rows, users, 'family')
     expect(audience.recipients.map((r) => [r.userId, r.subscription !== null])).toEqual([
       ['parent-1', true],
       ['self-1', false],
@@ -284,8 +335,7 @@ describe('who receives a notification about a child', () => {
     // The caller reports "no push subscription" rather than "no such
     // student", and a class fan-out must not drop the rest of the roster
     // because one family is unsubscribed.
-    const audiences = buildAudiences(
-      [student({ id: 's1', parent_id: 'parent-1' }), student({ id: 's2', parent_id: 'parent-2' })],
+    const audiences = build([student({ id: 's1', parent_id: 'parent-1' }), student({ id: 's2', parent_id: 'parent-2' })],
       [account('parent-2')],
       'parent',
     )

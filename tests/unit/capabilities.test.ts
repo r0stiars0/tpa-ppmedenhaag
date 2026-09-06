@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
   NO_CAPABILITIES,
   deriveCapabilities,
-  familyLinkFilter,
   fetchViewerRelationships,
   isSelfRecord,
   selfStudentId,
@@ -20,34 +19,28 @@ const STUDENT16 = '33333333-3333-4333-8333-333333333333'
 const OTHER = '44444444-4444-4444-8444-444444444444'
 const SUBJECT = '55555555-5555-4555-8555-555555555555' // the account under test in the lattice sweep
 
+/**
+ * A row as `fn_my_family_students()` returns it since ADR-040: the child
+ * plus two computed flags — `is_guardian` (the caller holds an active
+ * `student_guardians` link) and `is_self` (`students.user_id` is the
+ * caller). A row can carry both.
+ */
 function link(over: Partial<FamilyLink> = {}): FamilyLink {
   return {
     id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     full_name: 'Anak',
-    parent_id: PARENT,
     user_id: null,
+    is_guardian: false,
+    is_self: false,
     ...over,
   }
 }
 
-describe('familyLinkFilter — the filter that stops a tutor-parent seeing a class as their children', () => {
-  it('asks for both family links, not just parentage', () => {
-    // `user_id.eq` is the 16+ self-login student's only link to their
-    // own record. Dropping it silently empties every screen for them —
-    // they have no `parent_id` row of their own.
-    expect(familyLinkFilter(TP)).toBe(`parent_id.eq.${TP},user_id.eq.${TP}`)
-  })
-
-  it('refuses anything that is not a UUID', () => {
-    // PostgREST's `or=` takes a filter expression as a string, so a
-    // value with a comma in it would add a disjunct rather than be
-    // compared against. The id always comes from the session today;
-    // this is what keeps that true for the next caller.
-    expect(() => familyLinkFilter('')).toThrow(/expected a UUID/)
-    expect(() => familyLinkFilter(`${TP},role.eq.admin`)).toThrow(/expected a UUID/)
-    expect(() => familyLinkFilter('not-a-uuid')).toThrow(/expected a UUID/)
-  })
-})
+/** A child the caller is an active guardian of. */
+const guardianLink = (over: Partial<FamilyLink> = {}) => link({ is_guardian: true, ...over })
+/** The caller's own 16+ self-login record. */
+const selfLink = (over: Partial<FamilyLink> = {}) =>
+  link({ is_self: true, user_id: STUDENT16, ...over })
 
 describe('deriveCapabilities — relationships in, capabilities out (ADR-019)', () => {
   const base = { familyLinks: [] as FamilyLink[], tutorClassCount: 0 }
@@ -58,7 +51,7 @@ describe('deriveCapabilities — relationships in, capabilities out (ADR-019)', 
         ...base,
         userId: PARENT,
         role: 'parent',
-        familyLinks: [link(), link({ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' })],
+        familyLinks: [guardianLink(), guardianLink({ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' })],
       }),
     ).toEqual({ ...NO_CAPABILITIES, isParentOfAnyone: true })
   })
@@ -70,15 +63,15 @@ describe('deriveCapabilities — relationships in, capabilities out (ADR-019)', 
   })
 
   it('gives a 16+ self-login student the self capability and not the parent one', () => {
-    // Their row's `parent_id` is their actual parent's id, never their
-    // own — reading "I appear in a students row" as parenthood would
-    // hand every 16+ student a ChildPicker over themselves.
+    // Their own row carries `is_self` and not `is_guardian` — reading
+    // "I appear in a students row" as parenthood would hand every 16+
+    // student a ChildPicker over themselves.
     expect(
       deriveCapabilities({
         ...base,
         userId: STUDENT16,
         role: 'student',
-        familyLinks: [link({ parent_id: OTHER, user_id: STUDENT16 })],
+        familyLinks: [selfLink()],
       }),
     ).toEqual({ ...NO_CAPABILITIES, isSelfStudent: true })
   })
@@ -92,7 +85,7 @@ describe('deriveCapabilities — relationships in, capabilities out (ADR-019)', 
         ...base,
         userId: TP,
         role: 'parent',
-        familyLinks: [link({ parent_id: TP })],
+        familyLinks: [guardianLink()],
         tutorClassCount: 1,
       }),
     ).toEqual({ ...NO_CAPABILITIES, isParentOfAnyone: true, isTutorOfAnyClass: true })
@@ -109,7 +102,7 @@ describe('deriveCapabilities — relationships in, capabilities out (ADR-019)', 
         ...base,
         userId: STUDENT16,
         role: 'student',
-        familyLinks: [link({ parent_id: OTHER, user_id: STUDENT16 })],
+        familyLinks: [selfLink()],
         tutorClassCount: 1,
       }),
     ).toEqual({ ...NO_CAPABILITIES, isSelfStudent: true, isTutorOfAnyClass: true })
@@ -137,7 +130,7 @@ describe('deriveCapabilities — relationships in, capabilities out (ADR-019)', 
         ...base,
         userId: OTHER,
         role: 'admin',
-        familyLinks: [link({ parent_id: OTHER })],
+        familyLinks: [guardianLink()],
       }),
     ).toEqual({ ...NO_CAPABILITIES, isAdmin: true, isParentOfAnyone: true })
   })
@@ -158,11 +151,6 @@ describe('deriveCapabilities — relationships in, capabilities out (ADR-019)', 
  * cells it lists; this sweeps every one, so a future short-circuit
  * ("an admin obviously isn't a parent", "a student can't be a tutor")
  * fails here rather than in a family's screen.
- *
- * The four inputs are deliberately mismatched to the outputs where they
- * can be: `role` is only ever allowed to produce `isAdmin`, and for the
- * non-admin cells the role column is set to whatever would be *wrong* if
- * anything read it.
  */
 describe('the sixteen combinations of the four capabilities', () => {
   const cells = [false, true]
@@ -184,17 +172,10 @@ describe('the sixteen combinations of the four capabilities', () => {
     (expected) => {
       const familyLinks: FamilyLink[] = []
       // Two separate rows, because they are two separate relationships:
-      // a child of theirs, and their own 16+ record whose `parent_id` is
-      // somebody else entirely.
-      if (expected.isParentOfAnyone) familyLinks.push(link({ parent_id: SUBJECT }))
+      // a child they guard, and their own 16+ record.
+      if (expected.isParentOfAnyone) familyLinks.push(guardianLink())
       if (expected.isSelfStudent) {
-        familyLinks.push(
-          link({
-            id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
-            parent_id: OTHER,
-            user_id: SUBJECT,
-          }),
-        )
+        familyLinks.push(selfLink({ id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }))
       }
       expect(
         deriveCapabilities({
@@ -214,12 +195,11 @@ describe('the sixteen combinations of the four capabilities', () => {
     // The two family booleans come from two different columns of
     // possibly the same row, and the failure mode is subtle: a 16+
     // santri whose own record is read as parenthood becomes a "parent"
-    // with a ChildPicker over themselves, and a parent whose child has a
-    // self-login becomes a "student" and is offered a santri's screens.
-    const ownRecord = link({ parent_id: OTHER, user_id: SUBJECT })
-    const theirChildWithOwnLogin = link({
+    // with a ChildPicker over themselves, and a guardian whose child has
+    // a self-login becomes a "student" and is offered a santri's screens.
+    const ownRecord = selfLink()
+    const theirChildWithOwnLogin = guardianLink({
       id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
-      parent_id: SUBJECT,
       user_id: OTHER,
     })
     expect(
@@ -242,7 +222,7 @@ describe('the sixteen combinations of the four capabilities', () => {
       deriveCapabilities({
         userId: SUBJECT,
         role: 'parent',
-        familyLinks: [link({ parent_id: SUBJECT }), link({ parent_id: SUBJECT })],
+        familyLinks: [guardianLink(), guardianLink()],
         tutorClassCount: 1,
       }),
     ).toEqual({ ...NO_CAPABILITIES, isParentOfAnyone: true, isTutorOfAnyClass: true })
@@ -250,32 +230,29 @@ describe('the sixteen combinations of the four capabilities', () => {
 })
 
 describe('selfStudentId — which roster row is the viewer’s own', () => {
-  it('finds the caller’s own record by user_id, not by parentage', () => {
-    // Aisyah's row: `parent_id` is her actual parent, `user_id` is her.
-    // Reading `parent_id` here would return null for her and — worse —
-    // a *child's* id for every parent, which is the id the register
-    // would then refuse to submit.
-    const own = link({ id: 'own-record', parent_id: OTHER, user_id: STUDENT16 })
-    expect(selfStudentId(STUDENT16, [link({ parent_id: STUDENT16 }), own])).toBe('own-record')
+  it('finds the caller’s own record by the is_self flag, not by parentage', () => {
+    // Aisyah's row carries `is_self`; her guardian's child rows do not.
+    // Reading a guardian row here would return a *child's* id for every
+    // parent, which is the id the register would then refuse to submit.
+    const own = selfLink({ id: 'own-record' })
+    expect(selfStudentId([guardianLink(), own])).toBe('own-record')
   })
 
   it('is null for a parent, however many children they have', () => {
     // Which is the answer that makes `recordableStudents` a no-op for
     // every account in the TPA but one.
-    expect(selfStudentId(PARENT, [link({ parent_id: PARENT }), link({ parent_id: PARENT })])).toBe(
-      null,
-    )
+    expect(selfStudentId([guardianLink(), guardianLink()])).toBe(null)
   })
 
   it('is null for a tutor-parent, so their own child stays recordable (ADR-024)', () => {
     // Bapak Hasan holds no `students` record of his own. If this ever
     // returned his daughter's id, the register that teaches his class
     // would silently stop submitting her row.
-    expect(selfStudentId(TP, [link({ id: 'khadijah', parent_id: TP })])).toBe(null)
+    expect(selfStudentId([guardianLink({ id: 'khadijah' })])).toBe(null)
   })
 
   it('is null when the person has no family link at all', () => {
-    expect(selfStudentId(OTHER, [])).toBe(null)
+    expect(selfStudentId([])).toBe(null)
   })
 })
 
@@ -302,71 +279,54 @@ describe('isSelfRecord — the question the family screens used to ask of the ro
 })
 
 describe('fetchFamilyLinks — the query itself, not just its result', () => {
-  function fakeClient(rows: FamilyLink[]) {
-    const calls: { table?: string; select?: string; or?: string; order?: string } = {}
-    const builder = {
-      select(columns: string) {
-        calls.select = columns
-        return this
-      },
-      or(filter: string) {
-        calls.or = filter
-        return this
-      },
-      order(column: string) {
-        calls.order = column
-        return Promise.resolve({ data: rows, error: null })
-      },
-    }
+  function fakeClient(rows: FamilyLink[], error: unknown = null) {
+    const calls: { rpc?: string } = {}
     const client = {
-      from(table: string) {
-        calls.table = table
-        return builder
+      rpc(fn: string) {
+        calls.rpc = fn
+        return Promise.resolve({ data: rows, error })
       },
     } as unknown as Parameters<typeof fetchFamilyLinks>[0]
     return { client, calls }
   }
 
-  it('filters on the relationship instead of trusting RLS to narrow it', () => {
-    // The regression this guards: an unfiltered `select` returns the
-    // union of all four permissive `students` policies, so a
+  it('asks the relationship RPC instead of trusting RLS to narrow a select', () => {
+    // The regression this guards: an unfiltered `select` on `students`
+    // returns the union of all four permissive policies, so a
     // tutor-parent's ChildPicker would list their whole class and an
-    // admin's would list the school.
+    // admin's would list the school. `fn_my_family_students()` asks the
+    // narrow question server-side (ADR-040).
     const { client, calls } = fakeClient([])
-    return fetchFamilyLinks(client, TP).then(() => {
-      expect(calls.table).toBe('students')
-      expect(calls.or).toBe(`parent_id.eq.${TP},user_id.eq.${TP}`)
-      expect(calls.order).toBe('full_name')
+    return fetchFamilyLinks(client).then(() => {
+      expect(calls.rpc).toBe('fn_my_family_students')
     })
   })
 
-  it('selects the two link columns the capability derivation needs', () => {
-    const { client, calls } = fakeClient([])
-    return fetchFamilyLinks(client, TP).then(() => {
-      expect(calls.select).toContain('parent_id')
-      expect(calls.select).toContain('user_id')
-    })
-  })
-
-  it('returns the rows as given, in the order the query asked for', () => {
-    const rows = [link({ parent_id: TP }), link({ parent_id: OTHER, user_id: TP })]
+  it('carries the two relationship flags the capability derivation needs', () => {
+    const rows = [guardianLink(), selfLink({ id: 'self-1' })]
     const { client } = fakeClient(rows)
-    return fetchFamilyLinks(client, TP).then((data) => expect(data).toEqual(rows))
+    return fetchFamilyLinks(client).then((data) => {
+      expect(data.some((r) => r.is_guardian)).toBe(true)
+      expect(data.some((r) => r.is_self)).toBe(true)
+    })
+  })
+
+  it('returns the rows sorted by name', () => {
+    const rows = [
+      guardianLink({ id: 'z', full_name: 'Zainab' }),
+      guardianLink({ id: 'a', full_name: 'Ali' }),
+    ]
+    const { client } = fakeClient(rows)
+    return fetchFamilyLinks(client).then((data) =>
+      expect(data.map((r) => r.full_name)).toEqual(['Ali', 'Zainab']),
+    )
   })
 
   it('throws the Postgrest error rather than reporting an empty family', () => {
     // A swallowed error here reads as "you have no children", which is
     // indistinguishable on screen from a real empty state.
-    const client = {
-      from: () => ({
-        select: () => ({
-          or: () => ({
-            order: () => Promise.resolve({ data: null, error: { message: 'permission denied' } }),
-          }),
-        }),
-      }),
-    } as unknown as Parameters<typeof fetchFamilyLinks>[0]
-    return expect(fetchFamilyLinks(client, TP)).rejects.toMatchObject({
+    const { client } = fakeClient([], { message: 'permission denied' })
+    return expect(fetchFamilyLinks(client)).rejects.toMatchObject({
       message: 'permission denied',
     })
   })
@@ -532,24 +492,18 @@ describe('fetchViewerRelationships — the two relationship queries, together', 
     const started: string[] = []
     let resolveLinks: (() => void) | undefined
     const client = {
+      rpc(fn: string) {
+        started.push(fn)
+        // Deliberately deferred: if the two queries were awaited in
+        // sequence, `classes` would not have been touched by the time
+        // this is still pending.
+        return new Promise((resolve) => {
+          resolveLinks = () =>
+            resolve({ data: over.links ?? [], error: over.linksError ?? null })
+        })
+      },
       from(table: string) {
         started.push(table)
-        if (table === 'students') {
-          return {
-            select: () => ({
-              or: () => ({
-                order: () =>
-                  // Deliberately deferred: if the two queries were
-                  // awaited in sequence, `classes` would not have been
-                  // touched by the time this is still pending.
-                  new Promise((resolve) => {
-                    resolveLinks = () =>
-                      resolve({ data: over.links ?? [], error: over.linksError ?? null })
-                  }),
-              }),
-            }),
-          }
-        }
         return {
           select: () => ({
             contains: () =>
@@ -569,22 +523,22 @@ describe('fetchViewerRelationships — the two relationship queries, together', 
     const { client, started, releaseLinks } = fakeClient({ classCount: 1 })
     const pending = fetchViewerRelationships(client, TP, 'parent')
     await Promise.resolve()
-    expect(started).toEqual(['students', 'classes'])
+    expect(started).toEqual(['fn_my_family_students', 'classes'])
     releaseLinks()
     await pending
   })
 
   it('combines both answers into the capability set the screens hold', async () => {
     const { client, releaseLinks } = fakeClient({
-      links: [link({ parent_id: TP })],
+      links: [guardianLink()],
       classCount: 1,
     })
     const pending = fetchViewerRelationships(client, TP, 'parent')
     releaseLinks()
     await expect(pending).resolves.toEqual({
       capabilities: { ...NO_CAPABILITIES, isParentOfAnyone: true, isTutorOfAnyClass: true },
-      // Their child's row, not their own: `selfStudentId` reads
-      // `user_id`, and a parent is never in that column.
+      // Their child's row, not their own: `selfStudentId` reads the
+      // `is_self` flag, which a guardian row never carries.
       selfStudentId: null,
     })
   })

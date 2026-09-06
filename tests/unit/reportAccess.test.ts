@@ -19,20 +19,45 @@ function caller(role: Caller['role'], id = 'caller-1'): Caller {
   return { id, role, full_name: 'Test Caller' }
 }
 
-/** Only the tutor branch ever queries the database — a fake `classes` lookup is enough. */
+/**
+ * The tutor branch queries `classes`; the parent branch queries
+ * `student_guardians` for an active link (ADR-040). `classMatch` covers
+ * both — the tutor teaches the class / the caller is an active guardian.
+ */
 function fakeAdmin(classMatch: boolean): ServiceClient {
   return {
     from: (table: string) => {
-      if (table !== 'classes') throw new Error(`unexpected table: ${table}`)
-      return {
-        select: () => ({
-          eq: () => ({
-            contains: () => ({
-              maybeSingle: async () => ({ data: classMatch ? { id: 'class-1' } : null, error: null }),
+      if (table === 'classes') {
+        return {
+          select: () => ({
+            eq: () => ({
+              contains: () => ({
+                maybeSingle: async () => ({
+                  data: classMatch ? { id: 'class-1' } : null,
+                  error: null,
+                }),
+              }),
             }),
           }),
-        }),
+        }
       }
+      if (table === 'student_guardians') {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                is: () => ({
+                  maybeSingle: async () => ({
+                    data: classMatch ? { student_id: 'student-1' } : null,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          }),
+        }
+      }
+      throw new Error(`unexpected table: ${table}`)
     },
   } as unknown as ServiceClient
 }
@@ -66,7 +91,7 @@ describe('resolveReportPdfPath', () => {
 })
 
 describe('isReportAuthorized — the access matrix report-pdf.mts restates from RLS', () => {
-  const draft = { status: 'draft', parent_id: 'parent-1', user_id: 'student-1', class_id: 'class-1' }
+  const draft = { status: 'draft', student_id: 'student-1', user_id: 'student-1', class_id: 'class-1' }
   const published = { ...draft, status: 'published' }
 
   it('admin → any status, drafts included, with no class lookup', async () => {
@@ -94,14 +119,15 @@ describe('isReportAuthorized — the access matrix report-pdf.mts restates from 
     ).resolves.toBe(false)
   })
 
-  it('parent → own child, published only', async () => {
-    const admin = fakeAdmin(false)
-    await expect(isReportAuthorized(admin, caller('parent', 'parent-1'), published)).resolves.toBe(true)
-    await expect(isReportAuthorized(admin, caller('parent', 'parent-1'), draft)).resolves.toBe(false)
+  it('parent → own child (an active guardian link), published only', async () => {
+    const admin = fakeAdmin(true) // caller holds an active student_guardians link
+    await expect(isReportAuthorized(admin, caller('parent', 'guardian-1'), published)).resolves.toBe(true)
+    // …but a draft is refused before the guardian lookup even runs.
+    await expect(isReportAuthorized(admin, caller('parent', 'guardian-1'), draft)).resolves.toBe(false)
   })
 
-  it('parent → a different family’s child, any status → refused', async () => {
-    const admin = fakeAdmin(false)
+  it('parent → a child they are not a guardian of, any status → refused', async () => {
+    const admin = fakeAdmin(false) // no active link for this caller
     await expect(isReportAuthorized(admin, caller('parent', 'someone-else'), published)).resolves.toBe(false)
     await expect(isReportAuthorized(admin, caller('parent', 'someone-else'), draft)).resolves.toBe(false)
   })

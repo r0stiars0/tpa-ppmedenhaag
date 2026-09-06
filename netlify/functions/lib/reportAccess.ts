@@ -15,7 +15,7 @@ import type { Caller, ServiceClient } from './callerAuth'
 
 export interface ReportAccessInput {
   status: string
-  parent_id: string
+  student_id: string
   user_id: string | null
   class_id: string | null
 }
@@ -24,7 +24,8 @@ export interface ReportAccessInput {
  * Mirrors `year_end_reports` RLS:
  *   - admin  → any report, any status (drafts too) — `yer_admin_all`
  *   - tutor  → students in their own classes, any status — `yer_tutor_rw`
- *   - parent → own children, published only — `yer_parent_read`
+ *   - parent → children they are an active guardian of, published only
+ *     — `yer_parent_read`, which rides `fn_my_children()` (ADR-040)
  *   - student (16+ self-login) → own record, published only — `yer_student_read`
  */
 export async function isReportAuthorized(
@@ -47,8 +48,17 @@ export async function isReportAuthorized(
         .maybeSingle()
       return Boolean(data)
     }
-    case 'parent':
-      return published && report.parent_id === caller.id
+    case 'parent': {
+      if (!published) return false
+      const { data } = await admin
+        .from('student_guardians')
+        .select('student_id')
+        .eq('student_id', report.student_id)
+        .eq('user_id', caller.id)
+        .is('unlinked_at', null)
+        .maybeSingle()
+      return Boolean(data)
+    }
     case 'student':
       return published && report.user_id === caller.id
     default:

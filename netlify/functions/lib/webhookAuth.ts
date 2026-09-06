@@ -35,8 +35,9 @@ import { jsonError, type ServiceClient } from './callerAuth'
  * Authorization does not stop here. Proving the channel only earns the
  * right to *ask*; who may receive a given notification is decided
  * separately, from the database, by the Function itself — see
- * `notify-absence.mts`, where the recipient set is derived from
- * `students.parent_id` and never from anything the request supplied.
+ * `notify-absence.mts`, where the recipient set is derived from the
+ * child's active `student_guardians` links and never from anything the
+ * request supplied.
  */
 export function verifyWebhookSecret(req: Request): { error: Response } | null {
   const expected = process.env.NOTIFY_WEBHOOK_SECRET

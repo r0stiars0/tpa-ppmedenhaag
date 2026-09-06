@@ -5,8 +5,9 @@
  * ── The rule is a relationship, never a role (TAD ADR-022) ──────────
  * Every notification this system sends is *about a child*, so the only
  * question that decides a recipient is what the account's relationship
- * to that child is: `students.parent_id`, or `students.user_id` for a
- * 16+ santri with their own login. Nothing here consults `users.role`.
+ * to that child is: an active `student_guardians` link (ADR-040), or
+ * `students.user_id` for a 16+ santri with their own login. Nothing here
+ * consults `users.role`.
  *
  * That is a correction, not a restatement. The rule used to be
  * `role in ('parent','student')` (ADR-015(a)), which quietly meant that
@@ -21,9 +22,9 @@
  * data minimisation, and a tutor learns about an absence by recording
  * it. That half is not enforced here at all — it is enforced by the
  * shape of the audience query, which pairs a child only with that
- * child's own `parent_id`/`user_id`. A tutor is not in either column
- * for the children they teach, so no notification about them can reach
- * a tutor whatever this predicate answers. The two halves are enforced
+ * child's own active `student_guardians` links and `students.user_id`. A
+ * tutor holds neither for the children they teach, so no notification
+ * about them can reach a tutor whatever this predicate answers. The two halves are enforced
  * in different places precisely so neither can be lost by editing the
  * other.
  *
@@ -42,7 +43,7 @@
  * rule.
  */
 export interface RecipientRelationships {
-  /** Named as `parent_id` on at least one student row. */
+  /** Holds an active `student_guardians` link to at least one child. */
   isParentOfAnyone: boolean
   /** A 16+ santri whose own `students.user_id` is this account. */
   isSelfStudent: boolean

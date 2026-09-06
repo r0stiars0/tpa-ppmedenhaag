@@ -14,11 +14,13 @@
 --   docker exec -i supabase_db_tpa-ppme-denhaag \
 --     psql -U postgres -v ON_ERROR_STOP=1 < supabase/dev-fixture.sql
 --
--- Seeds: 2 tutors + 1 admin + 2 parents (one with 3 children, one with 1
+-- Seeds: 2 tutors + 1 admin + 2 parents (one names 3 children, one 1
 -- child who's also a 16+ self-login) + 4 multi-role accounts (a tutor who
 -- is also a parent, a parent who is also a tutor, an admin who is both
 -- — TAD ADR-019 — and a 16+ student who assists in a class, ADR-020) +
--- 2 classes + 8 students + 1 pending (unregistered) sign-in for the
+-- 2 classes + 8 students + their `student_guardians` links (one child has
+-- two active guardians, one has a removed one — ADR-040) + 1 pending
+-- (unregistered) sign-in for the
 -- Registrations page to show — which, since ADR-038, also carries the
 -- name + free-text context that person submitted from the Unauthorized
 -- screen, plus a Google `full_name` in its metadata so the form's
@@ -77,10 +79,10 @@ values
   ('c1000000-0000-0000-0000-000000000001', 'admin.dev@dev.local', 'Admin Dev', 'admin', 'id'),
   -- ---- dual-role accounts (TAD ADR-019) ----
   -- One person can be more than one thing at the TPA, and the database
-  -- has always allowed it (`students.parent_id` is a plain FK to
-  -- `users(id)` with no role constraint) even though the admin UI has no
-  -- way to set it up yet. Both directions are seeded, because they land
-  -- on opposite halves of the app:
+  -- has always allowed it (a `student_guardians` link — ADR-040, formerly
+  -- `students.parent_id` — is a plain FK with no role constraint) even
+  -- though the admin UI now sets it up too. Both directions are seeded,
+  -- because they land on opposite halves of the app:
   --
   --   Ustadzah Aminah — role 'tutor', teaches Grup A, her own son Yusuf
   --     is in Grup B. Since ADR-025 she lands on the *class* scope, as
@@ -168,25 +170,59 @@ values
     'd1000000-0000-0000-0000-000000000004'    -- Aisyah (the disjoint half: she teaches here, she sits in Grup A)
   ]::uuid[]);
 
-insert into public.students (id, parent_id, user_id, full_name, class_id, date_of_birth)
+-- `students.parent_id` was retired in migration 021 (ADR-040). A child's
+-- guardians now live in `student_guardians` (below), and a child may have
+-- more than one. The students insert and its guardian links are wrapped
+-- in one transaction so the DEFERRABLE `trg_student_has_guardian`
+-- constraint (every student needs an active guardian by commit) sees
+-- both — psql autocommits each statement otherwise.
+begin;
+
+insert into public.students (id, user_id, full_name, class_id, date_of_birth)
 values
-  ('a5000000-0000-0000-0000-000000000001', 'a2000000-0000-0000-0000-000000000001', null, 'Ali', 'a4000000-0000-0000-0000-000000000001', '2015-03-10'),
-  ('a5000000-0000-0000-0000-000000000002', 'a2000000-0000-0000-0000-000000000001', null, 'Zainab', 'a4000000-0000-0000-0000-000000000001', '2016-07-22'),
-  ('a5000000-0000-0000-0000-000000000003', 'a2000000-0000-0000-0000-000000000002', 'a3000000-0000-0000-0000-000000000001', 'Fatimah', 'a4000000-0000-0000-0000-000000000001', '2009-11-02'),
-  ('a5000000-0000-0000-0000-000000000004', 'a2000000-0000-0000-0000-000000000001', null, 'Umar', 'a4000000-0000-0000-0000-000000000002', '2017-05-05'),
+  ('a5000000-0000-0000-0000-000000000001', null, 'Ali', 'a4000000-0000-0000-0000-000000000001', '2015-03-10'),
+  ('a5000000-0000-0000-0000-000000000002', null, 'Zainab', 'a4000000-0000-0000-0000-000000000001', '2016-07-22'),
+  ('a5000000-0000-0000-0000-000000000003', 'a3000000-0000-0000-0000-000000000001', 'Fatimah', 'a4000000-0000-0000-0000-000000000001', '2009-11-02'),
+  ('a5000000-0000-0000-0000-000000000004', null, 'Umar', 'a4000000-0000-0000-0000-000000000002', '2017-05-05'),
   -- Each dual-role tutor's own child sits in the class the *other* one
   -- teaches, so neither can reach their own child through their tutor
   -- grant — the union of the two grants is the only way either of them
   -- sees everything they are entitled to.
-  ('a5000000-0000-0000-0000-000000000005', 'd1000000-0000-0000-0000-000000000001', null, 'Yusuf', 'a4000000-0000-0000-0000-000000000002', '2016-02-14'),
-  ('a5000000-0000-0000-0000-000000000006', 'd1000000-0000-0000-0000-000000000002', null, 'Khadijah', 'a4000000-0000-0000-0000-000000000001', '2015-09-30'),
+  ('a5000000-0000-0000-0000-000000000005', null, 'Yusuf', 'a4000000-0000-0000-0000-000000000002', '2016-02-14'),
+  ('a5000000-0000-0000-0000-000000000006', null, 'Khadijah', 'a4000000-0000-0000-0000-000000000001', '2015-09-30'),
   -- The triple-role account's own child, likewise in the class she does
   -- not teach.
-  ('a5000000-0000-0000-0000-000000000007', 'd1000000-0000-0000-0000-000000000003', null, 'Salma', 'a4000000-0000-0000-0000-000000000002', '2017-01-19'),
+  ('a5000000-0000-0000-0000-000000000007', null, 'Salma', 'a4000000-0000-0000-0000-000000000002', '2017-01-19'),
   -- The student assistant's own record: a santri in Grup A with her own
-  -- login, who assists in Grup B. Still linked to a parent, as every
+  -- login, who assists in Grup B. Still linked to a guardian, as every
   -- student record is (the hybrid account model).
-  ('a5000000-0000-0000-0000-000000000008', 'a2000000-0000-0000-0000-000000000002', 'd1000000-0000-0000-0000-000000000004', 'Aisyah', 'a4000000-0000-0000-0000-000000000001', '2008-06-12');
+  ('a5000000-0000-0000-0000-000000000008', 'd1000000-0000-0000-0000-000000000004', 'Aisyah', 'a4000000-0000-0000-0000-000000000001', '2008-06-12');
+
+-- ── Guardians (migration 021, ADR-040) ──────────────────────
+-- One active link per child, mirroring the former `parent_id`, PLUS two
+-- shapes the single-column model could not express:
+--   • Umar has **two** active guardians — Ibu Siti and Bapak Rudi — the
+--     "two parents" arrangement. Sign in as either to see the same full
+--     family view of Umar; both receive his notifications. Umar is in
+--     Grup B, which `scripts/verify-push.mjs` does not assert on, so the
+--     second guardian changes no count that harness reads.
+--   • Zainab has a **removed** guardian — Bapak Rudi, `unlinked_at` set.
+--     The row is kept for audit (D7); it grants nothing, and Bapak Rudi
+--     sees none of Zainab's data.
+insert into public.student_guardians (student_id, user_id, relation, unlinked_at)
+values
+  ('a5000000-0000-0000-0000-000000000001', 'a2000000-0000-0000-0000-000000000001', 'ibu',   null),
+  ('a5000000-0000-0000-0000-000000000002', 'a2000000-0000-0000-0000-000000000001', 'ibu',   null),
+  ('a5000000-0000-0000-0000-000000000002', 'a2000000-0000-0000-0000-000000000002', 'oom',   now() - interval '30 days'),
+  ('a5000000-0000-0000-0000-000000000003', 'a2000000-0000-0000-0000-000000000002', 'ayah',  null),
+  ('a5000000-0000-0000-0000-000000000004', 'a2000000-0000-0000-0000-000000000001', 'ibu',   null),
+  ('a5000000-0000-0000-0000-000000000004', 'a2000000-0000-0000-0000-000000000002', 'ayah',  null),
+  ('a5000000-0000-0000-0000-000000000005', 'd1000000-0000-0000-0000-000000000001', null,    null),
+  ('a5000000-0000-0000-0000-000000000006', 'd1000000-0000-0000-0000-000000000002', null,    null),
+  ('a5000000-0000-0000-0000-000000000007', 'd1000000-0000-0000-0000-000000000003', null,    null),
+  ('a5000000-0000-0000-0000-000000000008', 'a2000000-0000-0000-0000-000000000002', null,    null);
+
+commit;
 
 -- Registration request (migration 020, TAD ADR-038): the context that the
 -- pending sign-in above submitted from the Unauthorized screen. Signing in
