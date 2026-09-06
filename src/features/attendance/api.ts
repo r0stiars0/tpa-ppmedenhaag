@@ -17,23 +17,35 @@ export function todayLocalDate(): string {
   return `${yyyy}-${mm}-${dd}`
 }
 
-/**
- * Implements the PRD 1.6 user flow ("current session auto-detected by
- * date/time"): look up today's session for this class, creating it on
- * first open of the day. A unique (class_id, date) constraint means a
- * concurrent create from a co-tutor is possible — on conflict we just
- * re-select rather than erroring out the tutor's screen.
- */
-export async function getOrCreateTodaySession(classId: string, tutorId: string): Promise<Session> {
-  const date = todayLocalDate()
-
-  const { data: existing, error: selectError } = await supabase
+/** Today's session for a class if one exists, else null. Never creates. */
+export async function fetchSessionForDate(classId: string, date: string): Promise<Session | null> {
+  const { data, error } = await supabase
     .from('sessions')
     .select('*')
     .eq('class_id', classId)
     .eq('date', date)
     .maybeSingle()
-  if (selectError) throw selectError
+  if (error) throw error
+  return data ?? null
+}
+
+/**
+ * Implements the PRD 1.6 user flow ("current session auto-detected by
+ * date/time"), now driven by the group's schedule rather than raw
+ * "today" (TAD ADR-037): look up the session for `date` on this class,
+ * creating it if absent. `date` must be one of the class's
+ * `meeting_days` — `trg_sessions_meeting_day` refuses the INSERT
+ * otherwise; the attendance screen only ever passes a scheduled date, so
+ * that error means a bug, not a user mistake. A unique (class_id, date)
+ * constraint means a concurrent create from a co-tutor is possible — on
+ * conflict we just re-select rather than erroring out the tutor's screen.
+ */
+export async function getOrCreateScheduledSession(
+  classId: string,
+  date: string,
+  tutorId: string,
+): Promise<Session> {
+  const existing = await fetchSessionForDate(classId, date)
   if (existing) return existing
 
   const { data: created, error: insertError } = await supabase

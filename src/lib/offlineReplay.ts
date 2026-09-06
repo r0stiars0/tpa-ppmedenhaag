@@ -28,7 +28,7 @@ async function replayEntry(entry: QueueEntry): Promise<void> {
   // the server on an earlier attempt (the response was lost, not the
   // write) hits the table's `unique (assignment_id, date)` constraint.
   // That is success, not a new failure: the same reasoning
-  // `getOrCreateTodaySession` already applies to its own race
+  // `getOrCreateScheduledSession` already applies to its own race
   // (attendance/api.ts).
   if (entry.kind === 'murajaah') {
     try {
