@@ -22,7 +22,12 @@
   "auth": {
     "signIn": "Masuk dengan Google",
     "signOut": "Keluar",
-    "unauthorized": "Akun Anda belum terdaftar. Hubungi admin TPA."
+    "unauthorized": "Akun Anda belum terdaftar. Hubungi admin TPA.",
+    "registrationIntro": "Isi nama Anda dan, jika mau, keterangan singkat di bawah ini, agar admin dapat meninjau permintaan Anda.",
+    "registrationFullName": "Nama lengkap",
+    "registrationDescription": "Keterangan (opsional): siapa Anda, untuk anak yang mana, mengapa Anda memerlukan akses",
+    "registrationSubmit": "Kirim permintaan",
+    "registrationSubmitted": "Permintaan Anda telah diterima. Admin akan meninjaunya sesegera mungkin."
   },
   "common": {
     "save": "Simpan",
@@ -326,6 +331,7 @@
     "assignRole": "Peran",
     "fullName": "Nama Lengkap",
     "register": "Daftarkan",
+    "registrationDescription": "Keterangan dari pengguna",
     "classesTitle": "Manajemen Grup",
     "newClass": "Grup Baru",
     "className": "Nama Grup",

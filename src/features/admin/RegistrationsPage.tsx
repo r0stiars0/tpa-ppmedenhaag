@@ -64,12 +64,15 @@ export function RegistrationsPage() {
     }
   }
 
-  function draftFor(userId: string) {
-    return drafts[userId] ?? { full_name: '', role: 'parent' as UserRole }
+  function draftFor(user: PendingRegistration) {
+    // Seed the editable name from what the user submitted themselves
+    // (ADR-038); blank for an invite-created or pre-feature entry. Still
+    // fully editable before the admin registers them.
+    return drafts[user.id] ?? { full_name: user.full_name ?? '', role: 'parent' as UserRole }
   }
 
   async function handleRegister(user: PendingRegistration) {
-    const draft = draftFor(user.id)
+    const draft = draftFor(user)
     if (!draft.full_name.trim()) return
     setSavingId(user.id)
     setError(null)
@@ -154,7 +157,7 @@ export function RegistrationsPage() {
       ) : (
         <ul className="space-y-3">
           {pending.map((user) => {
-            const draft = draftFor(user.id)
+            const draft = draftFor(user)
             return (
               <li key={user.id} className="space-y-3 rounded-lg bg-white p-4 shadow-sm">
                 <div>
@@ -163,6 +166,15 @@ export function RegistrationsPage() {
                     {t('admin.registeredSince', { date: dateFormatter.format(new Date(user.created_at)) })}
                   </p>
                 </div>
+
+                {user.description && (
+                  <div className="rounded-lg bg-ppme-bg-alt p-3 text-sm text-ppme-text/80">
+                    <p className="mb-1 text-xs font-medium text-ppme-text/60">
+                      {t('admin.registrationDescription')}
+                    </p>
+                    <p className="whitespace-pre-wrap">{user.description}</p>
+                  </div>
+                )}
 
                 <label className="block text-xs font-medium text-ppme-text/70">
                   {t('admin.fullName')}

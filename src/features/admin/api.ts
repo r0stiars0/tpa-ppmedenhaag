@@ -7,6 +7,14 @@ export interface PendingRegistration {
   id: string
   email: string
   created_at: string
+  /**
+   * The name and free-text context the user submitted from the
+   * Unauthorized screen (ADR-038). Both `null` for anyone who reached
+   * the pending list without submitting one — an `invite-user` account,
+   * or a sign-in predating migration 020.
+   */
+  full_name: string | null
+  description: string | null
 }
 
 export async function fetchPendingRegistrations(): Promise<PendingRegistration[]> {
