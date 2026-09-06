@@ -3637,6 +3637,149 @@ insert into _tap_log(line) select is(
   0::bigint, 'RLS-77: …and none of its sessions'
 );
 
+-- ======================================================================
+-- RLS-78…RLS-86: tutor attendance (migration 022, TAD ADR-041)
+--
+-- `public.tutor_attendance` mirrors `attendance` with `tutor_id → users`,
+-- keyed on the same session. The point of these cases: the table is
+-- readable by an admin (any class) and by a tutor of the session's class
+-- ONLY — a guardian or a 16+ student sees zero rows, because the table
+-- has **no policy** for them, and that omission is the privacy boundary
+-- (ADR-041(b)). An INSERT's subject `tutor_id` must be named in that
+-- class's `tutor_ids` (ADR-041(c)).
+--
+-- Reuses the dual-role fixture's Class C — taught by BOTH b…001 (TP) and
+-- b…002 (TT), the one genuinely two-tutor class in the suite — for the
+-- co-tutor cases, plus a Class B row so "a 16+ student sees none" is
+-- proven against a row that exists rather than an empty table.
+-- ======================================================================
+reset role;
+
+insert into public.tutor_attendance (session_id, tutor_id, status) values
+  ('e0000000-0000-0000-0000-00000000000b', '70000000-0000-0000-0000-000000000002', 'present'),  -- Class B / T2
+  ('e0000000-0000-0000-0000-00000000000c', 'b0000000-0000-0000-0000-000000000002', 'late');     -- Class C / TT
+
+set local role authenticated;
+
+-- RLS-78: a guardian sees no tutor attendance, though a row exists for
+-- their child's class.
+set local request.jwt.claim.sub to 'b0000000-0000-0000-0000-000000000003';  -- P4, guardian of a Class C child
+insert into _tap_log(line) select is(
+  (select count(*) from public.tutor_attendance), 0::bigint,
+  'RLS-78: a guardian sees 0 tutor_attendance rows (the table has no parent policy)'
+);
+
+-- RLS-79: a 16+ self-login student sees none either, though a Class B
+-- row exists and S16 is a Class B student.
+set local request.jwt.claim.sub to '50000000-0000-0000-0000-000000000001';  -- S16
+insert into _tap_log(line) select is(
+  (select count(*) from public.tutor_attendance), 0::bigint,
+  'RLS-79: a 16+ student sees 0 tutor_attendance rows'
+);
+
+-- RLS-80: anon sees none.
+set local role anon;
+set local request.jwt.claim.sub to '';
+set local request.jwt.claim.role to 'anon';
+insert into _tap_log(line) select is(
+  (select count(*) from public.tutor_attendance), 0::bigint, 'RLS-80: anon sees 0 tutor_attendance rows'
+);
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+
+-- RLS-81: a tutor reads tutor attendance for their own class only.
+set local request.jwt.claim.sub to 'b0000000-0000-0000-0000-000000000001';  -- TP, tutor of Class C
+insert into _tap_log(line) select is(
+  (select count(*) from public.tutor_attendance
+     where session_id = 'e0000000-0000-0000-0000-00000000000c'),
+  1::bigint, 'RLS-81: TP reads the Class C tutor_attendance row (co-tutor read)'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.tutor_attendance
+     where session_id = 'e0000000-0000-0000-0000-00000000000b'),
+  0::bigint, 'RLS-81: …and 0 rows for Class B, which TP does not teach'
+);
+
+-- RLS-82: a tutor records their own presence, and corrects a co-tutor's
+-- (D2/D3 — presence is not self-evaluation, so there is no ADR-023
+-- self-record carve-out here).
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.tutor_attendance (session_id, tutor_id, status)
+     values ('e0000000-0000-0000-0000-00000000000c', 'b0000000-0000-0000-0000-000000000001', 'present') $$,
+  'RLS-82: TP records their own tutor attendance for a class they teach'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ update public.tutor_attendance set status = 'late'
+     where session_id = 'e0000000-0000-0000-0000-00000000000c'
+       and tutor_id = 'b0000000-0000-0000-0000-000000000002' $$,
+  'RLS-82: TP corrects co-tutor TT''s status for the same class'
+);
+
+-- RLS-83: the subject tutor must be named in the class's tutor_ids.
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.tutor_attendance (session_id, tutor_id, status)
+     values ('e0000000-0000-0000-0000-00000000000c', 'b0000000-0000-0000-0000-000000000003', 'present') $$,
+  '42501', null,
+  'RLS-83: TP cannot record tutor attendance for P4, who is not a tutor of Class C'
+);
+
+-- RLS-84: a tutor cannot record for a class they do not teach.
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.tutor_attendance (session_id, tutor_id, status)
+     values ('e0000000-0000-0000-0000-00000000000d', 'b0000000-0000-0000-0000-000000000001', 'present') $$,
+  '42501', null,
+  'RLS-84: TP cannot record tutor attendance for a Class D session (not their class)'
+);
+
+-- RLS-85: admin — full access on every class, mirroring attendance_admin_all.
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';
+insert into _tap_log(line) select ok(
+  (select count(*) from public.tutor_attendance) >= 3,
+  'RLS-85: admin sees every tutor_attendance row'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.tutor_attendance (session_id, tutor_id, status)
+     values ('e0000000-0000-0000-0000-00000000000d', '70000000-0000-0000-0000-000000000002', 'absent') $$,
+  'RLS-85: admin records tutor attendance for a class it does not tutor'
+);
+
+-- RLS-86: fn_class_tutors — names for the entitled, nothing for anyone
+-- else. Class C's `tutor_ids` has been appended to by earlier blocks
+-- (RLS-34-area), so this asserts that TP's two known co-tutors come back
+-- **with a full_name** rather than an exact row count.
+set local request.jwt.claim.sub to 'b0000000-0000-0000-0000-000000000001';  -- TP
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_class_tutors('c0000000-0000-0000-0000-00000000000c')
+     where user_id in ('b0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002')
+       and full_name is not null),
+  2::bigint, 'RLS-86: a tutor of Class C gets its co-tutors from fn_class_tutors, with names'
+);
+set local request.jwt.claim.sub to 'b0000000-0000-0000-0000-000000000003';  -- P4 (guardian, not a tutor)
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_class_tutors('c0000000-0000-0000-0000-00000000000c')),
+  0::bigint, 'RLS-86: a guardian gets 0 rows from fn_class_tutors (entitlement folded into WHERE)'
+);
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_class_tutors('c0000000-0000-0000-0000-00000000000d')),
+  1::bigint, 'RLS-86: admin gets Class D''s single tutor from fn_class_tutors'
+);
+
+-- RLS-87: fn_class_tutors excludes a student-assistant enrolled in the
+-- same class (ADR-041(e)). Class E's tutor_ids are OV, OSA, AT, MC — and
+-- OSA (b…007) also has their own student record in Class E. The tutor
+-- section must not list OSA: their attendance is taken on the roster.
+set local request.jwt.claim.sub to 'b0000000-0000-0000-0000-00000000000a';  -- MC, a tutor of Class E
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_class_tutors('c0000000-0000-0000-0000-00000000000e')
+     where user_id = 'b0000000-0000-0000-0000-000000000007'),
+  0::bigint, 'RLS-87: fn_class_tutors omits the student-assistant OSA, who is enrolled in Class E'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_class_tutors('c0000000-0000-0000-0000-00000000000e')),
+  3::bigint, 'RLS-87: …and returns the other three tutors of Class E (OV, AT, MC)'
+);
+
 reset role;
 
 -- ---------- done ----------

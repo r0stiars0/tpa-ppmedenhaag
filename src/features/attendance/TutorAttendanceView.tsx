@@ -19,10 +19,14 @@ import {
 import {
   fetchAttendanceForSession,
   fetchClassRoster,
+  fetchClassTutors,
   fetchSessionForDate,
+  fetchTutorAttendanceForSession,
   getOrCreateScheduledSession,
   submitAttendance,
+  submitTutorAttendance,
   todayLocalDate,
+  type ClassTutor,
   type RosterStudent,
 } from './api'
 
@@ -62,6 +66,19 @@ interface RowState {
  * `recordableStudents` subtracts her own record only — never a
  * tutor-parent's children, who stay on the register and are marked by
  * their parent in the ordinary way (ADR-024, ADR-024(c)).
+ *
+ * ── The tutor section (TAD ADR-041) ────────────────────────────────
+ * Below the student roster is a section listing the tutors of the
+ * selected class (`fetchClassTutors` → `fn_class_tutors`, because
+ * `users_self_read` hides other users), each with the same
+ * present/late/absent + reason control a student has. It writes
+ * `tutor_attendance` — a sibling table keyed on the same session — in
+ * the same submit, and the confirm dialog states the two counts
+ * separately. There is **no** self-record carve-out here: unlike the
+ * evaluative writes ADR-023 fenced off, marking "I was here" is not
+ * self-assessment, so a tutor's own row is theirs to set. Parents and
+ * 16+ students never see any of this — the table simply has no policy
+ * for them.
  */
 export function TutorAttendanceView() {
   const { t, i18n } = useTranslation()
@@ -72,8 +89,10 @@ export function TutorAttendanceView() {
   const [classId, setClassId] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [roster, setRoster] = useState<RosterStudent[]>([])
+  const [classTutors, setClassTutors] = useState<ClassTutor[]>([])
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [rows, setRows] = useState<Record<string, RowState>>({})
+  const [tutorRows, setTutorRows] = useState<Record<string, RowState>>({})
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [confirming, setConfirming] = useState(false)
@@ -123,8 +142,9 @@ export function TutorAttendanceView() {
 
     async function load() {
       try {
-        const [rosterData, session] = await Promise.all([
+        const [rosterData, tutorData, session] = await Promise.all([
           fetchClassRoster(classId!),
+          fetchClassTutors(classId!),
           // The current session is created on open, as before. A
           // stepped-to past date is only read here — it is created on
           // submit, so navigating through history leaves no empty rows.
@@ -135,6 +155,7 @@ export function TutorAttendanceView() {
         if (!active) return
 
         const existing = session ? await fetchAttendanceForSession(session.id) : []
+        const existingTutor = session ? await fetchTutorAttendanceForSession(session.id) : []
         if (!active) return
 
         const existingByStudent = new Map(existing.map((a) => [a.student_id, a]))
@@ -147,9 +168,21 @@ export function TutorAttendanceView() {
           }
         }
 
+        const existingByTutor = new Map(existingTutor.map((a) => [a.tutor_id, a]))
+        const initialTutorRows: Record<string, RowState> = {}
+        for (const tutor of tutorData) {
+          const record = existingByTutor.get(tutor.user_id)
+          initialTutorRows[tutor.user_id] = {
+            status: record?.status ?? 'present',
+            reason: record?.reason ?? '',
+          }
+        }
+
         setRoster(rosterData)
+        setClassTutors(tutorData)
         setSessionId(session?.id ?? null)
         setRows(initialRows)
+        setTutorRows(initialTutorRows)
       } catch (err) {
         if (active) setError(getErrorMessage(err))
       } finally {
@@ -202,6 +235,21 @@ export function TutorAttendanceView() {
     setRows((prev) => ({ ...prev, [studentId]: { ...prev[studentId], reason } }))
   }
 
+  function setTutorStatus(tutorId: string, status: AttendanceStatus) {
+    setSubmitted(false)
+    setQueued(false)
+    setTutorRows((prev) => ({
+      ...prev,
+      [tutorId]: { status, reason: status === 'absent' ? prev[tutorId]?.reason ?? '' : '' },
+    }))
+  }
+
+  function setTutorReason(tutorId: string, reason: string) {
+    setSubmitted(false)
+    setQueued(false)
+    setTutorRows((prev) => ({ ...prev, [tutorId]: { ...prev[tutorId], reason } }))
+  }
+
   async function handleSubmit() {
     if (!classId || !profile || !selectedDate) return
     setSubmitting(true)
@@ -231,18 +279,33 @@ export function TutorAttendanceView() {
       status: rows[student.id]?.status ?? 'present',
       reason: rows[student.id]?.status === 'absent' ? rows[student.id]?.reason || null : null,
     }))
+    const tutorPayload: TablesInsert<'tutor_attendance'>[] = classTutors.map((tutor) => ({
+      session_id: targetSessionId!,
+      tutor_id: tutor.user_id,
+      status: tutorRows[tutor.user_id]?.status ?? 'present',
+      reason:
+        tutorRows[tutor.user_id]?.status === 'absent'
+          ? tutorRows[tutor.user_id]?.reason || null
+          : null,
+    }))
     try {
+      // Students first (the unchanged path), then the tutor rows. Both
+      // upserts are idempotent on their (session, subject) key, so a
+      // re-submit after a mid-way failure re-applies the first write
+      // harmlessly and retries the second.
       await submitAttendance(payload)
+      await submitTutorAttendance(tutorPayload)
       setSubmitted(true)
       setConfirming(false)
     } catch (err) {
       // A network failure means the register never left the device —
-      // upsert on (session_id, student_id) makes it safe to queue and
-      // replay whole, unlike a real rejection (a validation error, an
-      // RLS denial), which must reach the tutor now rather than sit in
-      // a queue pretending to have been handled.
+      // the upserts on (session_id, student_id) / (session_id, tutor_id)
+      // make it safe to queue and replay whole, unlike a real rejection
+      // (a validation error, an RLS denial), which must reach the tutor
+      // now rather than sit in a queue pretending to have been handled.
       if (isNetworkError(err)) {
-        await offlineQueue.enqueue('attendance', payload)
+        if (payload.length > 0) await offlineQueue.enqueue('attendance', payload)
+        if (tutorPayload.length > 0) await offlineQueue.enqueue('tutor_attendance', tutorPayload)
         setQueued(true)
         setConfirming(false)
       } else {
@@ -397,7 +460,86 @@ export function TutorAttendanceView() {
         </div>
       )}
 
-      {submittable.length > 0 && !loading && (
+      {/*
+        The tutor section (TAD ADR-041). Same row shape as a student,
+        keyed by the tutor's user id. No self-record carve-out: a tutor's
+        own row is theirs to set. Rendered whenever the class has tutors;
+        an empty `tutor_ids` shows the assign-in-Beheer hint instead so
+        the section is never a silent blank.
+      */}
+      {!loading && classId && (
+        <div className="space-y-2">
+          <h2 className="pt-2 text-sm font-semibold text-ppme-text/70">
+            {t('attendance.tutorSection')}
+          </h2>
+
+          {classTutors.length === 0 ? (
+            <p className="text-sm text-ppme-text/50">{t('attendance.noTutorsAssigned')}</p>
+          ) : (
+            classTutors.map((tutor) => {
+              const row = tutorRows[tutor.user_id] ?? { status: 'present', reason: '' }
+              return (
+                <div key={tutor.user_id} className="rounded-lg bg-white p-4 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium text-ppme-text">{tutor.full_name}</span>
+                    <div className="flex gap-1">
+                      <StatusButton
+                        active={row.status === 'present'}
+                        color="success"
+                        label={t('attendance.present')}
+                        onClick={() => setTutorStatus(tutor.user_id, 'present')}
+                      />
+                      <StatusButton
+                        active={row.status === 'late'}
+                        color="neutral"
+                        label={t('attendance.late')}
+                        onClick={() => setTutorStatus(tutor.user_id, 'late')}
+                      />
+                      <StatusButton
+                        active={row.status === 'absent'}
+                        color="danger"
+                        label={t('attendance.absent')}
+                        onClick={() => setTutorStatus(tutor.user_id, 'absent')}
+                      />
+                    </div>
+                  </div>
+
+                  {row.status === 'absent' && (
+                    <div className="mt-3 space-y-2 border-t border-black/5 pt-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        {REASON_PRESET_KEYS.map((key) => (
+                          <button
+                            key={key}
+                            type="button"
+                            className="min-h-11 rounded-full border border-black/10 px-3 text-xs font-medium text-ppme-text/70 hover:bg-ppme-bg-alt"
+                            onClick={() =>
+                              setTutorReason(
+                                tutor.user_id,
+                                key === 'reasonOther' ? '' : t(`attendance.${key}`),
+                              )
+                            }
+                          >
+                            {t(`attendance.${key}`)}
+                          </button>
+                        ))}
+                      </div>
+                      <input
+                        type="text"
+                        className="min-h-11 w-full rounded-lg border border-black/10 px-3 text-sm text-ppme-text"
+                        placeholder={t('attendance.reason')}
+                        value={row.reason}
+                        onChange={(e) => setTutorReason(tutor.user_id, e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
+      )}
+
+      {(submittable.length > 0 || classTutors.length > 0) && !loading && (
         <div className="space-y-2">
           {submitted && (
             <p className="rounded-lg bg-ppme-success/10 p-3 text-sm text-ppme-success">
@@ -411,13 +553,22 @@ export function TutorAttendanceView() {
           )}
           {confirming ? (
             <div className="rounded-lg bg-white p-4 shadow-sm">
-              <p className="text-sm text-ppme-text">
-                {/* The number actually being written, which is the
-                    roster minus the assistant's own row — a confirm
-                    dialog that overstates by one is how somebody learns
-                    they were counted when they were not. */}
-                {t('attendance.confirmSubmit', { count: submittable.length })}
-              </p>
+              {submittable.length > 0 && (
+                <p className="text-sm text-ppme-text">
+                  {/* The number actually being written, which is the
+                      roster minus the assistant's own row — a confirm
+                      dialog that overstates by one is how somebody learns
+                      they were counted when they were not. */}
+                  {t('attendance.confirmSubmit', { count: submittable.length })}
+                </p>
+              )}
+              {classTutors.length > 0 && (
+                <p className="mt-1 text-sm text-ppme-text/70">
+                  {/* Stated separately, never folded into the student
+                      count — see above. */}
+                  {t('attendance.confirmSubmitTutors', { count: classTutors.length })}
+                </p>
+              )}
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"

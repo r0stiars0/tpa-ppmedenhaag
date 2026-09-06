@@ -349,7 +349,25 @@ real removed row.
 - [ ] RLS-76 — **Backfill + regression gate.** After migration 021: every pre-existing student has exactly **one** active `student_guardians` row whose `user_id` equals the value its dropped `parent_id` held; `students.parent_id` no longer exists (a `SELECT parent_id FROM students` errors); and **RLS-01…RLS-64 all still pass unchanged** — the same "unchanged-green is the evidence" gate RLS-22…27 and RLS-28…33 rely on.
 - [ ] RLS-77 — **The three `alter policy` family branches.** P1 still reads Class A (`classes_read`), its `sessions` (`sessions_family_read`) and its `assignments` (`assignments_family_read`) for X2/X3; G2 reads the same for X2; GX (removed) reads **none** of the three. The 16+ self-login branch of each policy is untouched — S16 still reads their own class, session and assignments.
 
-*Total after these: 284 + N pgTAP assertions (N ≈ 45; fill in from the file once the block is written).*
+### 3.6 Tutor attendance (RLS-78…86, ADR-041)
+
+New table `public.tutor_attendance` (migration 022). Reuses the dual-role
+fixture's Class C — the one class taught by two tutors (TP `b…001`, TT
+`b…002`) — plus a Class B row so the "16+ student sees none" negative is
+proven against a row that exists.
+
+- [ ] RLS-78 — **A guardian sees no tutor attendance.** P4 (guardian of a Class C child) SELECT `tutor_attendance` → **0 rows**, though a row exists for that class. The table has no parent policy at all; the omission is the privacy boundary (ADR-041(b)).
+- [ ] RLS-79 — **A 16+ self-login student sees none either.** S16 (a Class B student) SELECT `tutor_attendance` → **0 rows**, though a Class B row exists.
+- [ ] RLS-80 — **Anon sees none** (the RLS-12 shape, restored to `authenticated` afterwards).
+- [ ] RLS-81 — **Co-tutor read is scoped to the session's class.** TP reads the Class C row (1); TP reads **0** for the Class B session it does not teach.
+- [ ] RLS-82 — **A tutor records their own presence, and corrects a co-tutor's.** TP `INSERT`s `tutor_attendance` for a Class C session with `tutor_id = TP` → allowed (no ADR-023 self-record carve-out — presence is not self-evaluation); TP `UPDATE`s TT's row for the same session → allowed.
+- [ ] RLS-83 — **The subject must be a tutor of that class.** TP `INSERT` for a Class C session with `tutor_id = P4` (not in `classes.tutor_ids`) → `42501` (the second `WITH CHECK` clause).
+- [ ] RLS-84 — **No recording for a class you do not teach.** TP `INSERT` for a Class D session → `42501`.
+- [ ] RLS-85 — **Admin, every class.** Admin SELECT → sees every row; admin `INSERT` for a class it does not tutor → allowed (mirrors RLS-22 for `attendance`).
+- [ ] RLS-86 — **`fn_class_tutors`.** A tutor of Class C → its two tutors, **with `full_name`**; a guardian → **0 rows** (entitlement folded into the `WHERE`, the `fn_student_guardians` pattern); admin → any class's tutors.
+- [ ] RLS-87 — **`fn_class_tutors` omits a same-class student-assistant.** Class E's `tutor_ids` are OV, OSA, AT, MC; OSA (`b…007`) also has their own `students` record in Class E. `fn_class_tutors('Class E')` returns OV, AT, MC and **not OSA** — their attendance is taken on the roster, not a second time as a tutor (ADR-041(e)).
+
+*Total after these: 350 pgTAP assertions (verified: `supabase test db` / a superuser run of `rls.test.sql` reports `1..350`).*
 
 ## 4. Unit tests (Vitest)
 
@@ -542,6 +560,15 @@ assertions in §4.5 change target and two new properties appear.
 - [ ] `fetchFamilyRelationships` (the `push-subscribe` / settings path) calls `fn_my_family_flags` and gets back only two booleans — **no child names are loaded** to answer a yes/no, the data-minimisation property ADR-022(c) protects, now carried by a second RPC instead of a narrower `select`
 - [ ] the sixteen-combination sweep and `fetchViewerRelationships`'s "both queries together, either failure rejects" assertions are unchanged in intent — only the fake client's recorded call shape moves from `.or(...)` to `.rpc(...)`
 
+### 4.5g Tutor attendance offline replay (TAD ADR-041)
+
+`tests/unit/offlineReplay.test.ts`, extended. `QueueKind` gains
+`'tutor_attendance'` and `replayEntry` a branch calling
+`submitTutorAttendance`.
+
+- [x] a `tutor_attendance` queue entry replays through `submitTutorAttendance` (not `submitAttendance`) and is removed on success
+- [x] a real (non-network) failure is recorded on the entry via `markAttempt` rather than dropping it — the same "a genuine rejection must not sit in the queue pretending to be handled" rule the other kinds follow; the `(session_id, tutor_id)` upsert makes a lost-response replay a harmless no-op, so there is no unique-violation-is-success branch to test as there is for murajaah/yanbua/quran
+
 ### 4.6 Access control and delivery inside the Functions
 
 The three modules that decide who may make a Function act, and what
@@ -629,12 +656,14 @@ Run against Preview deploys with fixture data; auth mocked via Supabase test JWT
 | E2E-17 | Parent opens the child's Attendance screen → the read-only "Lesdagen" line matches the child's class `meeting_days` (TAD ADR-037) | Parent |
 | E2E-18 | Unregistered Google account signs in → Unauthorized screen shows the name + context form with `full_name` prefilled from the Google profile → user edits the name and adds context → submits → screen switches to the "request received" state, and reloading keeps it → admin opens Registrations and sees the edited name prefilled and the context read-only → admin approves → the `registration_requests` row is cleaned up (a second unregistered account that submits nothing still appears with blank fields) (TAD ADR-038) | Unregistered → Admin |
 | E2E-19 | Admin opens Registrations → clicks **Reject** on a pending entry → the `window.confirm` naming the email → confirms → the entry disappears from the list, and its `registration_requests` row (if any) is gone with the `auth.users` row → rejecting an entry whose id already has a profile is refused (`409`) → the same Google account signing in again reappears as a fresh pending entry, since GoTrue re-creates `auth.users` (intended — no blocklist) (TAD ADR-039) | Admin |
+| E2E-20 | Tutor opens Attendance → below the student roster a tutor section ("Kehadiran guru" / "Aanwezigheid docenten") lists the class's tutors → tutor marks a co-tutor absent with a reason and marks themselves present → submits → the confirm dialog names the student count and the tutor count on separate lines → an admin opens the same session and sees those tutor statuses; the affected tutor's own family view (if they are also a parent) shows nothing new, and a parent of a child in the class sees no tutor attendance anywhere (TAD ADR-041) | Tutor → Admin → Parent |
+| E2E-21 | Admin opens Beheer → "Kehadiran guru" → picks a tutor and a date range → sees a present-rate and a dated list spanning every class that tutor teaches; a tutor visiting `/admin/tutor-attendance` directly is redirected home (PR 2, TAD ADR-041) | Admin, Tutor |
 
-*E2E-15…E2E-19 are specified but not implemented — this project has no
+*E2E-15…E2E-21 are specified but not implemented — this project has no
 authenticated Playwright harness yet (`e2e/sign-in.spec.ts` documents
 why the E2E-01…E2E-14 suite is also still unbuilt). The flows are
-covered at the unit layer (§4.5d, §4.5e) and the database layer (§3.3
-MD-01…MD-08, §3.4 RLS-60…64).*
+covered at the unit layer (§4.5d, §4.5e, §4.5g) and the database layer
+(§3.3 MD-01…MD-08, §3.4 RLS-60…64, §3.6 RLS-78…86).*
 
 ## 6. Notification & PWA test matrix (manual, real devices)
 

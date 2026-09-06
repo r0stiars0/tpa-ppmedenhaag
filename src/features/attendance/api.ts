@@ -97,7 +97,54 @@ export async function fetchAttendanceForSession(sessionId: string): Promise<Tabl
 }
 
 export async function submitAttendance(rows: TablesInsert<'attendance'>[]): Promise<void> {
+  if (rows.length === 0) return
   const { error } = await supabase.from('attendance').upsert(rows, { onConflict: 'session_id,student_id' })
+  if (error) throw error
+}
+
+// ─── Tutor attendance (TAD ADR-041) ──────────────────────────────────
+// The register records the tutors' own attendance in `tutor_attendance`,
+// a sibling of `attendance` keyed on the same session. Read by an admin
+// (any class) or a tutor of the session's class; a guardian or 16+
+// student sees nothing (the table has no policy for them).
+
+export interface ClassTutor {
+  user_id: string
+  full_name: string
+}
+
+/**
+ * The tutors named in a class's `tutor_ids`, id + name, to label the
+ * register's tutor section. Goes through `fn_class_tutors` rather
+ * than a `users` select because `users_self_read` does not expose other
+ * users to a tutor; the function returns zero rows to a caller who is
+ * neither an admin nor a tutor of the class (the `fn_student_guardians`
+ * pattern).
+ */
+export async function fetchClassTutors(classId: string): Promise<ClassTutor[]> {
+  const { data, error } = await supabase.rpc('fn_class_tutors', { p_class: classId })
+  if (error) throw error
+  return data ?? []
+}
+
+export async function fetchTutorAttendanceForSession(
+  sessionId: string,
+): Promise<Tables<'tutor_attendance'>[]> {
+  const { data, error } = await supabase
+    .from('tutor_attendance')
+    .select('*')
+    .eq('session_id', sessionId)
+  if (error) throw error
+  return data ?? []
+}
+
+export async function submitTutorAttendance(
+  rows: TablesInsert<'tutor_attendance'>[],
+): Promise<void> {
+  if (rows.length === 0) return
+  const { error } = await supabase
+    .from('tutor_attendance')
+    .upsert(rows, { onConflict: 'session_id,tutor_id' })
   if (error) throw error
 }
 

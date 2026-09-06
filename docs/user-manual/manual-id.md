@@ -30,12 +30,12 @@ Aplikasi ini melayani empat jenis hubungan (bukan sekadar satu "peran" tetap per
 
 | Peran | Bisa apa |
 |---|---|
-| **Ustadz/Ustadzah** (tutor) | Mencatat kehadiran, tugas, Yanbu'a, Al-Quran, dan menetapkan target murajaah untuk grup yang diampu; menulis dan menerbitkan rapor. |
+| **Guru** (tutor) | Mencatat kehadiran, tugas, Yanbu'a, Al-Quran, dan menetapkan target murajaah untuk grup yang diampu; menulis dan menerbitkan rapor. |
 | **Orang Tua** | Melihat riwayat kehadiran, tugas, Yanbu'a, Al-Quran, dan rapor anaknya; mengonfirmasi murajaah harian di rumah. |
 | **Santri** (16+ dengan akun sendiri) | Melihat riwayat miliknya sendiri, seperti orang tua, tetapi **tidak bisa** mengonfirmasi murajaah untuk dirinya sendiri — itu tetap tugas orang tua. |
-| **Admin** | Mengelola pendaftaran pengguna, grup, dan data santri; memiliki akses baca/tulis penuh yang setara ustadz di semua grup; membuat draf rapor massal — tetapi **tidak bisa menerbitkan** rapor. |
+| **Admin** | Mengelola pendaftaran pengguna, grup, dan data santri; memiliki akses baca/tulis penuh yang setara guru di semua grup; membuat draf rapor massal — tetapi **tidak bisa menerbitkan** rapor. |
 
-Satu akun bisa memegang **lebih dari satu** hubungan sekaligus — misalnya seorang ustadz yang juga orang tua dari santri di grup lain. Akun seperti ini mendapat **saklar tampilan (scope switch)** untuk berpindah antara "Grup saya" (tampilan ustadz) dan "Anak saya" (tampilan orang tua) — lihat [§13](#13-akun-dengan-peran-ganda).
+Satu akun bisa memegang **lebih dari satu** hubungan sekaligus — misalnya seorang guru yang juga orang tua dari santri di grup lain. Akun seperti ini mendapat **saklar tampilan (scope switch)** untuk berpindah antara "Grup saya" (tampilan guru) dan "Anak saya" (tampilan orang tua) — lihat [§13](#13-akun-dengan-peran-ganda).
 
 ---
 
@@ -88,7 +88,7 @@ Lima tab tetap, sama untuk semua peran termasuk admin:
 Menu **Rapor** dan **Kelola** (khusus admin) tidak ada di bilah bawah — keduanya diakses lewat ubin di Beranda, karena hanya ada ruang untuk lima tombol yang nyaman disentuh di layar ponsel.
 
 ### Saklar Tampilan (Scope Switch)
-Muncul di atas konten, **hanya untuk akun dengan lebih dari satu hubungan** (misalnya ustadz yang juga orang tua), dan **hanya** pada enam layar berikut: Hadir, Tugas, Yanbu'a, Al-Quran, Murajaah, Rapor. Lihat [§13](#13-akun-dengan-peran-ganda) untuk detail lengkap.
+Muncul di atas konten, **hanya untuk akun dengan lebih dari satu hubungan** (misalnya guru yang juga orang tua), dan **hanya** pada enam layar berikut: Hadir, Tugas, Yanbu'a, Al-Quran, Murajaah, Rapor. Lihat [§13](#13-akun-dengan-peran-ganda) untuk detail lengkap.
 
 ---
 
@@ -96,14 +96,14 @@ Muncul di atas konten, **hanya untuk akun dengan lebih dari satu hubungan** (mis
 
 Layar pertama setelah masuk. Isinya berbeda sedikit tergantung peran.
 
-### 4.1 Tampilan Ustadz
+### 4.1 Tampilan Guru
 
-<img src="./screenshots/id/dashboard-tutor.png" width="360" alt="Beranda — tampilan ustadz">
+<img src="./screenshots/id/dashboard-tutor.png" width="360" alt="Beranda — tampilan guru">
 
 | Elemen | Fungsi |
 |---|---|
-| Kartu sapaan | Nama pengguna + daftar hubungan yang dimiliki (mis. "Ustadz", atau gabungan "Ustadz · Orang Tua" jika kedua-duanya). |
-| Kartu **"Minggu ini"** *(hanya muncul untuk akun dengan anak/santri terkait — lihat §4.2)* | Tidak tampil untuk ustadz murni. |
+| Kartu sapaan | Nama pengguna + daftar hubungan yang dimiliki (mis. "Guru", atau gabungan "Guru · Orang Tua" jika kedua-duanya). |
+| Kartu **"Minggu ini"** *(hanya muncul untuk akun dengan anak/santri terkait — lihat §4.2)* | Tidak tampil untuk guru murni. |
 | Ubin **Hadir / Tugas / Yanbu'a / Al-Quran / Murajaah / Rapor** | Tekan salah satu untuk membuka fitur terkait. |
 | Baris **Notifikasi →** | Membuka halaman [Pengaturan Notifikasi](#112-pengaturan-notifikasi) — tersedia untuk semua peran, bukan hanya penerima notifikasi, karena semua orang berhak membaca apa isi sebuah notifikasi. |
 
@@ -126,15 +126,15 @@ Kartu ini otomatis **tersembunyi** jika tidak ada aktivitas sama sekali minggu i
 
 <img src="./screenshots/id/dashboard-admin.png" width="360" alt="Beranda — tampilan admin">
 
-Sama seperti tampilan ustadz, ditambah bagian **"Kelola"** di bagian bawah — satu-satunya jalan masuk ke [halaman administrasi](#12-kelola-khusus-admin) (pendaftaran, grup, santri).
+Sama seperti tampilan guru, ditambah bagian **"Kelola"** di bagian bawah — satu-satunya jalan masuk ke [halaman administrasi](#12-kelola-khusus-admin) (pendaftaran, grup, santri).
 
 ---
 
 ## 5. Kehadiran
 
-### 5.1 Tampilan Ustadz — Mencatat Kehadiran
+### 5.1 Tampilan Guru — Mencatat Kehadiran
 
-<img src="./screenshots/id/attendance-tutor.png" width="360" alt="Kehadiran — daftar hadir ustadz">
+<img src="./screenshots/id/attendance-tutor.png" width="360" alt="Kehadiran — daftar hadir guru">
 
 Layar untuk mencatat kehadiran per grup. Layar terbuka pada sesi terkini
 grup — hari ini jika grup bertemu hari ini, jika tidak maka hari
@@ -143,7 +143,7 @@ admin pada grup tersebut (lihat [§12.2](#122-grup) → Hari pertemuan).
 
 | Elemen | Fungsi |
 |---|---|
-| **Pilih Grup** | Muncul hanya jika ustadz mengampu lebih dari satu grup. Memilih grup memuat ulang daftar santri dan sesinya. |
+| **Pilih Grup** | Muncul hanya jika guru mengampu lebih dari satu grup. Memilih grup memuat ulang daftar santri dan sesinya. |
 | Baris tanggal dengan **‹** / **›** | Menampilkan tanggal sesi yang sedang dibuka (hari, tanggal, dan bulan; tahun ikut ditampilkan bila sesi bukan pada tahun kalender berjalan). Panah memindahkan sesi mengikuti hari pertemuan grup: **‹** mundur sampai 1 Agustus tahun ajaran berjalan, **›** maju sampai sesi terkini (tidak bisa lebih maju dari itu). Jika di bawah tanggal tertulis **belum diisi**, kehadiran untuk hari pertemuan itu belum dicatat — Anda masih bisa mencatatnya; sesinya dibuat saat Anda mengirim. Sesi yang sudah dicatat selalu bisa dikoreksi, termasuk yang tanggalnya bukan hari pertemuan. |
 | Baris santri + tombol **Hadir / Terlambat / Absen** | Tekan salah satu untuk menetapkan status santri tersebut. Warna hijau = status aktif yang tersimpan sementara di layar (belum terkirim ke server sampai ditekan **Kirim Kehadiran**). Status awal semua santri adalah "Hadir". |
 
@@ -161,10 +161,12 @@ Di bagian bawah:
 
 | Elemen | Fungsi |
 |---|---|
-| **Kirim Kehadiran** | Membuka kotak konfirmasi berisi jumlah santri yang akan dikirim (santri asisten yang menjadi bagian dari grup — lihat catatan di bawah — tidak dihitung). |
+| **Kirim Kehadiran** | Membuka kotak konfirmasi. Kotak itu menyebut jumlah santri yang akan dikirim (santri asisten yang menjadi bagian dari grup — lihat catatan di bawah — tidak dihitung) dan, pada baris terpisah, jumlah guru (lihat **Kehadiran guru** di bawah). |
 | **Konfirmasi** / **Batal** | Konfirmasi mengirim data ke server; Batal membatalkan tanpa mengirim apa pun. |
 
-**Catatan khusus — santri asisten**: jika seorang santri berusia 16+ juga membantu mengajar di grup itu, namanya tetap muncul di daftar hadir dengan status yang sudah tersimpan (tanda "Hadir" default), tetapi baris itu **tidak bisa diubah olehnya sendiri** — hanya ustadz lain atau admin yang bisa mencatat kehadirannya. Keterangan ini muncul langsung di bawah namanya di layar.
+**Catatan khusus — santri asisten**: jika seorang santri berusia 16+ juga membantu mengajar di grup itu, namanya tetap muncul di daftar hadir dengan status yang sudah tersimpan (tanda "Hadir" default), tetapi baris itu **tidak bisa diubah olehnya sendiri** — hanya guru lain atau admin yang bisa mencatat kehadirannya. Keterangan ini muncul langsung di bawah namanya di layar. Namanya **tidak** muncul lagi di bagian "Kehadiran guru": kehadirannya cukup dicatat sekali, sebagai santri.
+
+**Kehadiran guru**: di bawah daftar santri ada bagian **"Kehadiran guru"** yang memuat setiap guru grup itu dengan tombol **Hadir / Terlambat / Absen** yang sama (dan kolom alasan yang sama saat Absen). Bagian ini dikirim bersama daftar santri saat Anda menekan **Kirim Kehadiran**. Seorang guru boleh mencatat kehadirannya sendiri maupun rekan segrupnya. Jika grup belum punya guru terdaftar, muncul keterangan untuk menetapkannya lewat menu **Kelola**. Catatan kehadiran guru **hanya terlihat oleh admin dan oleh guru lain di grup yang sama** — tidak pernah oleh orang tua atau santri — dan dipakai pimpinan TPA untuk meninjau kehadiran guru secara berkala.
 
 **Status offline**: jika koneksi internet terputus saat mengirim, aplikasi menyimpan data itu di perangkat dan menampilkan pesan *"Anda sedang offline. Data akan dikirim saat kembali online."* — data akan otomatis terkirim begitu koneksi kembali, tanpa perlu mencatat ulang.
 
@@ -187,9 +189,9 @@ Layar ini **hanya untuk melihat** — orang tua dan santri tidak bisa mengubah d
 
 ## 6. Tugas
 
-### 6.1 Tampilan Ustadz — Membuat & Menilai Tugas
+### 6.1 Tampilan Guru — Membuat & Menilai Tugas
 
-<img src="./screenshots/id/assignments-tutor.png" width="360" alt="Tugas — daftar ustadz">
+<img src="./screenshots/id/assignments-tutor.png" width="360" alt="Tugas — daftar guru">
 
 | Elemen | Fungsi |
 |---|---|
@@ -219,7 +221,7 @@ Layar penilaian (setelah menekan salah satu tugas dari daftar):
 | **← Kembali** | Kembali ke daftar tugas. |
 | Judul, deskripsi, dan batas waktu tugas | Informasi tugas yang dipilih. |
 | Baris santri + tombol **Menunggu / Selesai / Terlambat / Sebagian** | Menetapkan status pengumpulan tugas santri tersebut. Setiap kali ditekan, status **langsung tersimpan** ke server (tidak perlu tombol "Kirim" terpisah seperti di Kehadiran). |
-| Kolom **Catatan** per santri | Catatan bebas dari ustadz untuk santri itu; tersimpan otomatis saat kolom kehilangan fokus (misalnya setelah Anda mengetik lalu menekan bagian lain layar). |
+| Kolom **Catatan** per santri | Catatan bebas dari guru untuk santri itu; tersimpan otomatis saat kolom kehilangan fokus (misalnya setelah Anda mengetik lalu menekan bagian lain layar). |
 
 > Perhatian: label status "Terlambat" pada Tugas berarti **tugas dikumpulkan terlambat/tidak selesai**, berbeda dari "Terlambat" pada Kehadiran yang berarti **datang terlambat ke kelas** — kata yang sama, arti berbeda di dua layar berbeda.
 
@@ -227,13 +229,13 @@ Layar penilaian (setelah menekan salah satu tugas dari daftar):
 
 <img src="./screenshots/id/assignments-family.png" width="360" alt="Tugas — tampilan orang tua">
 
-Hanya untuk melihat — status tugas hanya bisa diubah oleh ustadz.
+Hanya untuk melihat — status tugas hanya bisa diubah oleh guru.
 
 | Elemen | Fungsi |
 |---|---|
 | **Pilih Anak** | Sama seperti di Kehadiran. |
 | Baris jumlah tugas aktif | "{jumlah} tugas aktif" — menghitung tugas berstatus "Menunggu" atau yang sudah lewat tenggat. |
-| Kartu tiap tugas | Judul, deskripsi, batas waktu, catatan dari ustadz (jika ada), dan lencana status: **Menunggu / Selesai / Terlambat / Sebagian / Lewat Tenggat**. |
+| Kartu tiap tugas | Judul, deskripsi, batas waktu, catatan dari guru (jika ada), dan lencana status: **Menunggu / Selesai / Terlambat / Sebagian / Lewat Tenggat**. |
 
 ---
 
@@ -241,9 +243,9 @@ Hanya untuk melihat — status tugas hanya bisa diubah oleh ustadz.
 
 Yanbu'a adalah metode belajar membaca Al-Qur'an bertahap (jilid 1–7 + halaman). Layar ini mencatat jilid, halaman, dan tingkat penguasaan bacaan santri.
 
-### 7.1 Tampilan Ustadz — Mencatat Progres
+### 7.1 Tampilan Guru — Mencatat Progres
 
-<img src="./screenshots/id/yanbua-tutor.png" width="360" alt="Yanbu'a — daftar santri ustadz">
+<img src="./screenshots/id/yanbua-tutor.png" width="360" alt="Yanbu'a — daftar santri guru">
 
 | Elemen | Fungsi |
 |---|---|
@@ -277,7 +279,7 @@ Hanya untuk melihat.
 |---|---|
 | **Pilih Anak** | Sama seperti layar lain. |
 | Kartu **Level sekarang** | Jilid, halaman, dan penguasaan terkini. |
-| **Riwayat Sesi** | Sama seperti tampilan ustadz — daftar seluruh riwayat, tanpa kemampuan mengubah apa pun. |
+| **Riwayat Sesi** | Sama seperti tampilan guru — daftar seluruh riwayat, tanpa kemampuan mengubah apa pun. |
 
 ---
 
@@ -285,9 +287,9 @@ Hanya untuk melihat.
 
 Mencatat posisi tilawah (bacaan) Al-Qur'an santri: surah, rentang ayat, dan kualitas bacaan.
 
-### 8.1 Tampilan Ustadz — Mencatat Tilawah
+### 8.1 Tampilan Guru — Mencatat Tilawah
 
-<img src="./screenshots/id/quran-tutor.png" width="360" alt="Al-Quran — daftar santri ustadz">
+<img src="./screenshots/id/quran-tutor.png" width="360" alt="Al-Quran — daftar santri guru">
 
 Struktur sama seperti Yanbu'a: **Pilih Grup** → daftar santri → tekan nama untuk mencatat.
 
@@ -317,9 +319,9 @@ Hanya untuk melihat: kartu **Posisi sekarang** + **Riwayat Tilawah**, sama seper
 
 ## 9. Murajaah
 
-Murajaah adalah kegiatan mengulang hafalan Al-Qur'an secara rutin di rumah. Ustadz menetapkan target (surah + rentang ayat + frekuensi), lalu orang tua mengonfirmasi setiap kali dikerjakan di rumah.
+Murajaah adalah kegiatan mengulang hafalan Al-Qur'an secara rutin di rumah. Guru menetapkan target (surah + rentang ayat + frekuensi), lalu orang tua mengonfirmasi setiap kali dikerjakan di rumah.
 
-Menu Murajaah untuk ustadz memiliki **dua tab**:
+Menu Murajaah untuk guru memiliki **dua tab**:
 
 ### 9.1 Tab "Tetapkan Target"
 
@@ -341,7 +343,7 @@ Di layar detail santri, Anda akan menemukan:
 
 <img src="./screenshots/id/murajaah-tutor-overview.png" width="360" alt="Murajaah — tab Ringkasan Grup">
 
-Layar ini **hanya untuk melihat** — ustadz tidak bisa mengonfirmasi murajaah untuk santri (hanya orang tua yang bisa).
+Layar ini **hanya untuk melihat** — guru tidak bisa mengonfirmasi murajaah untuk santri (hanya orang tua yang bisa).
 
 | Elemen | Fungsi |
 |---|---|
@@ -358,7 +360,7 @@ Layar ini **hanya untuk melihat** — ustadz tidak bisa mengonfirmasi murajaah u
 | Kartu target aktif | Surah, rentang ayat, frekuensi, **jumlah hari/minggu berturut-turut (streak)**, dan rekor terbaik jika ada. |
 | **Kualitas** (dropdown) | Hafal Lancar / Hafal Kurang Lancar / Belum Hafal — dipilih sebelum mengonfirmasi. |
 | **✓ Selesai Murajaah** (tombol) | Mencatat bahwa murajaah hari ini sudah dilakukan. **Hanya muncul untuk orang tua/wali** — jika Anda santri 16+ yang melihat data Anda sendiri, tombol ini tidak tersedia; hanya orang tua/wali yang bisa mengonfirmasi murajaah, walaupun santri bisa melihat progresnya. |
-| **Hafalan Selesai** & **Riwayat Konfirmasi** | Sama seperti tampilan ustadz. |
+| **Hafalan Selesai** & **Riwayat Konfirmasi** | Sama seperti tampilan guru. |
 
 **Status offline**: jika konfirmasi gagal terkirim karena jaringan, tampil pesan *"Anda sedang offline..."* dan tercatat sementara di perangkat sampai bisa dikirim ulang otomatis.
 
@@ -368,15 +370,15 @@ Layar ini **hanya untuk melihat** — ustadz tidak bisa mengonfirmasi murajaah u
 
 ## 10. Rapor
 
-Rapor akhir tahun merangkum kehadiran, nilai per bidang (Yanbu'a, Al-Quran, Murajaah), dan catatan ustadz, lalu diterbitkan sebagai PDF yang bisa diunduh keluarga.
+Rapor akhir tahun merangkum kehadiran, nilai per bidang (Yanbu'a, Al-Quran, Murajaah), dan catatan guru, lalu diterbitkan sebagai PDF yang bisa diunduh keluarga.
 
-### 10.1 Tampilan Ustadz/Admin — Daftar Rapor
+### 10.1 Tampilan Guru/Admin — Daftar Rapor
 
-<img src="./screenshots/id/reports-tutor.png" width="360" alt="Rapor — daftar untuk ustadz">
+<img src="./screenshots/id/reports-tutor.png" width="360" alt="Rapor — daftar untuk guru">
 
 | Elemen | Fungsi |
 |---|---|
-| *(Khusus admin)* Panel **"Buat Draf Rapor"** | Admin bisa membuat draf rapor untuk seluruh grup atau satu grup tertentu, untuk satu tahun ajaran (format "2025/2026"). Setelah dibuat, panel menampilkan jumlah draf yang berhasil dibuat serta yang dilewati (karena sudah punya rapor, atau karena grupnya tidak punya ustadz pengampu). |
+| *(Khusus admin)* Panel **"Buat Draf Rapor"** | Admin bisa membuat draf rapor untuk seluruh grup atau satu grup tertentu, untuk satu tahun ajaran (format "2025/2026"). Setelah dibuat, panel menampilkan jumlah draf yang berhasil dibuat serta yang dilewati (karena sudah punya rapor, atau karena grupnya tidak punya guru pengampu). |
 | **Pilih Grup** | Sama seperti layar lain. |
 | Daftar rapor | Nama santri, tahun ajaran, dan lencana status **Draf** (abu-abu) atau **Diterbitkan** (hijau). Tekan salah satu untuk membuka. |
 
@@ -388,15 +390,15 @@ Rapor akhir tahun merangkum kehadiran, nilai per bidang (Yanbu'a, Al-Quran, Mura
 |---|---|
 | **← Kembali** | Kembali ke daftar. |
 | **Ringkasan Kehadiran** | Angka persentase + jumlah Hadir/Terlambat/Tidak Hadir — **ini adalah cuplikan (snapshot)** dari saat draf dibuat, bukan data langsung, sehingga angkanya tetap sama meski catatan kehadiran diperbaiki setelahnya. |
-| **Ringkasan Perkembangan** *(hanya untuk ustadz/admin, tidak muncul di tampilan keluarga)* | Posisi Yanbu'a, Al-Quran, dan jumlah target murajaah terkini — data langsung (bukan cuplikan), sebagai bahan referensi saat mengisi nilai. |
+| **Ringkasan Perkembangan** *(hanya untuk guru/admin, tidak muncul di tampilan keluarga)* | Posisi Yanbu'a, Al-Quran, dan jumlah target murajaah terkini — data langsung (bukan cuplikan), sebagai bahan referensi saat mengisi nilai. |
 | **Nilai per Bidang**: Yanbu'a, Al-Quran, Murajaah | Masing-masing punya dropdown nilai (Mumtaz / Jayyid Jiddan / Jayyid / Maqbul / Perlu Bimbingan / "Belum dinilai") + kolom catatan singkat. |
 | **Nilai Keseluruhan** | Dropdown nilai gabungan, tanpa kolom catatan. |
-| **Catatan Ustadz** | Kolom teks panjang berisi narasi perkembangan santri — **wajib diisi sebelum rapor bisa diterbitkan**. |
+| **Catatan Guru** | Kolom teks panjang berisi narasi perkembangan santri — **wajib diisi sebelum rapor bisa diterbitkan**. |
 | **Simpan** | Menyimpan perubahan tanpa menerbitkan — bisa dilakukan kapan saja, baik rapor masih draf maupun sudah diterbitkan. |
-| **Terbitkan Rapor** / **Terbitkan Ulang & Perbarui PDF** | Hanya muncul untuk **ustadz penulis rapor** (bukan admin). Menampilkan kotak konfirmasi, lalu membuat berkas PDF dan mengubah status menjadi "Diterbitkan" — setelah itu orang tua dan santri bisa melihat & mengunduhnya. Nonaktif sampai kolom Catatan Ustadz terisi. |
+| **Terbitkan Rapor** / **Terbitkan Ulang & Perbarui PDF** | Hanya muncul untuk **guru penulis rapor** (bukan admin). Menampilkan kotak konfirmasi, lalu membuat berkas PDF dan mengubah status menjadi "Diterbitkan" — setelah itu orang tua dan santri bisa melihat & mengunduhnya. Nonaktif sampai kolom Catatan Guru terisi. |
 | **Unduh PDF** | Muncul jika PDF sudah pernah dibuat. |
 
-**Catatan untuk admin**: admin bisa mengubah nilai/catatan pada rapor apa pun, tetapi **tidak bisa menerbitkannya** — hanya ustadz penulis asli yang bisa menekan tombol terbit. Jika admin mengubah rapor yang sudah terbit, perubahan langsung tersimpan di aplikasi, tetapi berkas PDF baru menunggu sampai ustadz yang bersangkutan menerbitkan ulang.
+**Catatan untuk admin**: admin bisa mengubah nilai/catatan pada rapor apa pun, tetapi **tidak bisa menerbitkannya** — hanya guru penulis asli yang bisa menekan tombol terbit. Jika admin mengubah rapor yang sudah terbit, perubahan langsung tersimpan di aplikasi, tetapi berkas PDF baru menunggu sampai guru yang bersangkutan menerbitkan ulang.
 
 ### 10.3 Tampilan Keluarga — Melihat & Mengunduh Rapor
 
@@ -407,7 +409,7 @@ Keluarga **hanya bisa melihat rapor yang sudah diterbitkan** — rapor berstatus
 | Elemen | Fungsi |
 |---|---|
 | **Pilih Anak** | Sama seperti layar lain. |
-| Ringkasan kehadiran, nilai per bidang, dan catatan ustadz | Sama seperti yang ditulis ustadz, hanya untuk dibaca. |
+| Ringkasan kehadiran, nilai per bidang, dan catatan guru | Sama seperti yang ditulis guru, hanya untuk dibaca. |
 | **Unduh PDF** | Membuka berkas PDF rapor di tab baru. |
 
 Jika belum ada rapor yang diterbitkan untuk anak tersebut, layar menampilkan pesan **"Belum ada rapor tersedia"**.
@@ -420,7 +422,7 @@ Jika belum ada rapor yang diterbitkan untuk anak tersebut, layar menampilkan pes
 
 <img src="./screenshots/id/notifications-centre.png" width="360" alt="Pusat Notifikasi">
 
-Dibuka lewat ikon lonceng di bilah atas. Hanya tersedia (berisi data) untuk akun yang berstatus penerima notifikasi (orang tua, atau santri 16+ dengan akun sendiri) — ustadz dan admin murni akan melihat pesan bahwa akun mereka belum terhubung ke santri manapun.
+Dibuka lewat ikon lonceng di bilah atas. Hanya tersedia (berisi data) untuk akun yang berstatus penerima notifikasi (orang tua, atau santri 16+ dengan akun sendiri) — guru dan admin murni akan melihat pesan bahwa akun mereka belum terhubung ke santri manapun.
 
 | Elemen | Fungsi |
 |---|---|
@@ -459,7 +461,7 @@ Hanya bisa diakses oleh akun dengan peran Admin, lewat ubin **Kelola** di Berand
 |---|---|
 | **Alamat Email** | Wajib diisi. |
 | **Nama Lengkap** | Wajib diisi. |
-| **Peran** | Orang Tua / Ustadz / Santri / Admin (default: Orang Tua). |
+| **Peran** | Orang Tua / Guru / Santri / Admin (default: Orang Tua). |
 | **Kirim Undangan** | Membuat akun baru dan mengirim tautan undangan ke email tersebut. |
 
 **Bagian "Menunggu Pendaftaran"** — daftar orang yang sudah pernah masuk lewat Google tetapi belum diberi profil/peran (misalnya karena diundang oleh orang lain, atau masuk sendiri sebelum didaftarkan admin):
@@ -480,7 +482,7 @@ Hanya bisa diakses oleh akun dengan peran Admin, lewat ubin **Kelola** di Berand
 | Elemen | Fungsi |
 |---|---|
 | **+ Grup Baru** | Membuka formulir grup baru (lihat gambar di bawah). |
-| Kartu tiap grup | Nama, jadwal, hari pertemuan (mis. "Rab, Sab"), dan daftar ustadz pengampu. |
+| Kartu tiap grup | Nama, jadwal, hari pertemuan (mis. "Rab, Sab"), dan daftar guru pengampu. |
 | **Ubah** | Membuka formulir edit untuk grup tersebut, terisi data yang sudah ada. |
 
 Formulir Grup (sama untuk buat baru maupun ubah):
@@ -492,7 +494,7 @@ Formulir Grup (sama untuk buat baru maupun ubah):
 | **Nama Grup** | Wajib diisi. |
 | **Jadwal** | Opsional, teks bebas untuk waktu (mis. "Sabtu 10:00-12:00"). |
 | **Hari pertemuan** | Daftar centang Senin sampai Ahad. Pada grup baru, **Sabtu** sudah tercentang; boleh lebih dari satu hari. Minimal satu hari harus dipilih — jika tidak, tombol **Simpan** nonaktif dengan pesan *"Pilih minimal satu hari"*. Hari-hari inilah yang menentukan pada tanggal berapa daftar hadir dapat membuat sesi. |
-| **Ustadz Pengampu** | Daftar centang — bisa memilih lebih dari satu ustadz, atau tidak memilih sama sekali. |
+| **Guru Pengampu** | Daftar centang — bisa memilih lebih dari satu guru, atau tidak memilih sama sekali. |
 | **Simpan** / **Batal** | Menyimpan atau membatalkan. |
 
 > Tidak ada tombol hapus grup di aplikasi ini.
@@ -526,17 +528,17 @@ Formulir Santri:
 
 ## 13. Akun dengan Peran Ganda
 
-Sebagian akun memegang lebih dari satu hubungan — misalnya seorang ustadz yang juga orang tua dari santri di grup lain (bukan grup yang ia ajar). Akun seperti ini melihat **saklar tampilan** di atas layar Kehadiran, Tugas, Yanbu'a, Al-Quran, Murajaah, dan Rapor:
+Sebagian akun memegang lebih dari satu hubungan — misalnya seorang guru yang juga orang tua dari santri di grup lain (bukan grup yang ia ajar). Akun seperti ini melihat **saklar tampilan** di atas layar Kehadiran, Tugas, Yanbu'a, Al-Quran, Murajaah, dan Rapor:
 
 <img src="./screenshots/id/dualrole-scope-class.png" width="360" alt="Saklar tampilan — Grup saya" style="margin-right:12px">
 <img src="./screenshots/id/dualrole-scope-family.png" width="360" alt="Saklar tampilan — Anak saya">
 
 | Tombol | Fungsi |
 |---|---|
-| **Grup saya** | Menampilkan tampilan ustadz — grup yang diampu. |
+| **Grup saya** | Menampilkan tampilan guru — grup yang diampu. |
 | **Anak saya** *(atau "Saya" untuk santri 16+, atau "Keluarga saya" jika keduanya)* | Menampilkan tampilan keluarga — anak yang terkait dengan akun ini. |
 
-Layar yang sedang dibuka **tidak berpindah** saat menekan saklar ini — hanya isinya yang berganti antara tampilan grup dan tampilan keluarga. Akun dengan satu hubungan saja (murni ustadz, murni orang tua, atau murni admin) tidak akan pernah melihat saklar ini sama sekali.
+Layar yang sedang dibuka **tidak berpindah** saat menekan saklar ini — hanya isinya yang berganti antara tampilan grup dan tampilan keluarga. Akun dengan satu hubungan saja (murni guru, murni orang tua, atau murni admin) tidak akan pernah melihat saklar ini sama sekali.
 
 ---
 
@@ -546,11 +548,11 @@ Elemen berikut muncul berulang di banyak layar dan dijelaskan sekali di sini aga
 
 | Elemen | Kapan muncul | Fungsi |
 |---|---|---|
-| **Pilih Grup** | Layar ustadz manapun | Muncul hanya jika ustadz mengampu lebih dari satu grup. |
+| **Pilih Grup** | Layar guru manapun | Muncul hanya jika guru mengampu lebih dari satu grup. |
 | **Pilih Anak** | Layar keluarga manapun | Muncul hanya jika akun memiliki lebih dari satu anak terkait. |
 | *"Memuat…"* | Semua layar | Data sedang diambil dari server. |
 | *"Belum ada data"* | Semua layar | Tidak ada data untuk ditampilkan pada kondisi saat ini. |
-| *"Anda belum ditugaskan ke grup manapun"* | Layar ustadz | Akun ustadz belum diberi grup oleh admin. |
+| *"Anda belum ditugaskan ke grup manapun"* | Layar guru | Akun guru belum diberi grup oleh admin. |
 | *"Anda sedang offline. Data akan dikirim saat kembali online."* | Kehadiran, Yanbu'a, Al-Quran, Murajaah | Aksi Anda tersimpan di perangkat dan **akan otomatis terkirim** begitu koneksi internet kembali — tidak perlu mengulang. |
 | Pesan galat (kotak merah) | Semua layar | Terjadi kesalahan saat memuat atau menyimpan data — coba lagi atau hubungi admin jika berulang. |
 
@@ -564,7 +566,7 @@ Untuk memudahkan komunikasi dua bahasa di lingkungan TPA, berikut padanan istila
 |---|---|---|
 | Grup | Groep | Sebelumnya disebut "Kelas"/"Klas" — istilah resmi sekarang adalah "Grup"/"Groep". |
 | Santri | Leerling | — |
-| Ustadz / Ustadzah | Ustadz | Istilah "Ustadz" dipakai sama di kedua bahasa. |
+| Guru | Docent | Istilah netral untuk pengajar; menggantikan "Ustadz/Ustadzah". |
 | Orang Tua | Ouder | — |
 | Hadir | Aanwezig | — |
 | Tugas | Huiswerk | Sebelumnya disebut "Opdrachten" — istilah resmi sekarang adalah "Huiswerk" (PR/pekerjaan rumah). |
@@ -574,4 +576,4 @@ Untuk memudahkan komunikasi dua bahasa di lingkungan TPA, berikut padanan istila
 
 ---
 
-*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **12.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF dibuat ulang dari teks dan tangkapan layar yang sama yang telah diperbarui.*
+*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **12.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026), serta **§5.1 dilengkapi dengan bagian "Kehadiran guru"** (ADR-041, September 2026). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF perlu dibuat ulang dari teks yang telah diperbarui ini.*
