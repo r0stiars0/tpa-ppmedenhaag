@@ -126,12 +126,15 @@ Hetzelfde als de ustadz-weergave, plus een sectie **"Beheer"** onderaan — de e
 
 <img src="./screenshots/nl/attendance-tutor.png" width="360" alt="Aanwezigheid — presentielijst ustadz">
 
-Het scherm om de aanwezigheid van vandaag per groep te registreren.
+Het scherm om de aanwezigheid per groep te registreren. Het opent op de
+huidige les van de groep — vandaag als de groep vandaag samenkomt, anders
+de meest recente lesdag daarvoor. Welke dagen een groep samenkomt, stelt
+de beheerder in bij de groep (zie [§12.2](#122-groepen) → Lesdagen).
 
 | Element | Functie |
 |---|---|
-| **Kies groep** | Verschijnt alleen als de ustadz meer dan één groep begeleidt. Bij het wisselen wordt de leerlingenlijst en de sessie van vandaag opnieuw geladen. |
-| Datum | Vandaag, automatisch getoond (niet aanpasbaar — registratie is altijd voor de sessie van vandaag). |
+| **Kies groep** | Verschijnt alleen als de ustadz meer dan één groep begeleidt. Bij het wisselen worden de leerlingenlijst en de les opnieuw geladen. |
+| Datumbalk met **‹** / **›** | Toont de datum van de getoonde les (weekdag, dag en maand; het jaartal erbij als de les niet in het huidige kalenderjaar valt). Met de pijlen stapt u door de lesdagen van de groep: **‹** terug tot 1 augustus van het huidige schooljaar, **›** vooruit tot en met de huidige les (verder vooruit kan niet). Staat er **niet ingevuld** onder de datum, dan is voor die lesdag nog geen aanwezigheid vastgelegd — u kunt dat alsnog doen; de les wordt aangemaakt zodra u verstuurt. Een al vastgelegde les blijft altijd te corrigeren, ook een die niet op een lesdag valt. |
 | Leerlingregel + knoppen **Aanwezig / Te laat / Afwezig** | Tik op een van de knoppen om de status van die leerling in te stellen. Groen = de status die op dit moment op het scherm staat (nog niet naar de server verstuurd totdat u op **Aanwezigheid versturen** tikt). De standaardstatus voor elke leerling is "Aanwezig". |
 
 Als u op **Afwezig** tikt, verschijnt een extra veld voor de reden:
@@ -167,6 +170,7 @@ Dit scherm is **alleen om te bekijken** — ouders en leerlingen kunnen de aanwe
 | Titel | "Mijn aanwezigheid" (voor een leerling die de eigen gegevens bekijkt) of "Aanwezigheid {naam kind}". |
 | Velden **Van** / **Tot** | Datumbereik om de geschiedenis te filteren (standaard: de laatste 90 dagen tot vandaag). |
 | Groot percentage | Aanwezigheidspercentage binnen het gekozen datumbereik. |
+| **Lesdagen** | Alleen-lezen regel onder het percentage met de weekdag(en) waarop de groep van het kind samenkomt (bijv. "Lesdagen: za"). Verschijnt niet als het kind nog niet in een groep zit. |
 | **Aanwezigheidsgeschiedenis** | Lijst per datum met status **Aanwezig / Te laat / Niet aanwezig**, en de reden (indien opgegeven) bij afwezigheid. |
 
 ---
@@ -464,7 +468,7 @@ Alleen toegankelijk voor een account met de rol Beheerder, via de tegel **Beheer
 | Element | Functie |
 |---|---|
 | **+ Nieuwe groep** | Opent het formulier voor een nieuwe groep (zie afbeelding hieronder). |
-| Kaart per groep | Naam, rooster, en lijst van toegewezen ustadz. |
+| Kaart per groep | Naam, rooster, lesdagen (bijv. "wo, za"), en lijst van toegewezen ustadz. |
 | **Bewerken** | Opent het bewerkingsformulier voor die groep, al ingevuld met bestaande gegevens. |
 
 Groepsformulier (hetzelfde voor nieuw aanmaken of bewerken):
@@ -474,7 +478,8 @@ Groepsformulier (hetzelfde voor nieuw aanmaken of bewerken):
 | Veld | Functie |
 |---|---|
 | **Groepsnaam** | Verplicht. |
-| **Rooster** | Optioneel, vrije tekst (bijv. "Sabtu 10:00-12:00"). |
+| **Rooster** | Optioneel, vrije tekst voor de tijd (bijv. "Sabtu 10:00-12:00"). |
+| **Lesdagen** | Aanvinklijst maandag t/m zondag. Bij een nieuwe groep staat **zaterdag** al aangevinkt; meerdere dagen mag. Er moet minstens één dag gekozen zijn — anders is **Opslaan** uitgeschakeld met de melding *"Kies minstens één dag"*. Deze dagen bepalen op welke datums de aanwezigheidslijst een les kan aanmaken. |
 | **Toegewezen ustadz** | Aanvinklijst — er kan meer dan één ustadz worden gekozen, of geen enkele. |
 | **Opslaan** / **Annuleren** | Opslaan of annuleren. |
 
@@ -557,4 +562,4 @@ Om tweetalige communicatie binnen de TPA te vergemakkelijken, hier de belangrijk
 
 ---
 
-*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave. De indeling kan in latere app-versies licht afwijken.*
+*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **12.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026). De indeling kan in latere app-versies licht afwijken. De PDF-versie is uit dezelfde bijgewerkte tekst en schermafbeeldingen opnieuw gegenereerd.*

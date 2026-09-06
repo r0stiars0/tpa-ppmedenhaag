@@ -126,12 +126,15 @@ Sama seperti tampilan ustadz, ditambah bagian **"Kelola"** di bagian bawah — s
 
 <img src="./screenshots/id/attendance-tutor.png" width="360" alt="Kehadiran — daftar hadir ustadz">
 
-Layar untuk mencatat kehadiran hari ini per grup.
+Layar untuk mencatat kehadiran per grup. Layar terbuka pada sesi terkini
+grup — hari ini jika grup bertemu hari ini, jika tidak maka hari
+pertemuan terakhir sebelumnya. Hari pertemuan sebuah grup diatur oleh
+admin pada grup tersebut (lihat [§12.2](#122-grup) → Hari pertemuan).
 
 | Elemen | Fungsi |
 |---|---|
-| **Pilih Grup** | Muncul hanya jika ustadz mengampu lebih dari satu grup. Memilih grup memuat ulang daftar santri dan sesi hari ini. |
-| Tanggal | Hari ini, ditampilkan otomatis (tidak bisa diubah — pencatatan selalu untuk sesi hari ini). |
+| **Pilih Grup** | Muncul hanya jika ustadz mengampu lebih dari satu grup. Memilih grup memuat ulang daftar santri dan sesinya. |
+| Baris tanggal dengan **‹** / **›** | Menampilkan tanggal sesi yang sedang dibuka (hari, tanggal, dan bulan; tahun ikut ditampilkan bila sesi bukan pada tahun kalender berjalan). Panah memindahkan sesi mengikuti hari pertemuan grup: **‹** mundur sampai 1 Agustus tahun ajaran berjalan, **›** maju sampai sesi terkini (tidak bisa lebih maju dari itu). Jika di bawah tanggal tertulis **belum diisi**, kehadiran untuk hari pertemuan itu belum dicatat — Anda masih bisa mencatatnya; sesinya dibuat saat Anda mengirim. Sesi yang sudah dicatat selalu bisa dikoreksi, termasuk yang tanggalnya bukan hari pertemuan. |
 | Baris santri + tombol **Hadir / Terlambat / Absen** | Tekan salah satu untuk menetapkan status santri tersebut. Warna hijau = status aktif yang tersimpan sementara di layar (belum terkirim ke server sampai ditekan **Kirim Kehadiran**). Status awal semua santri adalah "Hadir". |
 
 Menekan **Absen** membuka kolom alasan tambahan:
@@ -167,6 +170,7 @@ Layar ini **hanya untuk melihat** — orang tua dan santri tidak bisa mengubah d
 | Judul | "Kehadiranku" (untuk santri yang melihat datanya sendiri) atau "Kehadiran {nama anak}". |
 | Kolom **Dari** / **Sampai** | Rentang tanggal untuk memfilter riwayat (default: 90 hari terakhir sampai hari ini). |
 | Angka persentase besar | Tingkat kehadiran pada rentang tanggal yang dipilih. |
+| **Hari pertemuan** | Baris hanya-baca di bawah persentase berisi hari dalam seminggu saat grup anak bertemu (mis. "Hari pertemuan: Sab"). Tidak muncul jika anak belum masuk grup. |
 | **Riwayat Kehadiran** | Daftar per tanggal dengan status **Hadir / Terlambat / Tidak Hadir**, dan alasan (jika ada) untuk yang tidak hadir. |
 
 ---
@@ -464,7 +468,7 @@ Hanya bisa diakses oleh akun dengan peran Admin, lewat ubin **Kelola** di Berand
 | Elemen | Fungsi |
 |---|---|
 | **+ Grup Baru** | Membuka formulir grup baru (lihat gambar di bawah). |
-| Kartu tiap grup | Nama, jadwal, dan daftar ustadz pengampu. |
+| Kartu tiap grup | Nama, jadwal, hari pertemuan (mis. "Rab, Sab"), dan daftar ustadz pengampu. |
 | **Ubah** | Membuka formulir edit untuk grup tersebut, terisi data yang sudah ada. |
 
 Formulir Grup (sama untuk buat baru maupun ubah):
@@ -474,7 +478,8 @@ Formulir Grup (sama untuk buat baru maupun ubah):
 | Kolom | Fungsi |
 |---|---|
 | **Nama Grup** | Wajib diisi. |
-| **Jadwal** | Opsional, teks bebas (mis. "Sabtu 10:00-12:00"). |
+| **Jadwal** | Opsional, teks bebas untuk waktu (mis. "Sabtu 10:00-12:00"). |
+| **Hari pertemuan** | Daftar centang Senin sampai Ahad. Pada grup baru, **Sabtu** sudah tercentang; boleh lebih dari satu hari. Minimal satu hari harus dipilih — jika tidak, tombol **Simpan** nonaktif dengan pesan *"Pilih minimal satu hari"*. Hari-hari inilah yang menentukan pada tanggal berapa daftar hadir dapat membuat sesi. |
 | **Ustadz Pengampu** | Daftar centang — bisa memilih lebih dari satu ustadz, atau tidak memilih sama sekali. |
 | **Simpan** / **Batal** | Menyimpan atau membatalkan. |
 
@@ -557,4 +562,4 @@ Untuk memudahkan komunikasi dua bahasa di lingkungan TPA, berikut padanan istila
 
 ---
 
-*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru.*
+*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **12.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF dibuat ulang dari teks dan tangkapan layar yang sama yang telah diperbarui.*
