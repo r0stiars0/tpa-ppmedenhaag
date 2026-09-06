@@ -34,7 +34,15 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        // `json` is here for `dist/locales/{id,nl}.json`. i18next fetches
+        // those at runtime (`i18next-http-backend`, `loadPath:
+        // '/locales/{{lng}}.json'`), so without them in the precache an
+        // offline or installed PWA renders every `t()` key raw — the app
+        // shell loads but has no labels. They are small, versioned with
+        // the build, and needed on first paint, so they belong in the
+        // precache rather than a runtime cache that only fills after a
+        // first online visit.
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,json}'],
         // Web Push handlers, pulled into the generated service worker
         // rather than switching to `injectManifest` — that strategy
         // would hand us the whole precache manifest to maintain by hand
