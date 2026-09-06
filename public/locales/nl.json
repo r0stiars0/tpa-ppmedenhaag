@@ -71,7 +71,13 @@
     "attendanceRate": "Aanwezigheid",
     "submitted": "Aanwezigheid succesvol verstuurd",
     "confirmSubmit": "Aanwezigheid versturen voor {{count}} leerlingen?",
-    "ownRowNotEditable": "Je eigen aanwezigheid wordt genoteerd door een andere begeleider of de beheerder."
+    "ownRowNotEditable": "Je eigen aanwezigheid wordt genoteerd door een andere begeleider of de beheerder.",
+    "prevSession": "Vorige les",
+    "nextSession": "Volgende les",
+    "sessionNotRecorded": "niet ingevuld",
+    "noEarlierSession": "Geen eerdere les dit schooljaar",
+    "offlineNoSession": "Maak verbinding met internet om deze nieuwe les vast te leggen",
+    "meetingDaysLabel": "Lesdagen"
   },
   "assignments": {
     "title": "Huiswerk",
@@ -241,13 +247,13 @@
     "myFamily": "Mijn gezin"
   },
   "days": {
-    "mon": "Ma",
-    "tue": "Di",
-    "wed": "Wo",
-    "thu": "Do",
-    "fri": "Vr",
-    "sat": "Za",
-    "sun": "Zo"
+    "mon": { "short": "Ma", "long": "maandag" },
+    "tue": { "short": "Di", "long": "dinsdag" },
+    "wed": { "short": "Wo", "long": "woensdag" },
+    "thu": { "short": "Do", "long": "donderdag" },
+    "fri": { "short": "Vr", "long": "vrijdag" },
+    "sat": { "short": "Za", "long": "zaterdag" },
+    "sun": { "short": "Zo", "long": "zondag" }
   },
   "reports": {
     "title": "Rapport",
@@ -324,6 +330,8 @@
     "newClass": "Nieuwe groep",
     "className": "Groepsnaam",
     "classSchedule": "Rooster",
+    "meetingDays": "Lesdagen",
+    "meetingDaysHint": "Kies minstens één dag",
     "assignTutors": "Toegewezen ustadz",
     "noTutors": "Nog geen ustadz geregistreerd",
     "noClasses": "Nog geen groepen",

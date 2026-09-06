@@ -278,7 +278,26 @@ and an anonymous PostgREST read still answers `200 []` rather than a
 permission error. The assertions earn their place regardless — they now
 fail if a future migration re-grants CREATE to either role.
 
-*Total after these: 231 pgTAP assertions (227 before).*
+### 3.3 Class meeting days (MD-01…MD-08, ADR-037)
+
+`classes.meeting_days` (migration 019) and the `trg_sessions_meeting_day`
+BEFORE INSERT trigger. The seven RLS-suite fixture classes are given the
+full `'{0,1,2,3,4,5,6}'` set so their `current_date`-relative session
+inserts stay valid on whatever weekday the suite runs; a dedicated
+Saturday-only **Class MD** carries the trigger cases (2025-08-16 is a
+Saturday, 2025-08-13 a Wednesday). Placed after the fixture-row-count
+assertions because Class MD and MD-07 add rows.
+
+- [x] MD-01 — a **tutor** `UPDATE classes SET meeting_days` on their own class is a silent no-op (`classes_admin_write` is admin-only)
+- [x] MD-02 — an **admin** `UPDATE classes SET meeting_days` lands
+- [x] MD-03 — a **parent** of a child in the class reads `meeting_days` (the family screen's read-only "Lesdagen" line depends on it; `classes_read` parent branch)
+- [x] MD-04 — a 16+ student not enrolled in the class cannot see its row at all
+- [x] MD-05 — `trg_sessions_meeting_day` rejects a non-meeting-day session INSERT for the class **tutor** (`check_violation` / 23514)
+- [x] MD-06 — …and rejects the same INSERT from an **admin** (the trigger has no role branch)
+- [x] MD-07 — a meeting-day session INSERT is accepted
+- [x] MD-08 — `UPDATE` of an existing session's `date` onto a non-meeting day is allowed (the trigger gates INSERT only — correcting a mistake is not restricted)
+
+*Total after these: 270 pgTAP assertions.*
 
 ## 4. Unit tests (Vitest)
 
@@ -427,6 +446,18 @@ the app-side mirror of `fn_my_recordable_students()`.
 - [x] …and it now decides the **attendance** heading too, which was the one family screen still naming itself from the scope rather than from the student on it. `AttendancePage` rendered `attendance.myTitle` for the whole family scope, so Ibu Siti read "Kehadiranku" — *my* attendance — above her son Ali's record, in both languages. A page cannot answer that question: which child is on screen is not known until one is picked, and it is picked inside the view. The heading therefore moved into the two views, as it already had in the other five (`QuranPage` carries the note explaining why), and the family one asks the same per-student predicate: "Kehadiran Ali" for a parent, "Kehadiranku" for the 16+ santri reading their own record, "Kehadiran" for the class shape. Verified on the rendered screens at 390px in both locales rather than from the code
 - [x] `fetchRecordableRoster` applies the predicate to what the query returned, and rethrows rather than reporting a short roster
 
+### 4.5d Weekday helpers (TAD ADR-037)
+
+`tests/unit/weekdays.test.ts` (20), against `src/lib/weekdays.ts` — the
+dependency-free `dow` helpers the attendance stepper, the admin day
+picker and the family "Lesdagen" label all share.
+
+- [x] `dowOf` / `todayDow` map calendar dates to `dow` with 0=Sunday, 6=Saturday, and `dowOf` is timezone-stable across a DST spring-forward date (the same class of bug as §4.1's streak dates — arithmetic on `YYYY-MM-DD` via a UTC `Date`, never the host clock)
+- [x] `normaliseDows` sorts ascending, de-duplicates and drops anything outside 0–6 — the same shape the column CHECK enforces, applied before every write
+- [x] `formatDayList` renders **Monday-first** regardless of input order, in both the short and long form, keyed under the `days.*` i18n namespace
+- [x] `prevMeetingDay` / `nextMeetingDay` walk to the nearest meeting day within a week — across a week with no meeting day, within a multi-day week, and returning `null` when clamped past the academic-year bound
+- [x] `currentScheduledSessionDate` is today when today is a meeting day, otherwise the most recent past meeting day — the value the register opens on
+
 ### 4.6 Access control and delivery inside the Functions
 
 The three modules that decide who may make a Function act, and what
@@ -508,6 +539,14 @@ Run against Preview deploys with fixture data; auth mocked via Supabase test JWT
 | E2E-12 | Admin opens a draft report, edits narrative + grades, saves; no publish button is offered and the "only *[tutor]* can publish this" notice is shown. On a *published* report the notice instead warns the PDF will not update until the authoring tutor re-publishes | Admin |
 | E2E-13 | Admin's bottom nav is the same five operational tabs as every other role (never the enrollment set), "Kelola" reaches `/admin/*`, and a non-admin visiting `/admin` or `/admin/classes` is redirected home | Admin, Tutor |
 | E2E-14 | Admin invites a new account by email with role Santri (or registers one from the pending-sign-ins list) → opens the *existing*, previously-unlinked student record on Kelola → Santri → Ubah → picks that account under "Tautkan Akun Login Mandiri" → saves → the row shows "Akun sendiri" → that account signs in and sees its own data across all 5 tabs, and nothing belonging to another student (TAD ADR-032) | Admin → Student |
+| E2E-15 | Admin opens "Grup Baru" → Saturday is preselected → clears every day → Save is disabled with the hint → picks Monday + Saturday → saves → reopens for edit, both are checked, and the list row shows "ma, za" (TAD ADR-037) | Admin |
+| E2E-16 | Tutor opens Attendance on a meeting day → the header shows today → steps back to the previous meeting day, edits and saves it → steps back onto a scheduled day marked "niet ingevuld", records it, save creates the session → forward step is disabled at the current session and back step stops at the academic-year start (TAD ADR-037) | Tutor |
+| E2E-17 | Parent opens the child's Attendance screen → the read-only "Lesdagen" line matches the child's class `meeting_days` (TAD ADR-037) | Parent |
+
+*E2E-15…E2E-17 are specified but not implemented — this project has no
+authenticated Playwright harness yet (`e2e/sign-in.spec.ts` documents
+why the E2E-01…E2E-14 suite is also still unbuilt). The flows are
+covered at the unit layer (§4.5d) and the database layer (§3.3, MD-01…MD-08).*
 
 ## 6. Notification & PWA test matrix (manual, real devices)
 

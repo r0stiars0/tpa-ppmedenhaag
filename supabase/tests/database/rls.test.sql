@@ -81,10 +81,16 @@ values
   ('50000000-0000-0000-0000-000000000001', 's16@test.local',   'Santri 16',    'student', 'id');
 
 -- classes
-insert into public.classes (id, name, schedule, tutor_ids)
+-- `meeting_days` (migration 019): the seven-day set, so every session
+-- these tests INSERT with a `current_date`-relative date is on a meeting
+-- day whatever weekday the suite runs. The meeting-day trigger itself is
+-- exercised by the dedicated Class MD below, and by MD-01…MD-08.
+insert into public.classes (id, name, schedule, meeting_days, tutor_ids)
 values
-  ('c0000000-0000-0000-0000-00000000000a', 'Class A (RLS test)', 'Sabtu 10:00', array['70000000-0000-0000-0000-000000000001']::uuid[]),
-  ('c0000000-0000-0000-0000-00000000000b', 'Class B (RLS test)', 'Minggu 10:00', array['70000000-0000-0000-0000-000000000002']::uuid[]);
+  ('c0000000-0000-0000-0000-00000000000a', 'Class A (RLS test)', 'Sabtu 10:00', '{0,1,2,3,4,5,6}', array['70000000-0000-0000-0000-000000000001']::uuid[]),
+  ('c0000000-0000-0000-0000-00000000000b', 'Class B (RLS test)', 'Minggu 10:00', '{0,1,2,3,4,5,6}', array['70000000-0000-0000-0000-000000000002']::uuid[]),
+  -- Class MD: Saturday only, for the meeting-day trigger. Tutored by T1.
+  ('c0000000-0000-0000-0000-0000000000cc', 'Class MD (meeting-day test)', 'Sabtu', '{6}', array['70000000-0000-0000-0000-000000000001']::uuid[]);
 
 -- students: P1 has 2 in Class A; P2 has 1 in Class B; P3 has 1 (16+, S16) in Class B
 insert into public.students (id, parent_id, user_id, full_name, class_id, date_of_birth)
@@ -1164,11 +1170,11 @@ values
 -- is where both of their own children are enrolled — so each of them is
 -- a *parent* in a class they do not teach, which is precisely the case
 -- where a role-based policy and a relationship-based one diverge.
-insert into public.classes (id, name, schedule, tutor_ids)
+insert into public.classes (id, name, schedule, meeting_days, tutor_ids)
 values
-  ('c0000000-0000-0000-0000-00000000000c', 'Class C (dual-role test)', 'Sabtu 13:00',
+  ('c0000000-0000-0000-0000-00000000000c', 'Class C (dual-role test)', 'Sabtu 13:00', '{0,1,2,3,4,5,6}',
    array['b0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002']::uuid[]),
-  ('c0000000-0000-0000-0000-00000000000d', 'Class D (dual-role test)', 'Minggu 13:00',
+  ('c0000000-0000-0000-0000-00000000000d', 'Class D (dual-role test)', 'Minggu 13:00', '{0,1,2,3,4,5,6}',
    array['70000000-0000-0000-0000-000000000002']::uuid[]);
 
 insert into public.students (id, parent_id, user_id, full_name, class_id, date_of_birth)
@@ -1996,14 +2002,14 @@ values
   ('b0000000-0000-0000-0000-00000000000a', 'mc@test.local',   'Tutor of two classes',                'tutor',   'id'),
   ('b0000000-0000-0000-0000-00000000000b', 'none@test.local', 'Invited, not yet anything',           'tutor',   'id');
 
-insert into public.classes (id, name, schedule, tutor_ids)
+insert into public.classes (id, name, schedule, meeting_days, tutor_ids)
 values
-  ('c0000000-0000-0000-0000-00000000000e', 'Class E (overlap test)', 'Sabtu 15:00',
+  ('c0000000-0000-0000-0000-00000000000e', 'Class E (overlap test)', 'Sabtu 15:00', '{0,1,2,3,4,5,6}',
    array['b0000000-0000-0000-0000-000000000006',   -- OV
          'b0000000-0000-0000-0000-000000000007',   -- OSA
          'b0000000-0000-0000-0000-000000000009',   -- AT
          'b0000000-0000-0000-0000-00000000000a']::uuid[]),  -- MC
-  ('c0000000-0000-0000-0000-00000000000f', 'Class F (second class)', 'Minggu 15:00',
+  ('c0000000-0000-0000-0000-00000000000f', 'Class F (second class)', 'Minggu 15:00', '{0,1,2,3,4,5,6}',
    array['b0000000-0000-0000-0000-00000000000a']::uuid[]);  -- MC only
 
 insert into public.students (id, parent_id, user_id, full_name, class_id, date_of_birth)
@@ -2601,8 +2607,8 @@ insert into _tap_log(line) select ok(
 -- in the file those have been published, edited and renamed by WH-10
 -- and everything after it, and this block needs to know its own
 -- starting state exactly, not "whatever the file above left behind".
-insert into public.classes (id, name, schedule, tutor_ids)
-values ('11000000-0000-0000-0000-000000000001', 'Class G (RLS-43 test)', 'Senin 10:00', array['70000000-0000-0000-0000-000000000001']::uuid[]);
+insert into public.classes (id, name, schedule, meeting_days, tutor_ids)
+values ('11000000-0000-0000-0000-000000000001', 'Class G (RLS-43 test)', 'Senin 10:00', '{0,1,2,3,4,5,6}', array['70000000-0000-0000-0000-000000000001']::uuid[]);
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous, created_at, updated_at)
 values ('12000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'p43@test.local', '', now(), '{}', '{}', false, false, now(), now());
@@ -2937,6 +2943,96 @@ insert into _tap_log(line) select lives_ok(
      values ('c0000000-0000-0000-0000-00000000000b', current_date + 11,
              '70000000-0000-0000-0000-000000000002') $$,
   'RLS-59: admin still records a session for a class it does not teach, under another tutor''s id (ADR-014(b))'
+);
+
+reset role;
+
+-- ============================================================
+-- MD-01 … MD-08 — classes.meeting_days and the session
+--                 meeting-day trigger (migration 019, TAD ADR-037)
+--
+-- `meeting_days` is admin-write like every other `classes` column
+-- (`classes_admin_write`) and readable by anyone `classes_read` already
+-- lets see the row — a parent needs it for the family attendance
+-- screen's read-only "Lesdagen" line. `trg_sessions_meeting_day` (BEFORE
+-- INSERT on `sessions`) refuses a date whose `dow` is not in the class's
+-- `meeting_days`, for every caller including admin; UPDATE of an
+-- existing session is untouched. Class MD is Saturday-only; 2025-08-16
+-- is a Saturday, 2025-08-13 a Wednesday. Placed last — it adds a
+-- session row.
+-- ============================================================
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+
+-- MD-01: a tutor cannot change their own class's meeting_days.
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';
+update public.classes set meeting_days = '{1,4}'
+  where id = 'c0000000-0000-0000-0000-00000000000a';
+insert into _tap_log(line) select is(
+  (select meeting_days from public.classes where id = 'c0000000-0000-0000-0000-00000000000a'),
+  '{0,1,2,3,4,5,6}'::smallint[],
+  'MD-01: a tutor UPDATE of classes.meeting_days is a silent no-op (classes_admin_write is admin-only)'
+);
+
+-- MD-03: a parent of a child in the class may read meeting_days.
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select is(
+  (select meeting_days from public.classes where id = 'c0000000-0000-0000-0000-00000000000a'),
+  '{0,1,2,3,4,5,6}'::smallint[],
+  'MD-03: a parent reads the meeting_days of the class their child attends'
+);
+
+-- MD-04: an unrelated authenticated user sees nothing of Class MD.
+set local request.jwt.claim.sub to '50000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select is(
+  (select count(*) from public.classes where id = 'c0000000-0000-0000-0000-0000000000cc'),
+  0::bigint,
+  'MD-04: a 16+ student not enrolled in Class MD cannot see its row'
+);
+
+-- MD-05: a tutor cannot INSERT a session on a non-meeting day.
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.sessions (class_id, date, tutor_id)
+     values ('c0000000-0000-0000-0000-0000000000cc', date '2025-08-13',
+             '70000000-0000-0000-0000-000000000001') $$,
+  '23514', null,
+  'MD-05: trg_sessions_meeting_day rejects a Wednesday session for a Saturday-only class (tutor)'
+);
+
+-- MD-06: neither can an admin — the trigger has no role branch.
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.sessions (class_id, date, tutor_id)
+     values ('c0000000-0000-0000-0000-0000000000cc', date '2025-08-13',
+             '70000000-0000-0000-0000-000000000001') $$,
+  '23514', null,
+  'MD-06: …and rejects the same insert from an admin'
+);
+
+-- MD-07: a meeting-day date is accepted.
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.sessions (id, class_id, date, tutor_id)
+     values ('e0000000-0000-0000-0000-0000000000cc', 'c0000000-0000-0000-0000-0000000000cc',
+             date '2025-08-16', '70000000-0000-0000-0000-000000000001') $$,
+  'MD-07: a Saturday session for a Saturday-only class is accepted'
+);
+
+-- MD-08: the trigger is INSERT-only — an existing session's date may be
+-- moved onto a non-meeting day (correcting a mistake is not gated).
+insert into _tap_log(line) select lives_ok(
+  $$ update public.sessions set date = date '2025-08-13'
+      where id = 'e0000000-0000-0000-0000-0000000000cc' $$,
+  'MD-08: UPDATE of an existing session onto a Wednesday is allowed (trigger gates INSERT only)'
+);
+
+-- MD-02: an admin CAN change meeting_days.
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';
+insert into _tap_log(line) select lives_ok(
+  $$ update public.classes set meeting_days = '{1,4}'
+      where id = 'c0000000-0000-0000-0000-0000000000cc' $$,
+  'MD-02: an admin UPDATE of classes.meeting_days lands'
 );
 
 reset role;

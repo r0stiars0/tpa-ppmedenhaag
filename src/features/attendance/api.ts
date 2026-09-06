@@ -17,23 +17,35 @@ export function todayLocalDate(): string {
   return `${yyyy}-${mm}-${dd}`
 }
 
-/**
- * Implements the PRD 1.6 user flow ("current session auto-detected by
- * date/time"): look up today's session for this class, creating it on
- * first open of the day. A unique (class_id, date) constraint means a
- * concurrent create from a co-tutor is possible — on conflict we just
- * re-select rather than erroring out the tutor's screen.
- */
-export async function getOrCreateTodaySession(classId: string, tutorId: string): Promise<Session> {
-  const date = todayLocalDate()
-
-  const { data: existing, error: selectError } = await supabase
+/** Today's session for a class if one exists, else null. Never creates. */
+export async function fetchSessionForDate(classId: string, date: string): Promise<Session | null> {
+  const { data, error } = await supabase
     .from('sessions')
     .select('*')
     .eq('class_id', classId)
     .eq('date', date)
     .maybeSingle()
-  if (selectError) throw selectError
+  if (error) throw error
+  return data ?? null
+}
+
+/**
+ * Implements the PRD 1.6 user flow ("current session auto-detected by
+ * date/time"), now driven by the group's schedule rather than raw
+ * "today" (TAD ADR-037): look up the session for `date` on this class,
+ * creating it if absent. `date` must be one of the class's
+ * `meeting_days` — `trg_sessions_meeting_day` refuses the INSERT
+ * otherwise; the attendance screen only ever passes a scheduled date, so
+ * that error means a bug, not a user mistake. A unique (class_id, date)
+ * constraint means a concurrent create from a co-tutor is possible — on
+ * conflict we just re-select rather than erroring out the tutor's screen.
+ */
+export async function getOrCreateScheduledSession(
+  classId: string,
+  date: string,
+  tutorId: string,
+): Promise<Session> {
+  const existing = await fetchSessionForDate(classId, date)
   if (existing) return existing
 
   const { data: created, error: insertError } = await supabase
@@ -54,6 +66,28 @@ export async function getOrCreateTodaySession(classId: string, tutorId: string):
     return raced
   }
   throw insertError
+}
+
+/**
+ * The meeting days (and time-range text) of the class a student is
+ * enrolled in, for the read-only "Lesdagen" line on the family
+ * attendance screen (TAD ADR-037). `classes_read` already grants a
+ * parent / 16+ student the class row for their own child, so no policy
+ * change is needed; the embed resolves through students.class_id. Null
+ * when the student is not enrolled in any class.
+ */
+export async function fetchStudentMeetingDays(
+  studentId: string,
+): Promise<{ meeting_days: number[]; schedule: string | null } | null> {
+  const { data, error } = await supabase
+    .from('students')
+    .select('class:classes(meeting_days, schedule)')
+    .eq('id', studentId)
+    .maybeSingle()
+  if (error) throw error
+  const cls = (data as { class: { meeting_days: number[]; schedule: string | null } | null } | null)
+    ?.class
+  return cls ?? null
 }
 
 export async function fetchAttendanceForSession(sessionId: string): Promise<Tables<'attendance'>[]> {

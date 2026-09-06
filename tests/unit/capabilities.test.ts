@@ -435,6 +435,7 @@ describe('fetchTaughtClasses — the tutor-side mirror of the same fix', () => {
     id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
     name: 'Grup A',
     schedule: 'Sabtu 10:00-12:00',
+    meeting_days: [6],
   }
 
   function fakeClient(rows: TaughtClass[]) {

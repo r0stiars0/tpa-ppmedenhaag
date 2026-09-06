@@ -108,7 +108,7 @@ export async function createClass(row: TablesInsert<'classes'>): Promise<AdminCl
 
 export async function updateClass(
   id: string,
-  patch: Partial<Pick<AdminClass, 'name' | 'schedule' | 'tutor_ids'>>,
+  patch: Partial<Pick<AdminClass, 'name' | 'schedule' | 'meeting_days' | 'tutor_ids'>>,
 ): Promise<AdminClass> {
   const { data, error } = await supabase.from('classes').update(patch).eq('id', id).select().single()
   if (error) throw error

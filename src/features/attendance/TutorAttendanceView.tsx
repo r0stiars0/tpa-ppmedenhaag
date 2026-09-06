@@ -8,11 +8,19 @@ import type { Database, TablesInsert } from '../../lib/database.types'
 import { getErrorMessage } from '../../lib/errors'
 import { isNetworkError } from '../../lib/network'
 import { offlineQueue } from '../../lib/offlineQueue'
+import { academicYearWindow, currentAcademicYear } from '../../lib/reports'
 import { isRecordableStudent, recordableStudents } from '../../lib/roster'
+import {
+  addDays,
+  currentScheduledSessionDate,
+  nextMeetingDay,
+  prevMeetingDay,
+} from '../../lib/weekdays'
 import {
   fetchAttendanceForSession,
   fetchClassRoster,
-  getOrCreateTodaySession,
+  fetchSessionForDate,
+  getOrCreateScheduledSession,
   submitAttendance,
   todayLocalDate,
   type RosterStudent,
@@ -32,30 +40,28 @@ interface RowState {
  * own row stays visible while being left out of what is submitted
  * (TAD ADR-023(c), closed by ADR-025).
  *
- * ── Why the fix is here and not in a policy ─────────────────────────
+ * ── Schedule-driven (TAD ADR-037) ──────────────────────────────────
+ * The register works off the group's `meeting_days`, not raw "today".
+ * It opens on the *current scheduled session* — today if today is a
+ * meeting day, otherwise the most recent past meeting day — and a
+ * prev/next stepper walks the group's meeting days back to 1 August of
+ * the current academic year, so a forgotten week can be filled in.
+ * Creating a session is gated to a meeting day by
+ * `trg_sessions_meeting_day`; editing one that exists is never gated.
+ * The current session's row is created on open (so the common "record
+ * today" path, offline included, is unchanged); a stepped-to past date
+ * with no session is created only on submit.
+ *
+ * ── Why the assistant fix is here and not in a policy ───────────────
  * `submitAttendance` upserts the whole roster in a single statement, so
  * a policy refusing one row refuses the save for the entire class —
  * Aisyah could no longer mark *anybody*, which is a worse failure than
  * the hole. ADR-023 therefore left `attendance` out of
  * `fn_my_recordable_students()` deliberately and recorded the gap as
- * accepted residual risk (DPIA R7), on the stated grounds that no
- * screen routed an assistant to a register in the first place. This PR
- * is what removes that mitigation, so it is this PR's to close.
- *
- * ── Who marks the assistant present ─────────────────────────────────
- * A co-tutor, or an admin. The reason that is an answer rather than a
- * hope is ADR-014: an admin holds the class shape on *every* class
- * (`useMyClasses`'s admin branch), so there is always at least one
- * account that can complete her row even on a class with no second
- * tutor. Her row is shown rather than hidden precisely so this is
- * visible — she can see whether she was marked, and anyone else opening
- * the register sees a row still to fill.
- *
- * The exclusion is `recordableStudents`, the same predicate the five
- * other recording screens filter their rosters with, and it subtracts
- * her own record only — never a tutor-parent's children, who stay on
- * the register and are marked by their parent in the ordinary way
- * (ADR-024, and ADR-024(c) on why the two must not be collapsed).
+ * accepted residual risk (DPIA R7). ADR-025 closes it in the interface:
+ * `recordableStudents` subtracts her own record only — never a
+ * tutor-parent's children, who stay on the register and are marked by
+ * their parent in the ordinary way (ADR-024, ADR-024(c)).
  */
 export function TutorAttendanceView() {
   const { t, i18n } = useTranslation()
@@ -64,6 +70,7 @@ export function TutorAttendanceView() {
   const { classes, loading: classesLoading } = useMyClasses()
 
   const [classId, setClassId] = useState<string | null>(null)
+  const [selectedDate, setSelectedDate] = useState<string>('')
   const [roster, setRoster] = useState<RosterStudent[]>([])
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [rows, setRows] = useState<Record<string, RowState>>({})
@@ -78,23 +85,56 @@ export function TutorAttendanceView() {
     if (!classId && classes.length > 0) setClassId(classes[0].id)
   }, [classes, classId])
 
+  const selectedClass = useMemo(
+    () => classes.find((c) => c.id === classId) ?? null,
+    [classes, classId],
+  )
+  const meetingDays = selectedClass?.meeting_days ?? []
+
+  // The register's date window: `anchor` is the session a tutor is
+  // expected to be recording now; `min` is the first meeting day of the
+  // current academic year (older sessions belong to the year-end report
+  // period). Both are memoised off the class so switching class resets
+  // the stepper to that class's current session.
+  const anchorDate = useMemo(() => {
+    if (meetingDays.length === 0) return ''
+    return currentScheduledSessionDate(meetingDays, todayLocalDate())
+  }, [meetingDays])
+
+  const minDate = useMemo(() => {
+    if (!anchorDate) return ''
+    const yearStart = academicYearWindow(currentAcademicYear()).start
+    return nextMeetingDay(meetingDays, yearStart, anchorDate) ?? anchorDate
+  }, [meetingDays, anchorDate])
+
   useEffect(() => {
-    if (!classId || !profile) return
+    if (anchorDate) setSelectedDate(anchorDate)
+  }, [anchorDate])
+
+  useEffect(() => {
+    if (!classId || !profile || !selectedDate) return
     let active = true
     setLoading(true)
     setError(null)
     setSubmitted(false)
     setQueued(false)
 
+    const isAnchor = selectedDate === anchorDate
+
     async function load() {
       try {
         const [rosterData, session] = await Promise.all([
           fetchClassRoster(classId!),
-          getOrCreateTodaySession(classId!, profile!.id),
+          // The current session is created on open, as before. A
+          // stepped-to past date is only read here — it is created on
+          // submit, so navigating through history leaves no empty rows.
+          isAnchor
+            ? getOrCreateScheduledSession(classId!, selectedDate, profile!.id)
+            : fetchSessionForDate(classId!, selectedDate),
         ])
         if (!active) return
 
-        const existing = await fetchAttendanceForSession(session.id)
+        const existing = session ? await fetchAttendanceForSession(session.id) : []
         if (!active) return
 
         const existingByStudent = new Map(existing.map((a) => [a.student_id, a]))
@@ -108,7 +148,7 @@ export function TutorAttendanceView() {
         }
 
         setRoster(rosterData)
-        setSessionId(session.id)
+        setSessionId(session?.id ?? null)
         setRows(initialRows)
       } catch (err) {
         if (active) setError(getErrorMessage(err))
@@ -121,7 +161,7 @@ export function TutorAttendanceView() {
     return () => {
       active = false
     }
-  }, [classId, profile])
+  }, [classId, profile, selectedDate, anchorDate])
 
   // The rows this register may write. Identical to `roster` for every
   // account in the TPA except a student assistant looking at the class
@@ -132,14 +172,20 @@ export function TutorAttendanceView() {
     [roster, selfStudentId],
   )
 
-  const todayLabel = useMemo(() => {
-    const date = new Date(`${todayLocalDate()}T00:00:00`)
+  const prevDate = selectedDate ? prevMeetingDay(meetingDays, addDays(selectedDate, -1), minDate) : null
+  const nextDate = selectedDate ? nextMeetingDay(meetingDays, addDays(selectedDate, 1), anchorDate) : null
+
+  const sessionDateLabel = useMemo(() => {
+    if (!selectedDate) return ''
+    const date = new Date(`${selectedDate}T00:00:00`)
+    const sameYear = date.getFullYear() === new Date().getFullYear()
     return new Intl.DateTimeFormat(i18n.language === 'nl' ? 'nl-NL' : 'id-ID', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
+      ...(sameYear ? {} : { year: 'numeric' }),
     }).format(date)
-  }, [i18n.language])
+  }, [selectedDate, i18n.language])
 
   function setStatus(studentId: string, status: AttendanceStatus) {
     setSubmitted(false)
@@ -157,12 +203,30 @@ export function TutorAttendanceView() {
   }
 
   async function handleSubmit() {
-    if (!sessionId) return
+    if (!classId || !profile || !selectedDate) return
     setSubmitting(true)
     setError(null)
     setQueued(false)
+
+    let targetSessionId = sessionId
+    if (!targetSessionId) {
+      // Backfilling a missed scheduled day: the session did not exist
+      // when the screen opened, so create it now. This needs the
+      // network — there is no session id to queue an offline write
+      // against — so a connection failure here is reported, not queued.
+      try {
+        const session = await getOrCreateScheduledSession(classId, selectedDate, profile.id)
+        targetSessionId = session.id
+        setSessionId(session.id)
+      } catch (err) {
+        setError(isNetworkError(err) ? t('attendance.offlineNoSession') : getErrorMessage(err))
+        setSubmitting(false)
+        return
+      }
+    }
+
     const payload: TablesInsert<'attendance'>[] = submittable.map((student) => ({
-      session_id: sessionId,
+      session_id: targetSessionId!,
       student_id: student.id,
       status: rows[student.id]?.status ?? 'present',
       reason: rows[student.id]?.status === 'absent' ? rows[student.id]?.reason || null : null,
@@ -209,7 +273,36 @@ export function TutorAttendanceView() {
 
       <div className="rounded-lg bg-white p-4 shadow-sm">
         <ClassPicker classes={classes} value={classId} onChange={setClassId} />
-        <p className="mt-2 text-sm font-medium capitalize text-ppme-text/70">{todayLabel}</p>
+
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            disabled={!prevDate}
+            onClick={() => prevDate && setSelectedDate(prevDate)}
+            aria-label={t('attendance.prevSession')}
+            className="min-h-11 min-w-11 rounded-lg border border-black/10 px-3 text-lg font-semibold text-ppme-text disabled:opacity-30"
+          >
+            ‹
+          </button>
+          <div className="text-center">
+            <p className="text-sm font-medium capitalize text-ppme-text/80">{sessionDateLabel}</p>
+            {!loading && !sessionId && (
+              <p className="text-xs text-ppme-text/50">{t('attendance.sessionNotRecorded')}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            disabled={!nextDate}
+            onClick={() => nextDate && setSelectedDate(nextDate)}
+            aria-label={t('attendance.nextSession')}
+            className="min-h-11 min-w-11 rounded-lg border border-black/10 px-3 text-lg font-semibold text-ppme-text disabled:opacity-30"
+          >
+            ›
+          </button>
+        </div>
+        {!prevDate && !loading && (
+          <p className="mt-1 text-center text-xs text-ppme-text/40">{t('attendance.noEarlierSession')}</p>
+        )}
       </div>
 
       {error && <p className="rounded-lg bg-ppme-danger/10 p-3 text-sm text-ppme-danger">{error}</p>}

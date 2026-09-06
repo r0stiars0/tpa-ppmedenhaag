@@ -183,14 +183,14 @@ export async function fetchTutorClassCount(
  * and `attendance_tutor_insert` check the same function, so recording
  * against it fails with a policy error at save time.
  */
-export type TaughtClass = Pick<Tables<'classes'>, 'id' | 'name' | 'schedule'>
+export type TaughtClass = Pick<Tables<'classes'>, 'id' | 'name' | 'schedule' | 'meeting_days'>
 
 export async function fetchTaughtClasses(
   client: SupabaseClient<Database>,
   userId: string,
   options: { isAdmin: boolean },
 ): Promise<TaughtClass[]> {
-  const base = client.from('classes').select('id, name, schedule')
+  const base = client.from('classes').select('id, name, schedule, meeting_days')
   const { data, error } = await (options.isAdmin ? base : base.contains('tutor_ids', [userId])).order(
     'name',
   )
