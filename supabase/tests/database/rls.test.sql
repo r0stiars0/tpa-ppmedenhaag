@@ -3782,6 +3782,203 @@ insert into _tap_log(line) select is(
 
 reset role;
 
+-- RLS-88…RLS-97: admin user directory + role audit (migration 023, ADR-042)
+--
+-- `fn_admin_update_user` is the only supported role/name write path. It is
+-- admin-only, refuses to demote the last admin or to let an admin change
+-- their own role, strips a downgraded tutor from every `classes.tutor_ids`
+-- in the same transaction, and writes a `user_role_changes` row iff the
+-- role actually changes. `fn_admin_user_role_impact` is the read the UI
+-- uses to warn (or pre-block) before calling the writer.
+--
+-- Isolated fixtures (an `ad…`/`cd…`/`dd…` island) rather than the shared
+-- personas, whose role and guardian state earlier blocks mutate:
+--   UDT  ad…001  tutor, sole tutor of the new Directory Class
+--   UDP  ad…002  parent, guardian of both new Directory students
+--   UDL  ad…003  student, the self-login of Directory Kid Two
+--   UDN  ad…004  tutor, assigned to nothing
+-- ======================================================================
+reset role;
+
+insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous, created_at, updated_at)
+values
+  ('ad000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'udt@test.local', '', now(), '{}', '{}', false, false, now(), now()),
+  ('ad000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'udp@test.local', '', now(), '{}', '{}', false, false, now(), now()),
+  ('ad000000-0000-0000-0000-000000000003', 'authenticated', 'authenticated', 'udl@test.local', '', now(), '{}', '{}', false, false, now(), now()),
+  ('ad000000-0000-0000-0000-000000000004', 'authenticated', 'authenticated', 'udn@test.local', '', now(), '{}', '{}', false, false, now(), now());
+
+insert into public.users (id, email, full_name, role, locale)
+values
+  ('ad000000-0000-0000-0000-000000000001', 'udt@test.local', 'Directory Tutor',  'tutor',   'id'),
+  ('ad000000-0000-0000-0000-000000000002', 'udp@test.local', 'Directory Parent', 'parent',  'id'),
+  ('ad000000-0000-0000-0000-000000000003', 'udl@test.local', 'Directory Login',  'student', 'id'),
+  ('ad000000-0000-0000-0000-000000000004', 'udn@test.local', 'Directory Spare',  'tutor',   'id');
+
+insert into public.classes (id, name, schedule, meeting_days, tutor_ids)
+values ('cd000000-0000-0000-0000-000000000001', 'Directory Class', 'Sabtu 10:00', '{0,1,2,3,4,5,6}',
+        array['ad000000-0000-0000-0000-000000000001']::uuid[]);
+
+insert into public.students (id, user_id, full_name, class_id, date_of_birth)
+values
+  ('dd000000-0000-0000-0000-000000000001', null, 'Directory Kid One',
+     'cd000000-0000-0000-0000-000000000001', '2015-01-01'),
+  ('dd000000-0000-0000-0000-000000000002', 'ad000000-0000-0000-0000-000000000003', 'Directory Kid Two',
+     'cd000000-0000-0000-0000-000000000001', '2009-01-01');
+
+insert into public.student_guardians (student_id, user_id, unlinked_at)
+values
+  ('dd000000-0000-0000-0000-000000000001', 'ad000000-0000-0000-0000-000000000002', null),
+  ('dd000000-0000-0000-0000-000000000002', 'ad000000-0000-0000-0000-000000000002', null);
+
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+
+-- RLS-88: fn_admin_update_user is admin-only.
+set local request.jwt.claim.sub to 'ad000000-0000-0000-0000-000000000001';  -- UDT, a tutor
+insert into _tap_log(line) select throws_ok(
+  $$ select public.fn_admin_update_user('ad000000-0000-0000-0000-000000000002', 'Hacked', 'admin') $$,
+  '42501', null,
+  'RLS-88: a non-admin calling fn_admin_update_user is refused'
+);
+
+-- RLS-89: fn_admin_user_role_impact is empty for a non-admin caller
+-- (the fn_pending_registrations pattern) rather than an error.
+insert into _tap_log(line) select is(
+  (select array_length(tutor_groups, 1)
+     from public.fn_admin_user_role_impact('ad000000-0000-0000-0000-000000000001', 'parent')),
+  null, 'RLS-89: fn_admin_user_role_impact returns no group names to a non-admin'
+);
+insert into _tap_log(line) select is(
+  (select would_block
+     from public.fn_admin_user_role_impact('ad000000-0000-0000-0000-000000000001', 'parent')),
+  null, 'RLS-89: …and no would_block hint either'
+);
+
+-- RLS-90: user_role_changes is invisible to a non-admin and to anon.
+insert into _tap_log(line) select is(
+  (select count(*) from public.user_role_changes), 0::bigint,
+  'RLS-90: a tutor sees 0 user_role_changes rows (admin-only policy)'
+);
+set local role anon;
+set local request.jwt.claim.sub to '';
+set local request.jwt.claim.role to 'anon';
+insert into _tap_log(line) select is(
+  (select count(*) from public.user_role_changes), 0::bigint,
+  'RLS-90: anon sees 0 user_role_changes rows'
+);
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+
+-- RLS-91: the impact read, to an admin — the groups a tutor downgrade
+-- would unassign them from.
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- base admin
+insert into _tap_log(line) select is(
+  (select array_to_string(tutor_groups, ',')
+     from public.fn_admin_user_role_impact('ad000000-0000-0000-0000-000000000001', 'parent')),
+  'Directory Class', 'RLS-91: impact names the group a downgraded tutor loses'
+);
+insert into _tap_log(line) select is(
+  (select would_block
+     from public.fn_admin_user_role_impact('ad000000-0000-0000-0000-000000000004', 'parent')),
+  null, 'RLS-91: a tutor assigned to nothing is downgradable with no block'
+);
+
+-- RLS-92: a parent downgrade names the children they keep guarding (the
+-- links stay — the warning is informational).
+insert into _tap_log(line) select is(
+  (select array_length(guardian_children, 1)
+     from public.fn_admin_user_role_impact('ad000000-0000-0000-0000-000000000002', 'tutor')),
+  2, 'RLS-92: impact lists both children a downgraded parent still guards'
+);
+
+-- RLS-93: a student downgrade names the santri whose login this account is.
+insert into _tap_log(line) select is(
+  (select linked_student
+     from public.fn_admin_user_role_impact('ad000000-0000-0000-0000-000000000003', 'tutor')),
+  'Directory Kid Two', 'RLS-93: impact names the linked santri for a student downgrade'
+);
+
+-- RLS-94: the write — a tutor downgraded to parent is stripped from every
+-- group's tutor_ids in the same transaction, and an audit row is written.
+insert into _tap_log(line) select lives_ok(
+  $$ select public.fn_admin_update_user('ad000000-0000-0000-0000-000000000001', 'Renamed Tutor', 'parent') $$,
+  'RLS-94: admin downgrades a tutor to parent'
+);
+insert into _tap_log(line) select ok(
+  not exists (
+    select 1 from public.classes
+    where id = 'cd000000-0000-0000-0000-000000000001'
+      and 'ad000000-0000-0000-0000-000000000001'::uuid = any (tutor_ids)
+  ),
+  'RLS-94: …and the downgraded tutor is gone from the group tutor_ids'
+);
+insert into _tap_log(line) select is(
+  (select role::text || '/' || full_name from public.users
+     where id = 'ad000000-0000-0000-0000-000000000001'),
+  'parent/Renamed Tutor', 'RLS-94: …the role and name are both updated'
+);
+insert into _tap_log(line) select is(
+  (select old_role::text || '->' || new_role::text from public.user_role_changes
+     where user_id = 'ad000000-0000-0000-0000-000000000001'
+       and changed_by = 'a0000000-0000-0000-0000-000000000000'),
+  'tutor->parent', 'RLS-94: …an audit row records the change and who made it'
+);
+
+-- RLS-95: a name-only change (role unchanged) writes NO audit row.
+insert into _tap_log(line) select lives_ok(
+  $$ select public.fn_admin_update_user('ad000000-0000-0000-0000-000000000002', 'Renamed Parent', 'parent') $$,
+  'RLS-95: admin renames a user without changing their role'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.user_role_changes
+     where user_id = 'ad000000-0000-0000-0000-000000000002'),
+  0::bigint, 'RLS-95: …and no user_role_changes row is written for a name-only edit'
+);
+
+-- RLS-96: the two hard blocks. `self` while other admins remain; then,
+-- after demoting the suite's other admins, `last_admin` on the sole one.
+set local request.jwt.claim.sub to 'b0000000-0000-0000-0000-000000000008';  -- AP, an admin
+insert into _tap_log(line) select is(
+  (select would_block
+     from public.fn_admin_user_role_impact('b0000000-0000-0000-0000-000000000008', 'tutor')),
+  'self', 'RLS-96: an admin changing their own role is flagged self (other admins remain)'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ select public.fn_admin_update_user('b0000000-0000-0000-0000-000000000008', 'AP', 'tutor') $$,
+  'P0001', null,
+  'RLS-96: …and the write refuses it'
+);
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- base admin demotes the spares
+insert into _tap_log(line) select lives_ok(
+  $$ select public.fn_admin_update_user('b0000000-0000-0000-0000-000000000008', 'AP', 'tutor');
+     select public.fn_admin_update_user('b0000000-0000-0000-0000-000000000009', 'AT', 'tutor');
+     select public.fn_admin_update_user('b0000000-0000-0000-0000-000000000004', 'TAP', 'tutor') $$,
+  'RLS-96: demoting a non-last admin is allowed'
+);
+insert into _tap_log(line) select is(
+  (select would_block
+     from public.fn_admin_user_role_impact('a0000000-0000-0000-0000-000000000000', 'tutor')),
+  'last_admin', 'RLS-96: the sole remaining admin cannot be demoted — flagged last_admin'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ select public.fn_admin_update_user('a0000000-0000-0000-0000-000000000000', 'Admin Test', 'tutor') $$,
+  'P0001', null,
+  'RLS-96: …and the write refuses to demote the last admin'
+);
+
+-- RLS-97: an admin reads the whole change log; a demoted user does not.
+insert into _tap_log(line) select ok(
+  (select count(*) from public.user_role_changes) >= 4,
+  'RLS-97: admin reads every user_role_changes row'
+);
+set local request.jwt.claim.sub to 'ad000000-0000-0000-0000-000000000001';  -- now a parent
+insert into _tap_log(line) select is(
+  (select count(*) from public.user_role_changes), 0::bigint,
+  'RLS-97: a non-admin (the just-demoted tutor) reads none of the change log'
+);
+
+reset role;
+
 -- ---------- done ----------
 reset role;
 insert into _tap_log(line) select * from finish();

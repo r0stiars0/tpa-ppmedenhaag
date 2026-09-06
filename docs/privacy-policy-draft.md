@@ -26,6 +26,7 @@ is belegd bij het IT-team van PPME Den Haag, bereikbaar via `[e-mailadres]`.
 | Aanwezigheid van docenten | Aanwezig/afwezig/te laat per les, eventuele reden | Docenten |
 | Leervoortgang | Yanbu'a-niveau en -pagina's, Quran-leesvoortgang, memorisatie (murajaah), beoordelingen en notities van docenten | Leerlingen |
 | Meldingen | Web Push-abonnementsgegevens (technische sleutels, geen inhoud) | Gebruikers die meldingen inschakelen |
+| Rolwijzigingen | Welke beheerder welke rol van welk account heeft gewijzigd, van wat naar wat, en wanneer | Docenten, ouders, beheerders, leerlingen van 16+ met eigen account |
 | Toegangsaanvraag | Uw naam en een vrije toelichting die u zelf invult vóór goedkeuring | Personen die zijn ingelogd maar nog geen account hebben |
 
 **Over een toegangsaanvraag.** Heeft u ingelogd met Google maar nog geen account
@@ -157,6 +158,12 @@ Twee handelingen blijven bewust voorbehouden aan anderen: alleen een ouder kan
 bevestigen dat er thuis geoefend is, en alleen de docent die een jaarrapport heeft
 geschreven kan het aan het gezin vrijgeven.
 
+Een beheerder kan de naam of de rol van een account corrigeren via een
+beheerscherm. De laatst overgebleven beheerder kan niet worden teruggezet, en een
+beheerder kan de eigen rol niet wijzigen. Elke rolwijziging wordt vastgelegd — wie
+wat wanneer heeft gewijzigd — in een logboek dat alleen beheerders kunnen inzien;
+het corrigeren van alleen een naam wordt niet vastgelegd.
+
 Iemand kan meer dan één rol tegelijk hebben — een docent van wie het eigen kind ook
 op de TPA zit, of een beheerder die daarnaast lesgeeft. Zo iemand krijgt precies de
 optelsom van de rollen die hij of zij heeft en niets daarbuiten: als docent de eigen
@@ -245,6 +252,7 @@ PPME Den Haag, dapat dihubungi melalui `[alamat email]`.
 | Kehadiran guru | Hadir/absen/terlambat per sesi, alasan | Guru |
 | Progres belajar | Level dan halaman Yanbu'a, progres tilawah Al-Quran, hafalan (murajaah), penilaian dan catatan guru | Santri |
 | Notifikasi | Data langganan Web Push (kunci teknis, bukan isi) | Pengguna yang mengaktifkan notifikasi |
+| Perubahan peran | Admin mana mengubah peran akun mana, dari apa ke apa, dan kapan | Guru, orang tua, admin, santri 16+ dengan akun sendiri |
 | Permintaan akses | Nama Anda dan keterangan bebas yang Anda isi sendiri sebelum disetujui | Orang yang sudah login tetapi belum memiliki akun |
 
 **Tentang permintaan akses.** Jika Anda login dengan Google tetapi belum
@@ -371,6 +379,12 @@ guru — tidak ada data tambahan yang dikumpulkan untuk peran ini, dan tidak ada
 yang dibagikan ke luar PPME. Dua tindakan sengaja tetap menjadi hak pihak lain:
 hanya orang tua yang dapat mengonfirmasi hafalan yang disetorkan di rumah, dan hanya
 guru penulis rapor yang dapat menerbitkannya kepada keluarga.
+
+Admin dapat memperbaiki nama atau peran sebuah akun melalui layar pengelolaan.
+Admin terakhir tidak dapat diturunkan perannya, dan admin tidak dapat mengubah
+perannya sendiri. Setiap perubahan peran dicatat — siapa mengubah peran siapa, dari
+apa ke apa, dan kapan — dalam log yang hanya dapat dilihat oleh admin; perbaikan
+nama saja tidak dicatat.
 
 Satu orang dapat memegang lebih dari satu peran sekaligus — guru yang anaknya
 sendiri juga mengaji di TPA, atau admin yang ikut mengajar. Aksesnya adalah

@@ -369,6 +369,28 @@ proven against a row that exists.
 
 *Total after these: 350 pgTAP assertions (verified: `supabase test db` / a superuser run of `rls.test.sql` reports `1..350`).*
 
+### 3.7 Admin user directory + role audit (RLS-88…97, ADR-042)
+
+New table `public.user_role_changes` and functions `fn_admin_update_user` /
+`fn_admin_user_role_impact` (migration 023). An isolated `ad…`/`cd…`/`dd…`
+fixture island — a tutor (UDT, sole tutor of a new Directory Class), a
+parent (UDP, guardian of both new Directory students), a linked student
+login (UDL) and a spare tutor assigned to nothing (UDN) — rather than the
+shared personas, whose role and guardian state earlier blocks mutate.
+
+- [ ] RLS-88 — **`fn_admin_update_user` is admin-only.** UDT (a tutor) calls it → `42501`.
+- [ ] RLS-89 — **`fn_admin_user_role_impact` is empty for a non-admin**, not an error: UDT gets no `tutor_groups` and a null `would_block` (the `fn_pending_registrations` pattern).
+- [ ] RLS-90 — **`user_role_changes` is admin-only.** UDT reads **0**; anon reads **0**.
+- [ ] RLS-91 — **The impact read names a downgraded tutor's groups.** Admin `fn_admin_user_role_impact(UDT, 'parent')` → `tutor_groups = {Directory Class}`, `would_block` null; for UDN (assigned to nothing) → null block, no groups.
+- [ ] RLS-92 — **A parent downgrade lists the children they keep guarding.** Admin `fn_admin_user_role_impact(UDP, 'tutor')` → `guardian_children` has both Directory students (links are informational, not severed).
+- [ ] RLS-93 — **A student downgrade names the linked santri.** Admin `fn_admin_user_role_impact(UDL, 'tutor')` → `linked_student = 'Directory Kid Two'`.
+- [ ] RLS-94 — **The write strips `tutor_ids` and audits.** Admin `fn_admin_update_user(UDT, 'Renamed Tutor', 'parent')` → allowed; UDT is gone from Directory Class's `tutor_ids`; `users` row shows `parent` + the new name; a `user_role_changes` row records `tutor→parent` with `changed_by` = the admin.
+- [ ] RLS-95 — **A name-only edit is not audited.** Admin `fn_admin_update_user(UDP, 'Renamed Parent', 'parent')` → allowed; **no** `user_role_changes` row for UDP.
+- [ ] RLS-96 — **The two hard blocks.** With other admins present, an admin's `fn_admin_user_role_impact(self, 'tutor')` → `would_block = 'self'` and the write → `P0001`. After demoting the suite's spare admins (AP, AT, TAP) to isolate one, `fn_admin_user_role_impact(sole_admin, 'tutor')` → `would_block = 'last_admin'` and the write → `P0001`.
+- [ ] RLS-97 — **Read scope of the log.** Admin SELECT `user_role_changes` → ≥ 4 rows (everything written above); the just-demoted UDT (now a parent) → **0**.
+
+*Total after these: 372 pgTAP assertions (verified: `supabase test db` reports `1..372`).*
+
 ## 4. Unit tests (Vitest)
 
 ### 4.1 Streak logic
@@ -581,6 +603,17 @@ existing `tutor_attendance` / `users` / `classes` grants.
 - [x] `fetchTutorAttendanceHistory` filters on `tutor_id`, stitches in the session date **and group name** from a second `sessions` query, and sorts newest-first — the `fetchAttendanceHistory` contract, extended with `className`
 - [x] …returns `[]` without a second query when the tutor has no rows, and rethrows a sessions-query error
 
+### 4.5i Admin user directory (TAD ADR-042)
+
+`tests/unit/adminUsers.test.ts`, against `src/features/admin/api.ts` —
+the three client calls behind `/admin/users`. The write RPC's guards
+(last admin, self, `tutor_ids` cleanup) and the audit row are proven in
+the pgTAP suite (§3.7); this layer pins the client shape.
+
+- [x] `fetchAllUsers` selects `id, full_name, email, role` ordered by `full_name`, and returns `[]` on an empty table / rethrows a query error
+- [x] `fetchUserRoleImpact` calls `fn_admin_user_role_impact` with `p_user` / `p_new_role` and maps the row to `{ tutorGroups, guardianChildren, linkedStudent, wouldBlock }`; defaults every field when the RPC returns no row; passes a `would_block` value through; rethrows an RPC error
+- [x] `updateUser` calls `fn_admin_update_user` with `{ p_user, p_full_name, p_new_role }` and rethrows the RPC error (the last-admin / self / `42501` refusals all arrive this way)
+
 ### 4.6 Access control and delivery inside the Functions
 
 The three modules that decide who may make a Function act, and what
@@ -670,12 +703,14 @@ Run against Preview deploys with fixture data; auth mocked via Supabase test JWT
 | E2E-19 | Admin opens Registrations → clicks **Reject** on a pending entry → the `window.confirm` naming the email → confirms → the entry disappears from the list, and its `registration_requests` row (if any) is gone with the `auth.users` row → rejecting an entry whose id already has a profile is refused (`409`) → the same Google account signing in again reappears as a fresh pending entry, since GoTrue re-creates `auth.users` (intended — no blocklist) (TAD ADR-039) | Admin |
 | E2E-20 | Tutor opens Attendance → below the student roster a tutor section ("Kehadiran guru" / "Aanwezigheid docenten") lists the class's tutors → tutor marks a co-tutor absent with a reason and marks themselves present → submits → the confirm dialog names the student count and the tutor count on separate lines → an admin opens the same session and sees those tutor statuses; the affected tutor's own family view (if they are also a parent) shows nothing new, and a parent of a child in the class sees no tutor attendance anywhere (TAD ADR-041) | Tutor → Admin → Parent |
 | E2E-21 | Admin opens Beheer → the "Kehadiran Guru" pill → picks a tutor → sees a present-rate, present/late/absent counts, and a dated list (date · group · status) spanning every group that tutor teaches, with a group filter once more than one group appears; narrowing the date range recomputes the rate; the picker lists only tutors with recorded rows (no student-assistant); a non-admin visiting `/admin/tutor-attendance` directly is redirected home by `RequireAdmin` (TAD ADR-041(g)) | Admin, Tutor |
+| E2E-22 | Admin opens Beheer → the "Pengguna" / "Gebruikers" pill → the directory lists every account; typing in the search box filters by name/email and the role dropdown filters by role → **own row**: the role `<select>` is disabled with the "you cannot change your own role" hint, the name stays editable → renames a parent (role unchanged) → saves with no dialog, the list shows the new name → changes a tutor still assigned to groups to Orang Tua → a confirm dialog names those groups → confirms → the row shows the new role and that tutor is gone from the groups' tutor lists on the Grup screen; a `user_role_changes` row now exists → attempting to demote the last remaining admin is refused with an explanatory message (TAD ADR-042) | Admin |
 
-*E2E-15…E2E-21 are specified but not implemented — this project has no
+*E2E-15…E2E-22 are specified but not implemented — this project has no
 authenticated Playwright harness yet (`e2e/sign-in.spec.ts` documents
 why the E2E-01…E2E-14 suite is also still unbuilt). The flows are
-covered at the unit layer (§4.5d, §4.5e, §4.5g) and the database layer
-(§3.3 MD-01…MD-08, §3.4 RLS-60…64, §3.6 RLS-78…86).*
+covered at the unit layer (§4.5d, §4.5e, §4.5g, §4.5i) and the database
+layer (§3.3 MD-01…MD-08, §3.4 RLS-60…64, §3.6 RLS-78…86, §3.7
+RLS-88…97).*
 
 ## 6. Notification & PWA test matrix (manual, real devices)
 

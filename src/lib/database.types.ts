@@ -635,6 +635,48 @@ export type Database = {
           },
         ]
       }
+      user_role_changes: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          id: string
+          new_role: Database["public"]["Enums"]["user_role"]
+          old_role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          id?: string
+          new_role: Database["public"]["Enums"]["user_role"]
+          old_role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          id?: string
+          new_role?: Database["public"]["Enums"]["user_role"]
+          old_role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_role_changes_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_role_changes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string
@@ -849,6 +891,19 @@ export type Database = {
           p_user_id?: string
         }
         Returns: string
+      }
+      fn_admin_update_user: {
+        Args: { p_full_name: string; p_new_role: Database["public"]["Enums"]["user_role"]; p_user: string }
+        Returns: undefined
+      }
+      fn_admin_user_role_impact: {
+        Args: { p_new_role: Database["public"]["Enums"]["user_role"]; p_user: string }
+        Returns: {
+          guardian_children: string[]
+          linked_student: string
+          tutor_groups: string[]
+          would_block: string
+        }[]
       }
       fn_class_tutors: {
         Args: { p_class: string }

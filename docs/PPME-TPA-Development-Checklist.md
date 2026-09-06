@@ -693,3 +693,31 @@ student-assistant never shows. Reuses `computeAttendanceRate` and the
 local stack (record as a tutor → review as admin, picker + rate + list +
 group filter, zero console errors). Docs: ADR-041(g), PRD FR-008 status,
 openapi note, test-plan §4.5h + E2E-21, the user manual (both languages).
+
+**Post-milestone change (TAD ADR-042, migration 023):** an admin **user
+directory** with inline name + role editing. `/admin/users` (`UsersPage`,
+`RequireAdmin`, a 5th `AdminSectionNav` pill "Pengguna" / "Gebruikers"):
+a flat list of every account with a name/email search and a role filter;
+`UserForm` edits `full_name` and `role` only. Writes go through
+`fn_admin_update_user` (`security definer`) — not a PostgREST `update` —
+which raises `42501` for a non-admin, refuses to demote the last admin or
+to let an admin change their own role (`P0001`, own-row `<select>` also
+disabled), strips a downgraded tutor from every `classes.tutor_ids` in
+the same transaction, and writes a `public.user_role_changes` audit row
+iff the role actually changes (name-only edits are unlogged). A companion
+read, `fn_admin_user_role_impact`, backs a `window.confirm` that names
+the groups a tutor loses / the children a parent keeps guarding / the
+santri a student stays a login for, and pre-blocks the two hard cases.
+`user_role_changes` has one admin-only `ALL` policy and is not shown in
+the UI yet — it is a first, narrow answer to the DPIA R11/R15 no-audit
+residual for the role field. Verified: `typecheck` + `typecheck:functions`
++ `test` (566, +9 in `adminUsers.test.ts`) + `build` green; migration 023
+applied on a real local Supabase stack (`supabase db reset`) and the
+screen click-tested there (own-row lock, name-only save, tutor→parent
+confirm naming the groups, zero console errors); the RLS suite gains
+RLS-88…97 and `supabase test db` reports `1..372` all green. Docs:
+ADR-042 in the TAD + RLS policy table, PRD FR-009 + a user story, openapi
+(`/user_role_changes` + `/rpc/fn_admin_update_user` +
+`/rpc/fn_admin_user_role_impact` + `UserRoleChange` schema), DPIA R15
+`[IT TEAM]` note, both privacy-policy halves, the user manual (both
+languages), test-plan §3.7 + §4.5i + E2E-22.

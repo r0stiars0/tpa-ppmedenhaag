@@ -752,6 +752,114 @@ paths:
                 items: { $ref: '#/components/schemas/StudentGuardian' }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
+  /user_role_changes:
+    get:
+      tags: [admin]
+      summary: Role-change audit log (Admin only)
+      description: |
+        Added in migration 023 (TAD ADR-042). One row per role change
+        applied through `POST /rpc/fn_admin_update_user`: `user_id`,
+        `old_role`, `new_role`, `changed_by`, `changed_at`. RLS is
+        admin-only `ALL` (`user_role_changes_admin_all`) — a tutor,
+        parent or anon caller gets an empty array. Rows are written only
+        by the RPC (`security definer`); there is no client insert path.
+        Not surfaced in the app yet.
+      parameters:
+        - $ref: '#/components/parameters/select'
+        - name: user_id
+          in: query
+          schema: { type: string }
+          description: 'PostgREST filter, e.g. `eq.{uuid}`'
+        - name: order
+          in: query
+          schema: { type: string }
+          description: 'e.g. `changed_at.desc`'
+      responses:
+        '200':
+          description: Role-change rows (empty array for non-admin callers)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/UserRoleChange' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /rpc/fn_admin_user_role_impact:
+    post:
+      tags: [admin]
+      summary: Consequences of a prospective role change, for the confirm dialog (Admin only)
+      description: |
+        Added in migration 023 (TAD ADR-042). `security definer`, read-only.
+        Returns one row; every field is gated on `fn_is_admin()`, so a
+        non-admin caller gets an empty summary (`fn_pending_registrations`
+        pattern) rather than a 403. `tutor_groups` — group names a
+        tutor→non-tutor change would unassign the user from (they are
+        removed on apply). `guardian_children` — children a parent→non-parent
+        change leaves them guarding (links are **not** severed). `linked_student`
+        — the santri a student→non-student change leaves the account a login
+        for (link **not** severed). `would_block` — `self`, `last_admin`, or
+        `null`; when set, the UI pre-disables Save and explains.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_user, p_new_role]
+              properties:
+                p_user: { type: string, format: uuid }
+                p_new_role: { $ref: '#/components/schemas/UserRole' }
+      responses:
+        '200':
+          description: A single impact-summary row
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 1
+                items:
+                  type: object
+                  properties:
+                    tutor_groups: { type: array, items: { type: string } }
+                    guardian_children: { type: array, items: { type: string } }
+                    linked_student: { type: string, nullable: true }
+                    would_block:
+                      type: string
+                      nullable: true
+                      enum: [self, last_admin]
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /rpc/fn_admin_update_user:
+    post:
+      tags: [admin]
+      summary: Set a user's display name and role (Admin only)
+      description: |
+        Added in migration 023 (TAD ADR-042). `security definer`; raises
+        `42501` for a non-admin caller. Trims and length-checks `p_full_name`
+        (1–120 chars → `22023` otherwise). When `p_new_role` differs from the
+        user's current role it enforces two hard blocks (`P0001`): the last
+        remaining admin cannot be demoted, and an admin cannot change their
+        own role. On a tutor→non-tutor change it also removes the user from
+        every `classes.tutor_ids` in the same transaction, and writes a
+        `user_role_changes` row. A name-only change updates the profile and
+        writes no audit row. Call `POST /rpc/fn_admin_user_role_impact`
+        first to warn the operator. Returns no body.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_user, p_full_name, p_new_role]
+              properties:
+                p_user: { type: string, format: uuid }
+                p_full_name: { type: string, minLength: 1, maxLength: 120 }
+                p_new_role: { $ref: '#/components/schemas/UserRole' }
+      responses:
+        '204': { description: Applied }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ForbiddenRLS' }
+
   /rpc/fn_pending_registrations:
     post:
       tags: [admin]
@@ -1914,6 +2022,23 @@ components:
         tutor_id: { type: string, format: uuid }
         status: { $ref: '#/components/schemas/AttendanceStatusEnum' }
         reason: { type: string }
+
+    UserRoleChange:
+      type: object
+      description: >-
+        One role change applied through `fn_admin_update_user` (TAD ADR-042).
+        Admin-only read; written only by the RPC. A name-only edit produces
+        no row.
+      properties:
+        id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        old_role: { $ref: '#/components/schemas/UserRole' }
+        new_role: { $ref: '#/components/schemas/UserRole' }
+        changed_by:
+          type: string
+          format: uuid
+          description: The admin who made the change (`auth.uid()` at the time).
+        changed_at: { type: string, format: date-time }
 
     Assignment:
       type: object

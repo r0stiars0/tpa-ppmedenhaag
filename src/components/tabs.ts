@@ -52,4 +52,7 @@ export const ADMIN_SECTION_TABS = [
   // already scrolls horizontally, so a fourth pill does not reflow the
   // header; `tabs.test.ts` only checks each entry is an `/admin/*` path.
   { to: '/admin/tutor-attendance', key: 'nav.kehadiranGuru' },
+  // User directory — inline name + role editing for every account
+  // (ADR-042). 5th pill; the strip keeps scrolling.
+  { to: '/admin/users', key: 'nav.pengguna' },
 ] as const

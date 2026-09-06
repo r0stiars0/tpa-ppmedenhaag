@@ -14,7 +14,8 @@
     "kelas": "Groepen",
     "santri": "Leerlingen",
     "kelola": "Beheer",
-    "kehadiranGuru": "Aanwezigheid docenten"
+    "kehadiranGuru": "Aanwezigheid docenten",
+    "pengguna": "Gebruikers"
   },
   "dashboard": {
     "thisWeek": "Deze week",
@@ -329,6 +330,17 @@
     "tutorAttendanceNoData": "Er is nog geen aanwezigheid van docenten vastgelegd.",
     "tutorAttendanceCounts": "{{present}} aanwezig · {{late}} te laat · {{absent}} afwezig",
     "allGroups": "Alle groepen",
+    "usersTitle": "Gebruikers",
+    "usersSearchPlaceholder": "Zoek op naam of e-mail",
+    "allRoles": "Alle rollen",
+    "usersNoResults": "Geen gebruikers gevonden.",
+    "userCannotEditOwnRole": "U kunt de rol van uw eigen account niet wijzigen.",
+    "userRoleChangeConfirmIntro": "Rol van {{name}} wijzigen naar {{role}}?",
+    "userRoleImpactTutorGroups": "De persoon wordt als docent losgekoppeld van: {{groups}}",
+    "userRoleImpactGuardian": "De persoon blijft geregistreerd als verzorger van: {{children}} (gezinstoegang verandert niet)",
+    "userRoleImpactLinkedStudent": "De persoon blijft gekoppeld als login voor leerling {{student}}",
+    "userRoleBlockedLastAdmin": "Er moet ten minste één beheerder overblijven. Wijs de beheerdersrol eerst aan iemand anders toe.",
+    "userRoleBlockedSelf": "U kunt uw eigen rol niet wijzigen. Vraag een andere beheerder dit te doen.",
     "registrationsTitle": "Gebruikersregistraties",
     "inviteSectionTitle": "Nieuwe gebruiker uitnodigen",
     "inviteEmail": "E-mailadres",

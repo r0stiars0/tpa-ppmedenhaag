@@ -152,6 +152,76 @@ export async function updateClass(
   return data
 }
 
+/**
+ * Every user with a profile, for the admin directory (ADR-042). Reuses
+ * `DirectoryUser` — the same `id / full_name / email / role` shape the
+ * enrolment pickers already carry. Admin-only in practice: `users_self_read`
+ * only returns other rows to an admin.
+ */
+export async function fetchAllUsers(): Promise<DirectoryUser[]> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, full_name, email, role')
+    .order('full_name')
+  if (error) throw error
+  return data ?? []
+}
+
+/** Consequences of a prospective role change (ADR-042), from `fn_admin_user_role_impact`. */
+export interface UserRoleImpact {
+  /** Groups a tutor→non-tutor change would unassign them from (they get removed). */
+  tutorGroups: string[]
+  /** Children a parent→non-parent change leaves them guarding — links stay, access is unaffected. */
+  guardianChildren: string[]
+  /** The santri a student→non-student change leaves this account linked to, or null. */
+  linkedStudent: string | null
+  /** A hard block the write RPC will enforce: the UI pre-disables Save and explains. */
+  wouldBlock: 'self' | 'last_admin' | null
+}
+
+export async function fetchUserRoleImpact(userId: string, newRole: UserRole): Promise<UserRoleImpact> {
+  const { data, error } = await supabase.rpc('fn_admin_user_role_impact', {
+    p_user: userId,
+    p_new_role: newRole,
+  })
+  if (error) throw error
+  const row = (data ?? [])[0] as
+    | {
+        tutor_groups: string[] | null
+        guardian_children: string[] | null
+        linked_student: string | null
+        would_block: string | null
+      }
+    | undefined
+  return {
+    tutorGroups: row?.tutor_groups ?? [],
+    guardianChildren: row?.guardian_children ?? [],
+    linkedStudent: row?.linked_student ?? null,
+    wouldBlock: (row?.would_block as UserRoleImpact['wouldBlock']) ?? null,
+  }
+}
+
+/**
+ * Set a user's display name and role through the admin-only
+ * `fn_admin_update_user` RPC (ADR-042) rather than a PostgREST `update`:
+ * the RPC refuses to demote the last admin or to let an admin change
+ * their own role, strips a downgraded tutor from every group's
+ * `tutor_ids`, and writes a `user_role_changes` audit row when the role
+ * actually changes.
+ */
+export async function updateUser(input: {
+  id: string
+  full_name: string
+  role: UserRole
+}): Promise<void> {
+  const { error } = await supabase.rpc('fn_admin_update_user', {
+    p_user: input.id,
+    p_full_name: input.full_name,
+    p_new_role: input.role,
+  })
+  if (error) throw error
+}
+
 /** One active guardian of a student, for the admin enrolment screens. */
 export interface AdminStudentGuardian {
   user_id: string
