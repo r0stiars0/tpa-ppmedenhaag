@@ -3765,6 +3765,21 @@ insert into _tap_log(line) select is(
   1::bigint, 'RLS-86: admin gets Class D''s single tutor from fn_class_tutors'
 );
 
+-- RLS-87: fn_class_tutors excludes a student-assistant enrolled in the
+-- same class (ADR-041(e)). Class E's tutor_ids are OV, OSA, AT, MC — and
+-- OSA (b…007) also has their own student record in Class E. The tutor
+-- section must not list OSA: their attendance is taken on the roster.
+set local request.jwt.claim.sub to 'b0000000-0000-0000-0000-00000000000a';  -- MC, a tutor of Class E
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_class_tutors('c0000000-0000-0000-0000-00000000000e')
+     where user_id = 'b0000000-0000-0000-0000-000000000007'),
+  0::bigint, 'RLS-87: fn_class_tutors omits the student-assistant OSA, who is enrolled in Class E'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_class_tutors('c0000000-0000-0000-0000-00000000000e')),
+  3::bigint, 'RLS-87: …and returns the other three tutors of Class E (OV, AT, MC)'
+);
+
 reset role;
 
 -- ---------- done ----------

@@ -554,7 +554,10 @@ paths:
         entitlement check (admin, or a tutor of `p_class`) is folded into
         the `WHERE`, so a caller who is neither gets an empty array, not a
         403 — the `fn_student_guardians` pattern. Needed because
-        `users_self_read` does not expose other users to a tutor.
+        `users_self_read` does not expose other users to a tutor. A
+        `tutor_ids` member who is also a student enrolled in `p_class` (a
+        student-assistant) is omitted — their attendance is taken on the
+        student roster.
       requestBody:
         required: true
         content:

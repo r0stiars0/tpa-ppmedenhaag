@@ -119,6 +119,13 @@ language sql stable security definer set search_path = public as $$
   join public.users u on u.id = any (c.tutor_ids)
   where c.id = p_class
     and (public.fn_is_admin() or p_class in (select public.fn_my_classes()))
+    -- A student-assistant who is enrolled in this same group is recorded
+    -- on the student roster, not listed a second time as a tutor
+    -- (ADR-041(e)). `students.user_id` is the assistant's own login.
+    and u.id not in (
+      select s.user_id from public.students s
+      where s.class_id = p_class and s.user_id is not null
+    )
   order by u.full_name
 $$;
 
@@ -129,4 +136,5 @@ comment on function public.fn_class_tutors(uuid) is
   'the attendance register''s tutor section and the admin review timeline '
   '(ADR-041). Entitlement (admin, or a tutor of the class) is folded into '
   'the WHERE: a non-entitled caller gets zero rows, the fn_student_guardians '
-  'pattern.';
+  'pattern. A tutor who is also a student enrolled in the same class is '
+  'excluded — their attendance is taken on the student roster.';

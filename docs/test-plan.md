@@ -365,8 +365,9 @@ proven against a row that exists.
 - [ ] RLS-84 — **No recording for a class you do not teach.** TP `INSERT` for a Class D session → `42501`.
 - [ ] RLS-85 — **Admin, every class.** Admin SELECT → sees every row; admin `INSERT` for a class it does not tutor → allowed (mirrors RLS-22 for `attendance`).
 - [ ] RLS-86 — **`fn_class_tutors`.** A tutor of Class C → its two tutors, **with `full_name`**; a guardian → **0 rows** (entitlement folded into the `WHERE`, the `fn_student_guardians` pattern); admin → any class's tutors.
+- [ ] RLS-87 — **`fn_class_tutors` omits a same-class student-assistant.** Class E's `tutor_ids` are OV, OSA, AT, MC; OSA (`b…007`) also has their own `students` record in Class E. `fn_class_tutors('Class E')` returns OV, AT, MC and **not OSA** — their attendance is taken on the roster, not a second time as a tutor (ADR-041(e)).
 
-*Total after these: 284 + N pgTAP assertions (N ≈ 58; fill in from the file once the RLS-65+ and RLS-78+ blocks are counted).*
+*Total after these: 350 pgTAP assertions (verified: `supabase test db` / a superuser run of `rls.test.sql` reports `1..350`).*
 
 ## 4. Unit tests (Vitest)
 
