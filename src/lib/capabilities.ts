@@ -12,11 +12,12 @@ type UserRole = Database['public']['Enums']['user_role']
  * `users.role` holds one value, but a real person at the TPA can be
  * several things at once — a tutor whose own child attends, an admin who
  * also teaches a class. The database has always allowed that state:
- * `students.parent_id` is a plain FK to `users(id)` with no role
- * constraint, and every family/tutor policy in migration 003 is written
- * against a relationship (`parent_id = auth.uid()`, `auth.uid() =
- * any(tutor_ids)`, `user_id = auth.uid()`) rather than against the role
- * column. `fn_is_admin()` is the single exception in all 42 policies.
+ * every family/tutor policy in migration 003 is written against a
+ * relationship (an active `student_guardians` link since ADR-040 —
+ * `fn_my_children()`; `auth.uid() = any(tutor_ids)`; `user_id =
+ * auth.uid()`) rather than against the role column, and a person can
+ * hold any number of them at once. `fn_is_admin()` is the single
+ * exception in all 42 policies.
  * Postgres ORs permissive policies, so such a person already gets the
  * union of both grants — proven, not assumed, by RLS-28…RLS-33.
  *
@@ -50,31 +51,22 @@ export const NO_CAPABILITIES: Capabilities = {
 }
 
 /**
- * The students a person is *family* to: their own children, plus their
- * own record if they are a 16+ self-login student.
+ * The students a person is *family* to: children they are an active
+ * guardian of (`student_guardians`, TAD ADR-040), plus their own record
+ * if they are a 16+ self-login student.
  *
- * Both columns are carried so the caller can tell the two links apart —
- * `useMyStudents` only needs the names, but `deriveCapabilities` needs
- * to know which of `isParentOfAnyone` / `isSelfStudent` a row implies.
+ * `is_guardian` and `is_self` are computed server-side by
+ * `fn_my_family_students()` and carried so the caller can tell the two
+ * links apart — `useMyStudents` only needs the names, but
+ * `deriveCapabilities` needs to know which of `isParentOfAnyone` /
+ * `isSelfStudent` a row implies, and a row can be both.
  */
-export type FamilyLink = Pick<Tables<'students'>, 'id' | 'full_name' | 'parent_id' | 'user_id'>
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-/**
- * PostgREST's `or=` takes a filter *expression* as a string, so an id
- * spliced into it is not a bound parameter — a value containing a comma
- * or a parenthesis would change which rows the filter selects. The id
- * here always comes from the Supabase session rather than from anything
- * a user typed, so this is a guard rather than a fix for a live hole,
- * but it is the kind of guard that has to exist before the first caller
- * that forgets where its id came from.
- */
-export function familyLinkFilter(userId: string): string {
-  if (!UUID_RE.test(userId)) {
-    throw new Error(`familyLinkFilter: expected a UUID, got ${JSON.stringify(userId)}`)
-  }
-  return `parent_id.eq.${userId},user_id.eq.${userId}`
+export interface FamilyLink {
+  id: string
+  full_name: string
+  user_id: string | null
+  is_guardian: boolean
+  is_self: boolean
 }
 
 /**
@@ -83,22 +75,22 @@ export function familyLinkFilter(userId: string): string {
  * Explicit, and not left to RLS. `students` is readable under four
  * separate permissive policies, and `students_tutor_read` returns the
  * caller's whole class — so an unfiltered `select` means "my children"
- * for a parent and "my class of 25" for anyone who also tutors. The
- * filter below asks the question the screens actually mean, and RLS
+ * for a parent and "my class of 25" for anyone who also tutors.
+ *
+ * Since ADR-040 this is `fn_my_family_students()`, a `security definer`
+ * RPC: it asks exactly the two questions the screens mean (an active
+ * `student_guardians` link, or `students.user_id = auth.uid()`) with no
+ * user-influenced value spliced into a PostgREST filter string, and RLS
  * remains the thing that guarantees no answer can include a family that
  * is not theirs.
  */
 export async function fetchFamilyLinks(
   client: SupabaseClient<Database>,
-  userId: string,
+  _userId?: string,
 ): Promise<FamilyLink[]> {
-  const { data, error } = await client
-    .from('students')
-    .select('id, full_name, parent_id, user_id')
-    .or(familyLinkFilter(userId))
-    .order('full_name')
+  const { data, error } = await client.rpc('fn_my_family_students')
   if (error) throw error
-  return data ?? []
+  return [...(data ?? [])].sort((a, b) => a.full_name.localeCompare(b.full_name))
 }
 
 /**
@@ -113,35 +105,35 @@ export async function fetchFamilyLinks(
  * the predicate over the result.
  */
 export function familyRelationships(
-  userId: string,
-  familyLinks: readonly Pick<FamilyLink, 'parent_id' | 'user_id'>[],
+  familyLinks: readonly Pick<FamilyLink, 'is_guardian' | 'is_self'>[],
 ): RecipientRelationships {
   return {
-    isParentOfAnyone: familyLinks.some((s) => s.parent_id === userId),
-    isSelfStudent: familyLinks.some((s) => s.user_id === userId),
+    isParentOfAnyone: familyLinks.some((s) => s.is_guardian),
+    isSelfStudent: familyLinks.some((s) => s.is_self),
   }
 }
 
 /**
- * The relationship half of `fetchFamilyLinks`, selecting the two link
- * columns and nothing else.
+ * The relationship half of `fetchFamilyLinks`: two booleans, no names.
  *
- * A separate query rather than a reuse of `fetchFamilyLinks` because the
- * caller that needs it — `push-subscribe`, deciding whether to store a
- * push endpoint — has no business reading a list of children's names to
- * answer a yes/no question. Data minimisation applies to what a Function
- * loads into memory, not only to what it sends.
+ * A separate RPC (`fn_my_family_flags()`) rather than a reuse of
+ * `fetchFamilyLinks` because the caller that needs it — `push-subscribe`,
+ * deciding whether to store a push endpoint — has no business reading a
+ * list of children's names to answer a yes/no question. Data
+ * minimisation applies to what a Function loads into memory, not only to
+ * what it sends (TAD ADR-022(c), carried forward by ADR-040(e)).
  */
 export async function fetchFamilyRelationships(
   client: SupabaseClient<Database>,
-  userId: string,
+  _userId?: string,
 ): Promise<RecipientRelationships> {
-  const { data, error } = await client
-    .from('students')
-    .select('parent_id, user_id')
-    .or(familyLinkFilter(userId))
+  const { data, error } = await client.rpc('fn_my_family_flags')
   if (error) throw error
-  return familyRelationships(userId, data ?? [])
+  const row = data?.[0]
+  return {
+    isParentOfAnyone: Boolean(row?.is_parent),
+    isSelfStudent: Boolean(row?.is_self),
+  }
 }
 
 /**
@@ -209,9 +201,9 @@ export function deriveCapabilities(input: {
   familyLinks: FamilyLink[]
   tutorClassCount: number
 }): Capabilities {
-  const { userId, role, familyLinks, tutorClassCount } = input
+  const { role, familyLinks, tutorClassCount } = input
   return {
-    ...familyRelationships(userId, familyLinks),
+    ...familyRelationships(familyLinks),
     isTutorOfAnyClass: tutorClassCount > 0,
     isAdmin: role === 'admin',
   }
@@ -233,10 +225,9 @@ export function deriveCapabilities(input: {
  * null costs those accounts nothing.
  */
 export function selfStudentId(
-  userId: string,
-  familyLinks: readonly Pick<FamilyLink, 'id' | 'user_id'>[],
+  familyLinks: readonly Pick<FamilyLink, 'id' | 'is_self'>[],
 ): string | null {
-  return familyLinks.find((student) => student.user_id === userId)?.id ?? null
+  return familyLinks.find((student) => student.is_self)?.id ?? null
 }
 
 /**
@@ -275,11 +266,11 @@ export async function fetchViewerRelationships(
   role: UserRole | null,
 ): Promise<ViewerRelationships> {
   const [familyLinks, tutorClassCount] = await Promise.all([
-    fetchFamilyLinks(client, userId),
+    fetchFamilyLinks(client),
     fetchTutorClassCount(client, userId),
   ])
   return {
     capabilities: deriveCapabilities({ userId, role, familyLinks, tutorClassCount }),
-    selfStudentId: selfStudentId(userId, familyLinks),
+    selfStudentId: selfStudentId(familyLinks),
   }
 }

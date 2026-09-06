@@ -17,18 +17,19 @@ export function AttendancePage() {
   //     the only reason left to keep them out of it by default. It used
   //     to be a safety measure too: `FamilyAttendanceView`'s "my
   //     children" query ran unfiltered and `students_admin_all` has no
-  //     `parent_id` predicate, so it would have returned every student
-  //     in the school — a ChildPicker listing ~200 children as the
-  //     admin's own. ADR-019 closed that at the query (`useMyStudents`
-  //     filters on `parent_id`/`user_id` explicitly), so an admin who
-  //     reaches this view sees only their own children, or none.
+  //     guardian predicate, so it would have returned every student in
+  //     the school — a ChildPicker listing ~200 children as the admin's
+  //     own. ADR-019 closed that at the query (`useMyStudents` asks the
+  //     narrow question through `fn_my_family_students()` since ADR-040),
+  //     so an admin who reaches this view sees only their own children,
+  //     or none.
   //
   // What changes is that an admin whose own child is enrolled — like
   // Ustadzah Laila in the dev fixture — is no longer *fenced out* of the
   // family shape by a role label. She holds the family relationship, the
   // switch offers it, and what she gets is her own daughter and nobody
-  // else, because the query asks about `parent_id` and RLS answers the
-  // same way. Routing has not stood between an admin and the whole
+  // else, because the query asks only about her own guardian links and
+  // RLS answers the same way. Routing has not stood between an admin and the whole
   // school since ADR-019, so there is nothing left for it to protect.
   //
   // ── The heading moved into the two views ────────────────────────────

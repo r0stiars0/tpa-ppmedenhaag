@@ -862,7 +862,7 @@ try {
   // is in Kelas B, which nothing above has touched.
   check(
     'a quiet week is not summarised',
-    digest.body.recorded < Number(sql('select count(*) from public.students where parent_id is not null')),
+    digest.body.recorded < Number(sql('select count(*) from public.students')),
     JSON.stringify(digest.body),
   )
 
@@ -889,14 +889,18 @@ try {
   check(
     'each row names a child of that family and nobody else',
     sql(`select count(*) from public.notifications n
-         join public.students s on s.id = n.student_id
-         where n.user_id='${SITI.id}' and s.parent_id <> '${SITI.id}'`) === '0',
+         where n.user_id='${SITI.id}'
+           and not exists (select 1 from public.student_guardians g
+                           where g.student_id = n.student_id and g.user_id = n.user_id
+                             and g.unlinked_at is null)`) === '0',
   )
   check(
     'CROSS-FAMILY: the other parent’s rows are all about their own child',
     sql(`select count(*) from public.notifications n
-         join public.students s on s.id = n.student_id
-         where n.user_id='${RUDI.id}' and s.parent_id <> '${RUDI.id}'`) === '0',
+         where n.user_id='${RUDI.id}'
+           and not exists (select 1 from public.student_guardians g
+                           where g.student_id = n.student_id and g.user_id = n.user_id
+                             and g.unlinked_at is null)`) === '0',
   )
   check(
     'the in-app row carries the detail the lock screen may not — the jilid number',
@@ -923,12 +927,15 @@ try {
   // which asserted the bug ADR-022 fixed rather than the property worth
   // having: a tutor whose own child attends *should* have rows. The
   // invariant underneath it is about relationships and holds for every
-  // account whatever its role — every row is addressed to that child's
-  // own parent, or to that child's own 16+ login, and to nobody else.
+  // account whatever its role — every row is addressed to an active
+  // guardian of that child (ADR-040), or to that child's own 16+ login,
+  // and to nobody else.
   check(
-    'every notification row is addressed to that child’s own parent or the child themselves',
+    'every notification row is addressed to a guardian of that child or the child themselves',
     sql(`select count(*) from public.notifications n join public.students s on s.id = n.student_id
-         where n.user_id <> s.parent_id
+         where not exists (select 1 from public.student_guardians g
+                           where g.student_id = s.id and g.user_id = n.user_id
+                             and g.unlinked_at is null)
            and (s.user_id is null or n.user_id <> s.user_id)`) === '0',
   )
 

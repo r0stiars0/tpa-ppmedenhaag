@@ -78,7 +78,7 @@ Still open (non-blocking, can resolve in parallel): WhatsApp integration + budge
 - [x] Notification payload builder with the DPIA R6 content limits (child's first name + event type only), driven by the *recipient's* `users.locale`. Enforced structurally — the builder accepts no parameter that could carry a reason, grade or position — and mechanically, by a test that rejects any push string interpolating a placeholder other than `{{name}}`
 - [x] Recipient derivation shared by every sender (`netlify/functions/lib/notifyStudent.ts`) rather than written per Function. Sending one family a notification about another family's child is the worst thing this product could do, and the realistic way it happens is the fourth Function to need recipients writing its own slightly different query. One query, one mapping function, unit-tested exhaustively (including a two-family class roster) and re-confirmed live on every event. Since ADR-022 that mapping is the *only* thing deciding a recipient: the role filter that sat beside it is gone, along with `role` on the row type it read, because it could only ever subtract from a correct answer — and did, for every tutor and admin whose own child attends the TPA
 - [x] Class-scale fan-out with bounded concurrency: one assignment reaches a whole roster, so sends run in parallel up to a cap — sequentially it could run the Function into its timeout with half the class notified, and unbounded it would open a socket per family. One dead subscription never costs the rest of the class their notification (unit-tested; that failure cannot be produced on demand against a real push service)
-- [x] A second authorization shape for Functions with **no caller** (`netlify/functions/lib/webhookAuth.ts`): shared-secret channel authentication, constant-time, failing closed when unconfigured. `callerAuth.ts` does not fit a webhook or a scheduled job, and inventing a service-account JWT to make it fit would have been worse. Proving the channel does not decide recipients — `notify-absence` re-reads the row from the database and derives the parent from `students.parent_id`, never from the request
+- [x] A second authorization shape for Functions with **no caller** (`netlify/functions/lib/webhookAuth.ts`): shared-secret channel authentication, constant-time, failing closed when unconfigured. `callerAuth.ts` does not fit a webhook or a scheduled job, and inventing a service-account JWT to make it fit would have been worse. Proving the channel does not decide recipients — `notify-absence` re-reads the row from the database and derives the recipients from the child's active `student_guardians` links (ADR-040), never from the request
 - [x] `invite-user.mts` built — the project's **first real Function**, landed ahead of the 5 above and not part of the original spec (admin email-invite, see §10 and TAD's Netlify Functions table). Since TAD ADR-018 it also sends the branded role-aware invitation email
 - [~] **Transactional email (Resend)** — utility, templates and one call site built (ADR-018). `lib/email.ts` never throws and fails open; `lib/emailTemplates.ts` holds the invitation copy keyed role → locale, in the formal register PPME's own correspondence uses. Wired into `invite-user` only; the event notifications (absence, milestone, reminder, report-ready) stay push-only and get their own templates later on this same pattern. Three things kept this at `[~]` rather than done: the sending domain was not verified, the EU region was not confirmed selected, and no real email had ever been sent or seen in a client. **The domain is now verified** — `ppmedenhaag.nl` (not the `tpa.` subdomain originally assumed), confirmed by a live send from the production key landing in a real inbox (ADR-031); `FROM_ADDRESS` in `lib/email.ts` was updated to match. **The EU region is still not confirmed selected**, and remains a prerequisite before any real family is invited. The *two emails per invite* problem ADR-018(b) recorded is resolved (ADR-026): `invite-user` now sends exactly this one. The second user-creation path (`registerUser` in `src/features/admin/api.ts`, used when someone signed in before an admin registered them) is a client-side insert that cannot reach a server-side key, so it sends nothing
 - [x] `generate-year-end-drafts.mts`, `publish-report.mts`, `report-pdf.mts` built (§9) — the 2nd–4th Functions, and the 2nd–4th holders of the service-role key. Their shared authorization shape (validate the JWT with an anon-key client, then look the role up independently with the service-role client) is now factored into `netlify/functions/lib/callerAuth.ts` rather than copied per Function
@@ -178,6 +178,7 @@ Not part of the original PRD/TAD feature list or this checklist's build order �
 - [x] Email invite flow: `netlify/functions/invite-user.mts` — creates `auth.users` + `public.users` together in one admin action, via `auth.admin.createUser()` under the service-role key (ADR-026; `auth.admin.inviteUserByEmail()` until then). Verified live against the local stack: 201 with a confirmed row, 409 on re-invite, zero GoTrue mail. **Not verified from this machine**: a real Google OAuth sign-in against a `createUser`-created row — no test Google account is available here, so ADR-026(a)'s account-linking claim rests on reading GoTrue's own source rather than a click-through
 - [x] ~~Admin nav is exclusive, not additive~~ — **reversed by ADR-014.** `ADMIN_NAV_TABS` (which replaced the operational tabs) is now `ADMIN_SECTION_TABS`, a secondary pill strip *inside* `/admin/*`; admin gets the same five operational tabs as everyone else plus one "Kelola" entry point. `AdminRestricted.tsx` and its two i18n keys are deleted. `RequireAdmin.tsx` is unchanged and still guards every `/admin/*` route — including the new `/admin` index, which redirects to `/admin/registrations`
 - [x] Dev-only fixture sign-in panel (`src/dev/DevAuthSwitcher.tsx`) + `supabase/dev-fixture.sql` — lets the whole admin flow (and Milestone 1) be exercised locally without real Google OAuth. The panel now also offers the fixture's **second tutor** (Ustadz Baru, assigned to Grup B only), which the fixture always contained but the panel never listed — it is the only way to check a tutor's class scoping from the browser rather than with a hand-minted JWT, and that check got more important once admin stopped being the only role whose scope was worth re-testing
+- [x] **A student may have more than one guardian** (ADR-040, migration 021). `students.parent_id` (one adult per child) is retired for `student_guardians`, a symmetric many-to-many — every active guardian gets the full family grant, a child always has ≥1 (two triggers enforce it), and a removed link is kept with `unlinked_at` for audit rather than deleted. `StudentForm`'s single parent `<select>` becomes an add/remove guardian list; `createStudent`/`updateStudent` are replaced by one admin-only RPC `fn_admin_save_student` that writes the student row and diffs its guardian set in one transaction. `fn_my_children()` (the linchpin — 11 policies) is rewritten to read the join table; the family branch of `classes_read` / `sessions_family_read` / `assignments_family_read` is `ALTER`ed to match; `notify-*` fans out to every active guardian. Verified against a real local Postgres+RLS stack: 334 pgTAP assertions green (RLS-65…77 added — two-guardian reads, the cross-family negative re-proven, removed-link revocation, admin-only writes, the keep-one trigger), full Vitest suite green, typecheck + build green
 - [ ] No standalone "remove/deactivate a student" flow
 - [ ] No CSV export. ADR-012's objection no longer applies (admin may read this data), so what's left to settle is GDPR art. 20 scope and DPIA risk R4: an export must leave out the absence-`reason` free-text field, which can carry health data
 - [x] ~~Supabase Auth's Site URL / Redirect URLs allow-list needs to be correct on the live project for invite emails to land on the right domain~~ — moot since ADR-026: `invite-user.mts` no longer sends an invite email, so there is no `redirectTo` link for that setting to affect
@@ -593,3 +594,43 @@ blocklist: the same Google account can sign in again and returns as a
 fresh pending entry, which the confirm dialog and the user manual both
 say. Two i18n keys per locale; `tests/unit/rejectRegistration.test.ts`
 (8); openapi `/reject-registration`; test-plan E2E-19.
+
+**Post-milestone change (TAD ADR-040, migration 021):** a student may now
+have more than one parent/guardian. `students.parent_id` — one adult per
+child — is retired for `public.student_guardians`, a symmetric
+many-to-many: every active guardian gets the identical family grant
+(view, murajaah confirmation, CSV export, notifications), there is no
+"primary", and a child always keeps at least one active link. The
+invariant that `parent_id NOT NULL` gave for free is now two triggers —
+`trg_guardian_keep_one` (cannot unlink the last active guardian; an
+`ON DELETE CASCADE` from `students` is let through) and a deferred
+`trg_student_has_guardian` (a guardian-less student fails at commit). The
+change is small at the data layer because every family grant already
+flowed through `fn_my_children()` (11 policies, untouched) or one of
+three inline `parent_id = auth.uid()` sub-selects: rewriting the function
+body plus three `ALTER POLICY` plus a re-created `students_guardian_read`
+is the whole RLS delta, and `fn_my_recordable_students()` is deliberately
+left alone so ADR-024's tutor-parent rule still holds. Four new
+functions: `fn_my_family_students` / `fn_my_family_flags` (replace the
+`or=(parent_id.eq…)` PostgREST string the app used, the second keeping
+`push-subscribe` from loading child names — ADR-022(c)),
+`fn_student_guardians` (guardian names for the admin/tutor UI, since
+`users_self_read` does not show a tutor other users), and
+`fn_admin_save_student` (one admin-only RPC replacing
+`createStudent`/`updateStudent` — student row and guardian set in one
+transaction). `StudentForm`'s single parent select becomes an add/remove
+guardian list; `notify-*` fans out to every active guardian, each in
+their own locale; `report-pdf`'s parent branch checks an active
+`student_guardians` link; and `FamilyMurajaahView` shows a second
+guardian's same-day `23505` as "already confirmed today" rather than an
+error. Removing a guardian is admin-only and revokes access at the
+database immediately, with the link row retained (`unlinked_at`) for
+audit — DPIA gains R14 for the custody/separation case and re-proves R1
+for the new model. Verified against a real local Postgres+RLS stack:
+`supabase test db` 334/334 (RLS-65…77 added), full Vitest 544/544,
+`typecheck` + `typecheck:functions` + `build` green. `scripts/verify-push.mjs`
+updated for the join-table model but not re-run here (needs the live app
++ a real push service). Docs: ADR-040 in the TAD, a PRD FAQ pair,
+openapi (`student_guardians` schema + the four RPCs), DPIA R1/R6/R12/R14,
+both privacy-policy halves, the user manual (both languages), test-plan
+§3.5 + §4.5f.

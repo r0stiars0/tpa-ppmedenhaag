@@ -8,6 +8,29 @@
  * call rendered "[object Object]" in the Registrations page instead of
  * the real Postgres error).
  */
+/** Postgres SQLSTATE for a unique-constraint violation. */
+export const POSTGRES_UNIQUE_VIOLATION = '23505'
+
+/**
+ * Whether a thrown value is a Postgres unique-constraint violation
+ * (SQLSTATE 23505) — a PostgrestError carrying `code: '23505'`.
+ *
+ * Two callers rely on this being one shared definition: `offlineReplay`
+ * treats it as "this write already landed on an earlier attempt, only
+ * the response was lost" and succeeds; `FamilyMurajaahView` treats a
+ * same-day `murajaah_log` collision from a *second guardian* (ADR-040,
+ * `unique (assignment_id, date)`) as "already confirmed today" rather
+ * than an error.
+ */
+export function isUniqueViolation(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code?: unknown }).code === POSTGRES_UNIQUE_VIOLATION
+  )
+}
+
 export function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message
   if (

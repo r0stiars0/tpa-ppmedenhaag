@@ -99,8 +99,10 @@ besluitvorming, en verkopen ze nooit aan derden.
 ### 4. Kinderen en toestemming
 
 De meeste leerlingen zijn jonger dan 16 jaar. Voor hen geldt:
-- Er wordt **geen** eigen account aangemaakt; alle toegang loopt via het account van de ouder/verzorger.
-- De ouder/verzorger geeft bij inschrijving toestemming voor de verwerking van de gegevens van het kind.
+- Er wordt **geen** eigen account aangemaakt; alle toegang loopt via het account van een ouder/verzorger.
+- Een kind kan aan **meerdere** ouders/verzorgers gekoppeld zijn — bijvoorbeeld beide ouders. Zij hebben allemaal dezelfde toegang: zij zien de voortgang, ontvangen de meldingen en kunnen thuisoefening bevestigen. Er is geen "hoofd"-ouder.
+- Het koppelen en ontkoppelen van een ouder/verzorger gebeurt door een beheerder bij de inschrijving; er is geen manier voor de ene ouder om de andere zelf uit te nodigen. Wordt een ouder/verzorger ontkoppeld, dan vervalt de toegang direct. Dat de koppeling ooit heeft bestaan, blijft geregistreerd (voor controle).
+- Elke gekoppelde ouder/verzorger geeft bij de inschrijving toestemming voor de verwerking van de gegevens van het kind.
 
 Inloggen gaat uitsluitend met een Google-account. **Wij hanteren daarbij geen eigen
 leeftijdsgrens**: welke minimumleeftijd geldt voor een eigen Google-account bepaalt
@@ -305,7 +307,9 @@ keputusan otomatis, dan tidak pernah menjualnya kepada pihak ketiga.
 
 Sebagian besar santri berusia di bawah 16 tahun. Bagi mereka:
 - **Tidak** dibuatkan akun sendiri; semua akses melalui akun orang tua/wali.
-- Orang tua/wali memberikan persetujuan saat pendaftaran untuk pemrosesan data anak.
+- Seorang anak dapat ditautkan ke **lebih dari satu** orang tua/wali — misalnya kedua orang tua. Mereka semua memiliki akses yang sama: melihat perkembangan, menerima notifikasi, dan mengonfirmasi latihan di rumah. Tidak ada orang tua "utama".
+- Menautkan dan melepas tautan orang tua/wali dilakukan oleh admin saat pendaftaran; tidak ada cara bagi satu orang tua untuk mengundang yang lain sendiri. Jika tautan orang tua/wali dilepas, aksesnya langsung berakhir. Catatan bahwa tautan itu pernah ada tetap disimpan (untuk audit).
+- Setiap orang tua/wali yang ditautkan memberikan persetujuan saat pendaftaran untuk pemrosesan data anak.
 
 Santri berusia 16 tahun ke atas dapat — dengan sepengetahuan orang tua — menautkan
 akun sendiri untuk melihat data mereka sendiri, tanpa dapat mengubahnya.

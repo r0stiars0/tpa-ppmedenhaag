@@ -216,6 +216,9 @@ A: The app will support basic offline caching (Progressive Web App) with automat
 **Q: How do we handle multiple tutors for the same class?**
 A: Each tutor will have their own login (via Google OAuth 2.0) and can be assigned to one or more classes. All tutors assigned to a class can view and edit attendance and progress for that class.
 
+**Q: How do we handle two parents, or a parent and a guardian, for the same child?**
+A: A child is linked to one *or more* guardian accounts through the `student_guardians` table (TAD ADR-040). The guardians of a child form a symmetric set — every linked guardian gets the same full access (family view, Murajaah confirmation, data export, notifications), there is no "primary", and a child must always have at least one. An admin manages the links during enrolment. Removing a link revokes access at the database layer immediately; the link row is retained (marked unlinked) for audit rather than deleted.
+
 **Q: How is student data protected?**
 A: The platform is fully GDPR-compliant. Student data (names, progress) is encrypted at rest and in transit (TLS 1.3). Data is stored on EU-based servers. Only assigned tutors and parents/carers can access their respective data via role-based access control. No data is shared externally or transferred outside the EU.
 
@@ -231,7 +234,10 @@ A: The app is hosted on Netlify (EU region), which offers generous free tiers fo
 A: No app store installation required. The TPA Progress Tracker is a Progressive Web App (PWA) hosted on Netlify — accessible via any modern browser. You can optionally "Add to Home Screen" for an app-like experience.
 
 **Q: Can I track multiple children?**
-A: Yes. A parent account can be linked to multiple student profiles if they have more than one child enrolled in the PPME TPA program.
+A: Yes. A parent account can be linked to multiple student profiles if they have more than one child enrolled in the PPME TPA program. The relationship also works the other way: a single child can have more than one guardian linked to them (see the next question).
+
+**Q: Can both parents — or a parent and a guardian — follow the same child?**
+A: Yes. A child can have any number of guardians, and they are equal: each linked guardian sees the full family view for that child, can confirm home Murajaah practice, can export the child's data, and receives every notification about the child in their own language. There is no "primary" guardian. A child always has at least one. Guardians are added and removed by a TPA admin as part of enrolment — there is no self-service way for one parent to invite another. When a guardian is removed they immediately lose access, and the record that they once had it is kept for audit (TAD ADR-040).
 
 **Q: What languages are supported?**
 A: The app will support Bahasa Indonesia as the primary language with Dutch as a secondary language option. Islamic/Arabic terminology is preserved where appropriate (e.g., Murajaah, Yanbu'a, Surah, Ayah).

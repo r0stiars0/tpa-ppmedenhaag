@@ -58,30 +58,22 @@ paths:
       tags: [students]
       summary: List students visible to the caller
       description: |
-        RLS: Parent sees own children only; Tutor sees students in assigned classes;
-        Student (16+ self-login) sees only their own record; Admin sees all.
+        RLS: a guardian sees the children they hold an active `student_guardians`
+        link to; Tutor sees students in assigned classes; Student (16+ self-login)
+        sees only their own record; Admin sees all.
 
         Those are four separate permissive policies and Postgres ORs them, so an
         **unfiltered** call returns the union of every one that applies to the
         caller — for a person who is both a tutor and a parent that is their whole
         class alongside their own child, and for an admin it is the entire TPA.
-        A client that means "my children" must say so: filter
-        `or=(parent_id.eq.{uuid},user_id.eq.{uuid})`, keeping `user_id` in it
-        because a 16+ self-login student has no `parent_id` row of their own.
-        See TAD ADR-019.
+        A client that means "my children" calls **`POST /rpc/fn_my_family_students`**
+        instead (TAD ADR-040): a `security definer` function that returns the
+        caller's children plus their own 16+ record, each row flagged
+        `is_guardian` / `is_self`. It replaced the former
+        `or=(parent_id.eq.{uuid},user_id.eq.{uuid})` filter — `students.parent_id`
+        no longer exists. See TAD ADR-019, ADR-040.
       parameters:
         - $ref: '#/components/parameters/select'
-        - name: or
-          in: query
-          schema: { type: string }
-          description: >-
-            PostgREST disjunction, e.g. `(parent_id.eq.{uuid},user_id.eq.{uuid})`
-            for "the students I am family to". Note this is a filter *expression*,
-            not a bound parameter — never interpolate anything a user typed.
-        - name: parent_id
-          in: query
-          schema: { type: string }
-          description: 'PostgREST filter, e.g. `eq.{uuid}`'
         - name: class_id
           in: query
           schema: { type: string }
@@ -499,6 +491,174 @@ paths:
         '204': { description: Updated }
         '403': { $ref: '#/components/responses/ForbiddenRLS' }
 
+  /rpc/fn_my_family_students:
+    post:
+      tags: [students]
+      summary: The caller's own children (and their own 16+ record)
+      description: |
+        Added in migration 021 (TAD ADR-040). `security definer`. Returns one
+        row per student the caller is an **active** `student_guardians`
+        guardian of, plus their own row if `students.user_id = auth.uid()`.
+        Each row carries `is_guardian` and `is_self` so the app can tell the
+        two links apart. Replaces the former
+        `GET /students?or=(parent_id.eq…,user_id.eq…)` filter — there is no
+        user-influenced value spliced into a filter expression any more.
+      requestBody:
+        required: false
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '200':
+          description: The caller's family students
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string, format: uuid }
+                    full_name: { type: string }
+                    user_id: { type: string, format: uuid, nullable: true }
+                    is_guardian: { type: boolean }
+                    is_self: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /rpc/fn_my_family_flags:
+    post:
+      tags: [students]
+      summary: Whether the caller is a guardian / a 16+ self-login student
+      description: |
+        Added in migration 021 (TAD ADR-040). `security definer`. Returns a
+        single row `{ is_parent, is_self }` — the same two booleans
+        `fn_my_family_students` computes, but without loading any child's name.
+        This is the data-minimising query `/.netlify/functions/push-subscribe`
+        and the notification settings screen use to decide whether an account
+        may receive notifications (TAD ADR-022(c)).
+      requestBody:
+        required: false
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '200':
+          description: One row of two booleans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    is_parent: { type: boolean }
+                    is_self: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /rpc/fn_student_guardians:
+    post:
+      tags: [students]
+      summary: A student's active guardians, with names (tutor of the class, or admin)
+      description: |
+        Added in migration 021 (TAD ADR-040). `security definer`, with the
+        caller check folded into its `WHERE` (the `fn_pending_registrations`
+        pattern): returns the active guardians of `p_student` — `user_id`,
+        `full_name`, `email`, `relation` — to an admin or to a tutor of that
+        student's class, and an **empty array** to anyone else rather than a
+        403. `users_self_read` does not expose other users' rows to a tutor,
+        which is why the admin/tutor enrolment UI reads guardian names through
+        this function.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_student]
+              properties:
+                p_student: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The student's active guardians (empty for a non-entitled caller)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    user_id: { type: string, format: uuid }
+                    full_name: { type: string }
+                    email: { type: string }
+                    relation: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /rpc/fn_admin_save_student:
+    post:
+      tags: [admin]
+      summary: Create or update a student and its guardian set in one transaction (Admin only)
+      description: |
+        Added in migration 021 (TAD ADR-040). `security definer`; raises
+        `42501` for a non-admin caller and `23514` for an empty `p_guardians`.
+        `p_id` null → insert, non-null → update. Writes the `students` row and
+        diffs the guardian set — inserting wanted links, setting `unlinked_at`
+        on removed ones (never deleting, so the audit trail survives) — in a
+        single transaction, so a student can never momentarily exist with no
+        guardian. Replaces the client-side `createStudent` / `updateStudent`
+        pair. Returns the student id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_full_name, p_dob, p_guardians]
+              properties:
+                p_full_name: { type: string }
+                p_dob: { type: string, format: date }
+                p_guardians:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [user_id]
+                    properties:
+                      user_id: { type: string, format: uuid }
+                      relation: { type: string, nullable: true }
+                p_id: { type: string, format: uuid, nullable: true }
+                p_class_id: { type: string, format: uuid, nullable: true }
+                p_user_id: { type: string, format: uuid, nullable: true }
+      responses:
+        '200':
+          description: The saved student's id
+          content:
+            application/json:
+              schema: { type: string, format: uuid }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ForbiddenRLS' }
+
+  /student_guardians:
+    get:
+      tags: [students, admin]
+      summary: Guardian links visible to the caller
+      description: |
+        Added in migration 021 (TAD ADR-040). RLS: a guardian reads their own
+        **active** links; a tutor reads the active links of students in their
+        classes; an admin reads all, including `unlinked_at` rows. Writes are
+        admin-only and go through `POST /rpc/fn_admin_save_student`, not this
+        path.
+      parameters:
+        - $ref: '#/components/parameters/select'
+        - name: student_id
+          in: query
+          schema: { type: string }
+          description: 'PostgREST filter, e.g. `eq.{uuid}`'
+      responses:
+        '200':
+          description: Filtered list of guardian links
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/StudentGuardian' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
   /rpc/fn_pending_registrations:
     post:
       tags: [admin]
@@ -780,15 +940,16 @@ paths:
 
         **Only `record.id` is read.** The Function re-reads the attendance row
         from the database rather than trusting the posted body, and derives the
-        recipient from `students.parent_id` — nothing about who receives a
-        notification comes from the request. The trigger therefore sends only
-        the id, which also keeps the absence `reason` (potential health data,
-        DPIA R4/R6) inside Postgres entirely.
+        recipients from the child's active `student_guardians` links (TAD
+        ADR-040) — nothing about who receives a notification comes from the
+        request. The trigger therefore sends only the id, which also keeps the
+        absence `reason` (potential health data, DPIA R4/R6) inside Postgres
+        entirely.
 
-        Sends at most one push, to the child's parent, in that parent's own
-        `users.locale`, containing the child's first name and the event type
-        only. If the push service reports the endpoint gone (404/410),
-        `users.push_sub` is cleared and the response is a 200 no-op.
+        Sends one push per active guardian of the child, each in that guardian's
+        own `users.locale`, containing the child's first name and the event type
+        only. If the push service reports an endpoint gone (404/410), that
+        `users.push_sub` is cleared; the response is a 200 no-op.
       security: []
       requestBody:
         required: true
@@ -844,9 +1005,9 @@ paths:
           so the celebration follows a tutor's judgement rather than inferring
           one.
 
-        Recipient is the child's parent, derived from `students.parent_id`.
-        Neither the jilid number nor the surah name is in the payload (DPIA
-        R6) — the builder cannot carry them.
+        Recipients are the child's active guardians, derived from
+        `student_guardians` (TAD ADR-040). Neither the jilid number nor the
+        surah name is in the payload (DPIA R6) — the builder cannot carry them.
       security: []
       requestBody:
         required: true
@@ -1191,11 +1352,12 @@ paths:
         dropped. Rate-limited per caller (checklist §6; see TAD ADR-015 for
         the limiter's honest scope).
 
-        **403 when no student row points at the caller.** A notification is
-        always about a child, so a subscription is stored only for an account
-        that some child's row names — their `students.parent_id`, or their own
-        `students.user_id` for a 16+ santri. A push endpoint is personal data
-        and is not collected for an account nothing would ever send to.
+        **403 when nothing about a child points at the caller.** A notification
+        is always about a child, so a subscription is stored only for an account
+        that holds an active `student_guardians` link (TAD ADR-040), or is a
+        child's own `students.user_id` for a 16+ santri. The check is
+        `fn_my_family_flags()`. A push endpoint is personal data and is not
+        collected for an account nothing would ever send to.
 
         This is a **relationship, not a role** (ADR-022). A tutor or an admin
         whose own child attends the TPA is accepted and is notified about that
@@ -1562,7 +1724,6 @@ components:
       type: object
       properties:
         id: { type: string, format: uuid }
-        parent_id: { type: string, format: uuid, description: FK → users.id (always set) }
         user_id:
           type: string
           format: uuid
@@ -1576,6 +1737,34 @@ components:
         current_surah: { type: integer, minimum: 1, maximum: 114 }
         current_ayah: { type: integer, minimum: 1 }
         created_at: { type: string, format: date-time }
+      description: >-
+        `parent_id` was removed in migration 021 (TAD ADR-040). A child's
+        guardians live in `student_guardians` — see that schema — and a child
+        may have more than one.
+
+    StudentGuardian:
+      type: object
+      description: >-
+        A link between a child and a guardian account (migration 021, ADR-040).
+        Symmetric — no "primary". A child always has ≥1 row with
+        `unlinked_at IS NULL` (enforced by trigger). A removed link keeps its
+        row with `unlinked_at` set, for audit. RLS: a guardian reads their own
+        active links; a tutor reads the active links of students in their
+        classes; writes are admin-only.
+      properties:
+        id: { type: string, format: uuid }
+        student_id: { type: string, format: uuid, description: FK → students.id }
+        user_id: { type: string, format: uuid, description: FK → users.id }
+        relation:
+          type: string
+          nullable: true
+          description: Free-text label ("moeder", "vader", "voogd"); shown in the admin UI, read by no policy
+        created_at: { type: string, format: date-time }
+        unlinked_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: NULL while active; set when an admin removes the link
 
     RegistrationRequest:
       type: object

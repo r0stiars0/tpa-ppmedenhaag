@@ -9,7 +9,7 @@ import {
 } from '../../src/lib/capabilities'
 
 /**
- * The recipient rule, on its own (TAD ADR-022).
+ * The recipient rule, on its own (TAD ADR-022, carried forward by ADR-040).
  *
  * It used to be `role in ('parent','student')`, and the cases below are
  * mostly the accounts that answer differently now: a tutor whose own
@@ -18,22 +18,32 @@ import {
  * covers the other half of the same decision — who a *given child's*
  * notification is addressed to — because the two are enforced in
  * different places on purpose.
+ *
+ * Since ADR-040 a "parent" is anyone holding an active `student_guardians`
+ * link, which `fn_my_family_students()` reports as `is_guardian` per row;
+ * `is_self` is the 16+ self-login. The predicate is unchanged.
  */
 const TUTOR_PARENT = '11111111-1111-4111-8111-111111111111'
 const ADMIN_PARENT = '22222222-2222-4222-8222-222222222222'
 const STUDENT16 = '33333333-3333-4333-8333-333333333333'
 const TUTOR_ONLY = '44444444-4444-4444-8444-444444444444'
-const OTHER_PARENT = '55555555-5555-4555-8555-555555555555'
 
 function link(over: Partial<FamilyLink> = {}): FamilyLink {
   return {
     id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     full_name: 'Anak',
-    parent_id: OTHER_PARENT,
     user_id: null,
+    is_guardian: false,
+    is_self: false,
     ...over,
   }
 }
+
+/** A child the caller is an active guardian of. */
+const guardianLink = (over: Partial<FamilyLink> = {}) => link({ is_guardian: true, ...over })
+/** The caller's own 16+ self-login record. */
+const selfLink = (over: Partial<FamilyLink> = {}) =>
+  link({ is_self: true, user_id: STUDENT16, ...over })
 
 describe('canReceiveNotifications — a relationship, not a role', () => {
   it('says yes to the parent of a child', () => {
@@ -57,7 +67,7 @@ describe('canReceiveNotifications — a relationship, not a role', () => {
     const tutorParent = deriveCapabilities({
       userId: TUTOR_PARENT,
       role: 'tutor',
-      familyLinks: [link({ parent_id: TUTOR_PARENT })],
+      familyLinks: [guardianLink()],
       tutorClassCount: 3,
     })
     expect(canReceiveNotifications(tutorParent)).toBe(true)
@@ -66,15 +76,14 @@ describe('canReceiveNotifications — a relationship, not a role', () => {
 })
 
 describe('who that makes a recipient, by the relationships they hold', () => {
-  const yes = (userId: string, links: FamilyLink[]) =>
-    canReceiveNotifications(familyRelationships(userId, links))
+  const yes = (links: FamilyLink[]) => canReceiveNotifications(familyRelationships(links))
 
   it('A TUTOR WHOSE OWN CHILD ATTENDS is a recipient', () => {
-    // The bug. `users.role` says tutor; their own child's row names them
-    // as `parent_id`. Under the old rule this account could not even
+    // The bug. `users.role` says tutor; they hold an active guardian link
+    // to their own child. Under the old rule this account could not even
     // store a push subscription, so nothing about their own child could
     // ever reach them — silently.
-    expect(yes(TUTOR_PARENT, [link({ parent_id: TUTOR_PARENT })])).toBe(true)
+    expect(yes([guardianLink()])).toBe(true)
   })
 
   it('AN ADMIN WHOSE OWN CHILD ATTENDS is a recipient', () => {
@@ -83,47 +92,43 @@ describe('who that makes a recipient, by the relationships they hold', () => {
     // own child was absent — and it grants nothing about anyone else's,
     // because `notifications_own_read` is `user_id = auth.uid()`
     // (ADR-017(d), pgTAP NC-09/NC-12).
-    expect(yes(ADMIN_PARENT, [link({ parent_id: ADMIN_PARENT })])).toBe(true)
+    expect(yes([guardianLink()])).toBe(true)
   })
 
   it('A TUTOR WITH NO CHILD OF THEIR OWN is not', () => {
     // The half of ADR-015(a) that survives: a tutor of a class of
-    // twenty-five is named on none of those rows, so there is nothing to
-    // send them and no reason to store a push endpoint for them.
-    // Teaching does not appear in this derivation at all.
-    expect(yes(TUTOR_ONLY, [])).toBe(false)
+    // twenty-five holds an active guardian link to none of those rows,
+    // so there is nothing to send them and no reason to store a push
+    // endpoint for them. Teaching does not appear in this derivation.
+    expect(yes([])).toBe(false)
     // …not even when the children they teach are in the rows they can
-    // read. Their id is in neither link column of any of them.
-    expect(yes(TUTOR_ONLY, [link(), link({ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' })])).toBe(
-      false,
-    )
+    // read: `is_guardian` is false on every one of them.
+    expect(yes([link(), link({ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' })])).toBe(false)
   })
 
   it('a 16+ santri is a recipient through their own record, not their parent’s', () => {
-    // Their row's `parent_id` is their actual parent. Reading "I appear
-    // in a students row" as parenthood would make every 16+ account a
-    // parent of themselves.
-    const own = link({ parent_id: OTHER_PARENT, user_id: STUDENT16 })
-    expect(familyRelationships(STUDENT16, [own])).toEqual({
+    // Their own row carries `is_self` and not `is_guardian`. Reading
+    // "I appear in a students row" as parenthood would make every 16+
+    // account a parent of themselves.
+    expect(familyRelationships([selfLink()])).toEqual({
       isParentOfAnyone: false,
       isSelfStudent: true,
     })
-    expect(yes(STUDENT16, [own])).toBe(true)
+    expect(yes([selfLink()])).toBe(true)
   })
 
   it('a student assistant is a recipient for their own record only', () => {
     // ADR-020: a 16+ santri who also teaches a class. The tutor half
     // gives them nothing here, exactly as it gives a tutor nothing.
-    const own = link({ parent_id: OTHER_PARENT, user_id: STUDENT16 })
-    expect(yes(STUDENT16, [own])).toBe(true)
-    expect(familyRelationships(STUDENT16, [own]).isParentOfAnyone).toBe(false)
+    expect(yes([selfLink()])).toBe(true)
+    expect(familyRelationships([selfLink()]).isParentOfAnyone).toBe(false)
   })
 
   it('an account with no student row at all is not a recipient', () => {
     // A newly invited tutor or admin, and the state every account passes
     // through between `invite-user` and enrolment. pgTAP NC-18 is the
     // same account at the database: rows exist, and it reads none.
-    expect(yes(TUTOR_ONLY, [])).toBe(false)
+    expect(yes([])).toBe(false)
   })
 
   it('holds both relationships at once without either standing in for the other', () => {
@@ -131,28 +136,28 @@ describe('who that makes a recipient, by the relationships they hold', () => {
     // both-true state is the one that can never be reached by a test that
     // sets them one at a time — `isParentOfAnyone` alone already
     // short-circuits it. A santri old enough for their own login whose
-    // younger sibling is enrolled under their name is the shape; it is
-    // rare, and it is the cell an exhaustive sweep exists to cover.
-    const own = link({ parent_id: OTHER_PARENT, user_id: STUDENT16 })
-    const sibling = link({ id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', parent_id: STUDENT16 })
-    expect(familyRelationships(STUDENT16, [own, sibling])).toEqual({
+    // younger sibling is enrolled, and who is also that sibling's
+    // guardian, is the shape; rare, and the cell a sweep exists to cover.
+    const own = selfLink()
+    const sibling = guardianLink({ id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' })
+    expect(familyRelationships([own, sibling])).toEqual({
       isParentOfAnyone: true,
       isSelfStudent: true,
     })
-    expect(yes(STUDENT16, [own, sibling])).toBe(true)
+    expect(yes([own, sibling])).toBe(true)
   })
 
   it('answers the same for the same relationships however many rows carry them', () => {
     // The overlap case (pgTAP RLS-36) reaches one student row by two
-    // grants, and a parent of three children reaches three rows by one.
+    // grants, and a guardian of three children reaches three rows by one.
     // Neither is a different answer: the predicate is over relationships,
     // and `some` is not a count.
     const three = [
-      link({ parent_id: TUTOR_PARENT }),
-      link({ id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', parent_id: TUTOR_PARENT }),
-      link({ id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', parent_id: TUTOR_PARENT }),
+      guardianLink(),
+      guardianLink({ id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' }),
+      guardianLink({ id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' }),
     ]
-    expect(familyRelationships(TUTOR_PARENT, three)).toEqual({
+    expect(familyRelationships(three)).toEqual({
       isParentOfAnyone: true,
       isSelfStudent: false,
     })
@@ -186,12 +191,6 @@ describe('every state of the recipient predicate', () => {
   )
 
   it('consults nothing but those two fields', () => {
-    // The predicate is deliberately dependency-free so the browser bundle
-    // and `netlify/functions/` can share one copy. This asserts the other
-    // half of that: extra fields on the value — a `Capabilities` carries
-    // two more — cannot change the answer, so the settings screen and
-    // `push-subscribe` cannot reach different conclusions about one
-    // account.
     const relationships = { isParentOfAnyone: false, isSelfStudent: false }
     const withTutorAndAdmin = { ...relationships, isTutorOfAnyClass: true, isAdmin: true }
     expect(canReceiveNotifications(withTutorAndAdmin)).toBe(false)
@@ -200,44 +199,39 @@ describe('every state of the recipient predicate', () => {
 })
 
 describe('fetchFamilyRelationships — the query push-subscribe asks', () => {
-  function fakeClient(rows: Pick<FamilyLink, 'parent_id' | 'user_id'>[], error: unknown = null) {
-    const calls: { table?: string; select?: string; or?: string } = {}
-    const builder = {
-      select(columns: string) {
-        calls.select = columns
-        return this
-      },
-      or(filter: string) {
-        calls.or = filter
-        return Promise.resolve({ data: rows, error })
-      },
-    }
+  function fakeClient(row: { is_parent: boolean; is_self: boolean } | null, error: unknown = null) {
+    const calls: { rpc?: string } = {}
     const client = {
-      from(table: string) {
-        calls.table = table
-        return builder
+      rpc(fn: string) {
+        calls.rpc = fn
+        return Promise.resolve({ data: row ? [row] : [], error })
       },
     } as unknown as Parameters<typeof fetchFamilyRelationships>[0]
     return { client, calls }
   }
 
-  it('asks students for both link columns and nothing else', () => {
+  it('asks the flags RPC, which loads no child names', () => {
     // Data minimisation on what a Function loads, not only on what it
     // sends: deciding whether to store a push endpoint does not require
-    // reading a list of children's names.
-    const { client, calls } = fakeClient([])
+    // reading a list of children's names (ADR-022(c), ADR-040(e)).
+    const { client, calls } = fakeClient(null)
     return fetchFamilyRelationships(client, TUTOR_PARENT).then(() => {
-      expect(calls.table).toBe('students')
-      expect(calls.select).toBe('parent_id, user_id')
-      expect(calls.or).toBe(`parent_id.eq.${TUTOR_PARENT},user_id.eq.${TUTOR_PARENT}`)
+      expect(calls.rpc).toBe('fn_my_family_flags')
     })
   })
 
   it('derives the same two booleans the screens derive', () => {
-    const { client } = fakeClient([{ parent_id: TUTOR_PARENT, user_id: null }])
+    const { client } = fakeClient({ is_parent: true, is_self: false })
     return fetchFamilyRelationships(client, TUTOR_PARENT).then((who) => {
       expect(who).toEqual({ isParentOfAnyone: true, isSelfStudent: false })
       expect(canReceiveNotifications(who)).toBe(true)
+    })
+  })
+
+  it('reads an empty result as "not a recipient", not as an error', () => {
+    const { client } = fakeClient(null)
+    return fetchFamilyRelationships(client, TUTOR_ONLY).then((who) => {
+      expect(who).toEqual({ isParentOfAnyone: false, isSelfStudent: false })
     })
   })
 
@@ -245,7 +239,7 @@ describe('fetchFamilyRelationships — the query push-subscribe asks', () => {
     // The whole failure mode this ADR is about is silent non-delivery.
     // A swallowed error here would 403 a real parent's subscribe and
     // look exactly like the rule working.
-    const { client } = fakeClient([], { message: 'connection reset' })
+    const { client } = fakeClient(null, { message: 'connection reset' })
     return expect(fetchFamilyRelationships(client, TUTOR_PARENT)).rejects.toEqual({
       message: 'connection reset',
     })

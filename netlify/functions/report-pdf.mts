@@ -60,7 +60,7 @@ export default async (req: Request) => {
 
   const { data: student, error: studentError } = await admin
     .from('students')
-    .select('id, parent_id, user_id, class_id')
+    .select('id, user_id, class_id')
     .eq('id', report.student_id)
     .maybeSingle()
   if (studentError) return jsonError(studentError.message, 500)
@@ -68,7 +68,7 @@ export default async (req: Request) => {
 
   const allowed = await isReportAuthorized(admin, caller, {
     status: report.status,
-    parent_id: student.parent_id,
+    student_id: report.student_id,
     user_id: student.user_id,
     class_id: student.class_id,
   })

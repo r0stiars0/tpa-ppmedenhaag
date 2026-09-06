@@ -152,14 +152,24 @@ export async function updateClass(
   return data
 }
 
+/** One active guardian of a student, for the admin enrolment screens. */
+export interface AdminStudentGuardian {
+  user_id: string
+  full_name: string
+  email: string
+  relation: string | null
+}
+
 export interface AdminStudent {
   id: string
   full_name: string
   date_of_birth: string
   class_id: string | null
   class: { name: string } | null
-  parent_id: string
-  parent: { full_name: string } | null
+  // Every *active* guardian of this child (ADR-040). >=1, symmetric —
+  // no "primary". The list line shows their names; the edit form seeds
+  // its guardian editor from this.
+  guardians: AdminStudentGuardian[]
   user_id: string | null
   // The linked self-login account's own name/email, joined so the
   // "link self-login" picker can show it as a selected option when
@@ -170,17 +180,37 @@ export interface AdminStudent {
   user: { full_name: string; email: string } | null
 }
 
+interface RawGuardianEmbed {
+  user_id: string
+  relation: string | null
+  unlinked_at: string | null
+  guardian: { full_name: string; email: string } | null
+}
+
 export async function fetchAllStudents(): Promise<AdminStudent[]> {
   const { data, error } = await supabase
     .from('students')
     .select(
-      'id, full_name, date_of_birth, class_id, parent_id, user_id, ' +
-        'class:classes(name), parent:users!students_parent_id_fkey(full_name), ' +
-        'user:users!students_user_id_fkey(full_name, email)',
+      'id, full_name, date_of_birth, class_id, user_id, ' +
+        'class:classes(name), ' +
+        'user:users!students_user_id_fkey(full_name, email), ' +
+        'guardians:student_guardians(user_id, relation, unlinked_at, guardian:users(full_name, email))',
     )
     .order('full_name')
   if (error) throw error
-  return (data ?? []) as unknown as AdminStudent[]
+  return ((data ?? []) as unknown as (Omit<AdminStudent, 'guardians'> & {
+    guardians: RawGuardianEmbed[]
+  })[]).map((row) => ({
+    ...row,
+    guardians: (row.guardians ?? [])
+      .filter((g) => g.unlinked_at === null)
+      .map((g) => ({
+        user_id: g.user_id,
+        full_name: g.guardian?.full_name ?? '',
+        email: g.guardian?.email ?? '',
+        relation: g.relation,
+      })),
+  }))
 }
 
 /** role=student users not yet linked as any student's 16+ self-login account. */
@@ -195,27 +225,40 @@ export async function fetchUnlinkedStudentAccounts(): Promise<DirectoryUser[]> {
   return (studentUsers ?? []).filter((u) => !linkedIds.has(u.id))
 }
 
-export async function createStudent(row: TablesInsert<'students'>): Promise<void> {
-  const { error } = await supabase.from('students').insert(row)
-  if (error) throw error
+export interface SaveStudentInput {
+  /** Omit / null to create; set to update. */
+  id?: string | null
+  full_name: string
+  date_of_birth: string
+  class_id: string | null
+  /** 16+ self-login account, or null. */
+  user_id: string | null
+  /** The wanted set of guardians — at least one (ADR-040). */
+  guardians: { user_id: string; relation: string | null }[]
 }
 
 /**
- * The only way to link a self-login account to a student *after*
- * enrollment — a santri who turns 16 (or simply creates a Google
- * account) mid-year, months after their record was created without one.
- * `createStudent` only ever sets `user_id` at the moment a student is
- * first added, which left this case with no admin path at all even
- * though `students_admin_all` (migration 003) already permits the
- * update: the gap was this function's absence, not RLS.
+ * Create or update a student *and* its guardian set in one transaction,
+ * through the admin-only `fn_admin_save_student` RPC (ADR-040(g)).
+ *
+ * One call rather than an `insert`/`update` on `students` plus separate
+ * writes to `student_guardians`, because those would be separate
+ * transactions: a student could momentarily exist with no guardian, and
+ * the deferred `trg_student_has_guardian` constraint could not catch it
+ * across two HTTP requests. The RPC diffs the guardian set — adding
+ * wanted links, setting `unlinked_at` on removed ones (never deleting,
+ * so the audit trail survives, D7) — so this replaces the old
+ * `createStudent` and `updateStudent` both.
  */
-export async function updateStudent(
-  id: string,
-  patch: Pick<
-    TablesInsert<'students'>,
-    'full_name' | 'date_of_birth' | 'class_id' | 'parent_id' | 'user_id'
-  >,
-): Promise<void> {
-  const { error } = await supabase.from('students').update(patch).eq('id', id)
+export async function saveStudent(input: SaveStudentInput): Promise<string> {
+  const { data, error } = await supabase.rpc('fn_admin_save_student', {
+    p_full_name: input.full_name,
+    p_dob: input.date_of_birth,
+    p_guardians: input.guardians.map((g) => ({ user_id: g.user_id, relation: g.relation })),
+    p_id: input.id ?? undefined,
+    p_class_id: input.class_id ?? undefined,
+    p_user_id: input.user_id ?? undefined,
+  })
   if (error) throw error
+  return data as string
 }

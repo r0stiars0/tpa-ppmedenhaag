@@ -94,7 +94,7 @@ describe('resolveScope — the sixteen capability combinations against all four 
   })
 
   it('offers the family scope on either family relationship, and nothing else', () => {
-    // Both halves matter: a 16+ santri has no `parent_id` row of their
+    // Both halves matter: a 16+ santri holds no guardian link of their
     // own, so a parent-only reading would leave them with no scope at
     // all and hand them the class shape by the role fallback.
     expect(hasFamilyScope(caps({ isParentOfAnyone: true }))).toBe(true)

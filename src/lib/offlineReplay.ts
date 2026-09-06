@@ -5,17 +5,7 @@ import { confirmPractice } from '../features/murajaah/api'
 import { insertYanbuaProgress } from '../features/yanbua/api'
 import { insertQuranProgress } from '../features/quran/api'
 import type { TablesInsert } from './database.types'
-
-const POSTGRES_UNIQUE_VIOLATION = '23505'
-
-function isUniqueViolation(err: unknown): boolean {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'code' in err &&
-    (err as { code?: unknown }).code === POSTGRES_UNIQUE_VIOLATION
-  )
-}
+import { isUniqueViolation } from './errors'
 
 async function replayEntry(entry: QueueEntry): Promise<void> {
   if (entry.kind === 'attendance') {

@@ -67,7 +67,11 @@ values
   ('90000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'p1@test.local',      '', now(), '{}', '{}', false, false, now(), now()),
   ('90000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'p2@test.local',      '', now(), '{}', '{}', false, false, now(), now()),
   ('90000000-0000-0000-0000-000000000003', 'authenticated', 'authenticated', 'p3@test.local',      '', now(), '{}', '{}', false, false, now(), now()),
-  ('50000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 's16@test.local',     '', now(), '{}', '{}', false, false, now(), now());
+  ('50000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 's16@test.local',     '', now(), '{}', '{}', false, false, now(), now()),
+  -- G2: a second active guardian of P1's Child A (the two-guardian case,
+  -- ADR-040). GX: a *removed* guardian of P1's Child B (audit retention).
+  ('92000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'g2@test.local',      '', now(), '{}', '{}', false, false, now(), now()),
+  ('92000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'gx@test.local',      '', now(), '{}', '{}', false, false, now(), now());
 
 -- public.users profiles
 insert into public.users (id, email, full_name, role, locale)
@@ -78,7 +82,9 @@ values
   ('90000000-0000-0000-0000-000000000001', 'p1@test.local',    'Parent One',   'parent',  'id'),
   ('90000000-0000-0000-0000-000000000002', 'p2@test.local',    'Parent Two',   'parent',  'id'),
   ('90000000-0000-0000-0000-000000000003', 'p3@test.local',    'Parent Three', 'parent',  'id'),
-  ('50000000-0000-0000-0000-000000000001', 's16@test.local',   'Santri 16',    'student', 'id');
+  ('50000000-0000-0000-0000-000000000001', 's16@test.local',   'Santri 16',    'student', 'id'),
+  ('92000000-0000-0000-0000-000000000001', 'g2@test.local',    'Guardian Two', 'parent',  'id'),
+  ('92000000-0000-0000-0000-000000000002', 'gx@test.local',    'Guardian X',   'parent',  'id');
 
 -- classes
 -- `meeting_days` (migration 019): the seven-day set, so every session
@@ -93,12 +99,30 @@ values
   ('c0000000-0000-0000-0000-0000000000cc', 'Class MD (meeting-day test)', 'Sabtu', '{6}', array['70000000-0000-0000-0000-000000000001']::uuid[]);
 
 -- students: P1 has 2 in Class A; P2 has 1 in Class B; P3 has 1 (16+, S16) in Class B
-insert into public.students (id, parent_id, user_id, full_name, class_id, date_of_birth)
+-- `students.parent_id` retired in migration 021 (ADR-040) — guardians below.
+insert into public.students (id, user_id, full_name, class_id, date_of_birth)
 values
-  ('d0000000-0000-0000-0000-000000000001', '90000000-0000-0000-0000-000000000001', null, 'P1 Child A', 'c0000000-0000-0000-0000-00000000000a', '2015-01-01'),
-  ('d0000000-0000-0000-0000-000000000002', '90000000-0000-0000-0000-000000000001', null, 'P1 Child B', 'c0000000-0000-0000-0000-00000000000a', '2016-01-01'),
-  ('d0000000-0000-0000-0000-000000000003', '90000000-0000-0000-0000-000000000002', null, 'P2 Child',   'c0000000-0000-0000-0000-00000000000b', '2014-01-01'),
-  ('d0000000-0000-0000-0000-000000000004', '90000000-0000-0000-0000-000000000003', '50000000-0000-0000-0000-000000000001', 'P3 Child (S16)', 'c0000000-0000-0000-0000-00000000000b', '2009-01-01');
+  ('d0000000-0000-0000-0000-000000000001', null, 'P1 Child A', 'c0000000-0000-0000-0000-00000000000a', '2015-01-01'),
+  ('d0000000-0000-0000-0000-000000000002', null, 'P1 Child B', 'c0000000-0000-0000-0000-00000000000a', '2016-01-01'),
+  ('d0000000-0000-0000-0000-000000000003', null, 'P2 Child',   'c0000000-0000-0000-0000-00000000000b', '2014-01-01'),
+  ('d0000000-0000-0000-0000-000000000004', '50000000-0000-0000-0000-000000000001', 'P3 Child (S16)', 'c0000000-0000-0000-0000-00000000000b', '2009-01-01');
+
+-- student_guardians (migration 021, ADR-040). One active link per child,
+-- mirroring the former parent_id, PLUS:
+--   • Child A (d…001) has a SECOND active guardian, G2 — the two-parent
+--     case. P1 still sees exactly {Child A, Child B}, so RLS-01 is
+--     unchanged; G2 sees exactly {Child A} and nothing of any other
+--     family (RLS-66/67).
+--   • Child B (d…002) has a REMOVED guardian, GX (`unlinked_at` set).
+--     The row is retained for audit (D7); it grants GX nothing (RLS-68).
+insert into public.student_guardians (student_id, user_id, unlinked_at)
+values
+  ('d0000000-0000-0000-0000-000000000001', '90000000-0000-0000-0000-000000000001', null),
+  ('d0000000-0000-0000-0000-000000000001', '92000000-0000-0000-0000-000000000001', null),
+  ('d0000000-0000-0000-0000-000000000002', '90000000-0000-0000-0000-000000000001', null),
+  ('d0000000-0000-0000-0000-000000000002', '92000000-0000-0000-0000-000000000002', now() - interval '10 days'),
+  ('d0000000-0000-0000-0000-000000000003', '90000000-0000-0000-0000-000000000002', null),
+  ('d0000000-0000-0000-0000-000000000004', '90000000-0000-0000-0000-000000000003', null);
 
 -- sessions
 insert into public.sessions (id, class_id, date, tutor_id)
@@ -331,8 +355,8 @@ drop table _rls_check;
 --         (enrollment is admin-only)
 -- ============================================================
 insert into _tap_log(line) select throws_ok(
-  $$ insert into public.students (parent_id, full_name, class_id, date_of_birth)
-     values ('90000000-0000-0000-0000-000000000001', 'Illegit Child', 'c0000000-0000-0000-0000-00000000000a', '2018-01-01') $$,
+  $$ insert into public.students (full_name, class_id, date_of_birth)
+     values ('Illegit Child', 'c0000000-0000-0000-0000-00000000000a', '2018-01-01') $$,
   '42501', null,
   'RLS-11: P1 cannot INSERT a new student'
 );
@@ -1191,17 +1215,22 @@ values
   ('c0000000-0000-0000-0000-00000000000d', 'Class D (dual-role test)', 'Minggu 13:00', '{0,1,2,3,4,5,6}',
    array['70000000-0000-0000-0000-000000000002']::uuid[]);
 
-insert into public.students (id, parent_id, user_id, full_name, class_id, date_of_birth)
+insert into public.students (id, user_id, full_name, class_id, date_of_birth)
 values
   -- taught by TP and TT, child of neither
-  ('d0000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000003', null, 'C Kid',  'c0000000-0000-0000-0000-00000000000c', '2015-05-01'),
+  ('d0000000-0000-0000-0000-000000000005', null, 'C Kid',  'c0000000-0000-0000-0000-00000000000c', '2015-05-01'),
   -- TP's own child, in a class TP does not teach
-  ('d0000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000001', null, 'TP Kid', 'c0000000-0000-0000-0000-00000000000d', '2016-05-01'),
+  ('d0000000-0000-0000-0000-000000000006', null, 'TP Kid', 'c0000000-0000-0000-0000-00000000000d', '2016-05-01'),
   -- TT's own child, likewise
-  ('d0000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000002', null, 'TT Kid', 'c0000000-0000-0000-0000-00000000000d', '2016-06-01'),
+  ('d0000000-0000-0000-0000-000000000007', null, 'TT Kid', 'c0000000-0000-0000-0000-00000000000d', '2016-06-01'),
   -- the hard negative: a classmate of their own children, in a class
   -- neither of them teaches, belonging to neither of them
-  ('d0000000-0000-0000-0000-000000000008', 'b0000000-0000-0000-0000-000000000003', null, 'D Kid',  'c0000000-0000-0000-0000-00000000000d', '2015-07-01');
+  ('d0000000-0000-0000-0000-000000000008', null, 'D Kid',  'c0000000-0000-0000-0000-00000000000d', '2015-07-01');
+insert into public.student_guardians (student_id, user_id) values
+  ('d0000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000003'),
+  ('d0000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000001'),
+  ('d0000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000002'),
+  ('d0000000-0000-0000-0000-000000000008', 'b0000000-0000-0000-0000-000000000003');
 
 insert into public.sessions (id, class_id, date, tutor_id)
 values
@@ -1520,8 +1549,10 @@ update public.classes
 
 -- Their own child sits in Class D, which they do not teach — the same
 -- shape as TP and TT, so the comparison with RLS-31/RLS-32 is like for like.
-insert into public.students (id, parent_id, user_id, full_name, class_id, date_of_birth)
-values ('d0000000-0000-0000-0000-000000000009', 'b0000000-0000-0000-0000-000000000004', null, 'TAP Kid', 'c0000000-0000-0000-0000-00000000000d', '2016-08-01');
+insert into public.students (id, user_id, full_name, class_id, date_of_birth)
+values ('d0000000-0000-0000-0000-000000000009', null, 'TAP Kid', 'c0000000-0000-0000-0000-00000000000d', '2016-08-01');
+insert into public.student_guardians (student_id, user_id) values
+  ('d0000000-0000-0000-0000-000000000009', 'b0000000-0000-0000-0000-000000000004');
 
 insert into public.murajaah_assignments (id, student_id, tutor_id, surah_num, ayah_from, ayah_to, frequency)
 values ('f0000000-0000-0000-0000-000000000009', 'd0000000-0000-0000-0000-000000000009', '70000000-0000-0000-0000-000000000002', 1, 1, 3, 'daily');
@@ -1634,9 +1665,11 @@ insert into public.users (id, email, full_name, role, locale)
 values ('b0000000-0000-0000-0000-000000000005', 'sa@test.local', 'Student Assistant (role=student)', 'student', 'id');
 
 -- The hybrid account model holds: a student record is always linked to a
--- parent (P4 here) even when the student has their own login.
-insert into public.students (id, parent_id, user_id, full_name, class_id, date_of_birth)
-values ('d0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000005', 'SA Own Record', 'c0000000-0000-0000-0000-00000000000d', '2008-04-01');
+-- guardian (P4 here) even when the student has their own login.
+insert into public.students (id, user_id, full_name, class_id, date_of_birth)
+values ('d0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000005', 'SA Own Record', 'c0000000-0000-0000-0000-00000000000d', '2008-04-01');
+insert into public.student_guardians (student_id, user_id) values
+  ('d0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000003');
 
 update public.classes
    set tutor_ids = tutor_ids || 'b0000000-0000-0000-0000-000000000005'::uuid
@@ -2026,30 +2059,36 @@ values
   ('c0000000-0000-0000-0000-00000000000f', 'Class F (second class)', 'Minggu 15:00', '{0,1,2,3,4,5,6}',
    array['b0000000-0000-0000-0000-00000000000a']::uuid[]);  -- MC only
 
-insert into public.students (id, parent_id, user_id, full_name, class_id, date_of_birth)
+insert into public.students (id, user_id, full_name, class_id, date_of_birth)
 values
   -- The overlap itself: OV teaches this class and this is their child.
-  ('d0000000-0000-0000-0000-00000000000b', 'b0000000-0000-0000-0000-000000000006', null,
+  ('d0000000-0000-0000-0000-00000000000b', null,
    'OV Kid E', 'c0000000-0000-0000-0000-00000000000e', '2015-01-01'),
   -- The same parent's other child, in a class they do not teach. The
   -- control: whatever the overlap grants, it must not reach here.
-  ('d0000000-0000-0000-0000-00000000000c', 'b0000000-0000-0000-0000-000000000006', null,
+  ('d0000000-0000-0000-0000-00000000000c', null,
    'OV Kid D', 'c0000000-0000-0000-0000-00000000000d', '2017-01-01'),
   -- The student assistant's own record, in the class they assist.
-  ('d0000000-0000-0000-0000-00000000000d', 'b0000000-0000-0000-0000-000000000003',
-   'b0000000-0000-0000-0000-000000000007',
+  ('d0000000-0000-0000-0000-00000000000d', 'b0000000-0000-0000-0000-000000000007',
    'OSA Own Record', 'c0000000-0000-0000-0000-00000000000e', '2008-01-01'),
   -- The plain admin-parent's child.
-  ('d0000000-0000-0000-0000-00000000000e', 'b0000000-0000-0000-0000-000000000008', null,
+  ('d0000000-0000-0000-0000-00000000000e', null,
    'AP Kid', 'c0000000-0000-0000-0000-00000000000e', '2016-01-01'),
   -- An unrelated family in Class E: the child every persona here can
   -- *teach* and none of them may be told about.
-  ('d0000000-0000-0000-0000-00000000000f', 'b0000000-0000-0000-0000-000000000003', null,
+  ('d0000000-0000-0000-0000-00000000000f', null,
    'Plain Kid E', 'c0000000-0000-0000-0000-00000000000e', '2015-02-02'),
   -- Class F exists to give MC a second roster, and everyone else a class
   -- they must not reach.
-  ('d0000000-0000-0000-0000-000000000010', 'b0000000-0000-0000-0000-000000000003', null,
+  ('d0000000-0000-0000-0000-000000000010', null,
    'F Kid', 'c0000000-0000-0000-0000-00000000000f', '2015-03-03');
+insert into public.student_guardians (student_id, user_id) values
+  ('d0000000-0000-0000-0000-00000000000b', 'b0000000-0000-0000-0000-000000000006'),
+  ('d0000000-0000-0000-0000-00000000000c', 'b0000000-0000-0000-0000-000000000006'),
+  ('d0000000-0000-0000-0000-00000000000d', 'b0000000-0000-0000-0000-000000000003'),
+  ('d0000000-0000-0000-0000-00000000000e', 'b0000000-0000-0000-0000-000000000008'),
+  ('d0000000-0000-0000-0000-00000000000f', 'b0000000-0000-0000-0000-000000000003'),
+  ('d0000000-0000-0000-0000-000000000010', 'b0000000-0000-0000-0000-000000000003');
 
 insert into public.sessions (id, class_id, date, tutor_id)
 values ('e0000000-0000-0000-0000-00000000000e', 'c0000000-0000-0000-0000-00000000000e', current_date,
@@ -2629,8 +2668,10 @@ values ('12000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated'
 insert into public.users (id, email, full_name, role, locale)
 values ('12000000-0000-0000-0000-000000000001', 'p43@test.local', 'Parent RLS43', 'parent', 'id');
 
-insert into public.students (id, parent_id, user_id, full_name, class_id, date_of_birth)
-values ('13000000-0000-0000-0000-000000000001', '12000000-0000-0000-0000-000000000001', null, 'P43 Child (RLS-43 test)', '11000000-0000-0000-0000-000000000001', '2015-01-01');
+insert into public.students (id, user_id, full_name, class_id, date_of_birth)
+values ('13000000-0000-0000-0000-000000000001', null, 'P43 Child (RLS-43 test)', '11000000-0000-0000-0000-000000000001', '2015-01-01');
+insert into public.student_guardians (student_id, user_id) values
+  ('13000000-0000-0000-0000-000000000001', '12000000-0000-0000-0000-000000000001');
 
 -- draft: the refusal block (RLS-43…46) and the permitted-edit half of
 -- RLS-48/50. published: the admin refusal/permitted block (RLS-47/49)
@@ -3177,6 +3218,423 @@ insert into _tap_log(line) select is(
     where id = '4e000000-0000-0000-0000-000000000002'),
   1::bigint,
   'RLS-64: UR2''s unrelated request row is untouched'
+);
+
+reset role;
+
+-- ============================================================
+-- RLS-65 … RLS-77 — multiple guardians per student
+--                   (migration 021, TAD ADR-040)
+-- Fixture: Child A (d…001) has two active guardians, P1 and G2;
+-- Child B (d…002) has one active (P1) and one removed (GX).
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- RLS-65: the fn_my_children() rewrite carries every downstream
+--         policy — P1 still resolves to exactly their two children,
+--         and RLS-01…RLS-64 above are unchanged-green, which is the gate.
+-- ------------------------------------------------------------
+set local role authenticated;
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000001';
+set local request.jwt.claim.role to 'authenticated';
+insert into _tap_log(line) select set_eq(
+  $$ select public.fn_my_children() $$,
+  $$ values ('d0000000-0000-0000-0000-000000000001'::uuid),
+            ('d0000000-0000-0000-0000-000000000002'::uuid) $$,
+  'RLS-65: fn_my_children() for P1 is exactly their two children after the rewrite'
+);
+insert into _tap_log(line) select isnt(
+  (select count(*) from public.yanbua_progress where student_id = 'd0000000-0000-0000-0000-000000000001'),
+  0::bigint, 'RLS-65: P1 still reads Child A''s yanbua_progress through fn_my_children()'
+);
+
+-- ------------------------------------------------------------
+-- RLS-66: two active guardians, symmetric — G2 gets the full read
+--         set for Child A and nothing of any other child.
+-- ------------------------------------------------------------
+set local request.jwt.claim.sub to '92000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select set_eq(
+  $$ select id from public.students $$,
+  $$ values ('d0000000-0000-0000-0000-000000000001'::uuid) $$,
+  'RLS-66: G2 sees exactly Child A on students'
+);
+insert into _tap_log(line) select isnt(
+  (select count(*) from public.yanbua_progress where student_id = 'd0000000-0000-0000-0000-000000000001'),
+  0::bigint, 'RLS-66: G2 reads Child A''s yanbua_progress'
+);
+insert into _tap_log(line) select isnt(
+  (select count(*) from public.quran_progress where student_id = 'd0000000-0000-0000-0000-000000000001'),
+  0::bigint, 'RLS-66: G2 reads Child A''s quran_progress'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.murajaah_assignments where student_id = 'd0000000-0000-0000-0000-000000000001'),
+  1::bigint, 'RLS-66: G2 reads Child A''s murajaah_assignments'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.classes where id = 'c0000000-0000-0000-0000-00000000000a'),
+  1::bigint, 'RLS-66: G2 reads Child A''s class through classes_read'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.students where id = 'd0000000-0000-0000-0000-000000000002'),
+  0::bigint, 'RLS-66: G2 sees nothing of Child B — P1''s other child, which G2 does not guard'
+);
+
+-- ------------------------------------------------------------
+-- RLS-67: cross-family negative, re-proven for the join-table model
+--         (the RLS-02 assertion, re-run). A failure here is a GDPR
+--         incident, not a bug (§1).
+-- ------------------------------------------------------------
+insert into _tap_log(line) select is(
+  (select count(*) from public.attendance where student_id = 'd0000000-0000-0000-0000-000000000003'),
+  0::bigint, 'RLS-67: G2 sees 0 attendance rows for P2''s child'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.yanbua_progress where student_id = 'd0000000-0000-0000-0000-000000000003'),
+  0::bigint, 'RLS-67: G2 sees 0 yanbua_progress rows for P2''s child'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.quran_progress where student_id = 'd0000000-0000-0000-0000-000000000003'),
+  0::bigint, 'RLS-67: G2 sees 0 quran_progress rows for P2''s child'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.murajaah_log ml
+     join public.murajaah_assignments ma on ma.id = ml.assignment_id
+    where ma.student_id = 'd0000000-0000-0000-0000-000000000003'),
+  0::bigint, 'RLS-67: G2 sees 0 murajaah_log rows for P2''s child'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.year_end_reports where student_id = 'd0000000-0000-0000-0000-000000000003'),
+  0::bigint, 'RLS-67: G2 sees 0 year_end_reports for P2''s child'
+);
+
+-- ------------------------------------------------------------
+-- RLS-68: a removed link grants nothing. GX's only link to Child B
+--         has unlinked_at set.
+-- ------------------------------------------------------------
+set local request.jwt.claim.sub to '92000000-0000-0000-0000-000000000002';
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_my_children()),
+  0::bigint, 'RLS-68: fn_my_children() is empty for a removed guardian'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.students where id = 'd0000000-0000-0000-0000-000000000002'),
+  0::bigint, 'RLS-68: GX reads 0 students — the removed link grants nothing'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.year_end_reports where student_id = 'd0000000-0000-0000-0000-000000000002'),
+  0::bigint, 'RLS-68: GX cannot see Child B''s published report'
+);
+-- …and the row is retained (D7) — asserted from the admin view.
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';
+insert into _tap_log(line) select is(
+  (select count(*) from public.student_guardians
+    where student_id = 'd0000000-0000-0000-0000-000000000002'
+      and user_id = '92000000-0000-0000-0000-000000000002'
+      and unlinked_at is not null),
+  1::bigint, 'RLS-68: the removed link row is kept, with unlinked_at set (audit)'
+);
+
+-- ------------------------------------------------------------
+-- RLS-69: murajaah confirmation — first guardian wins (D4).
+-- ------------------------------------------------------------
+set local request.jwt.claim.sub to '92000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.murajaah_log (assignment_id, confirmed_by, quality, date)
+     values ('f0000000-0000-0000-0000-000000000001', '92000000-0000-0000-0000-000000000001',
+             'hafal_lancar', current_date) $$,
+  '23505', null,
+  'RLS-69: a second guardian confirming the same child-day hits the unique constraint — P1 already did it (RLS-08)'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.murajaah_log (assignment_id, confirmed_by, quality, date)
+     values ('f0000000-0000-0000-0000-000000000001', '92000000-0000-0000-0000-000000000001',
+             'hafal_lancar', current_date + 10) $$,
+  'RLS-69: a guardian may confirm the child on a day nobody has yet'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.murajaah_log (assignment_id, confirmed_by, quality, date)
+     values ('f0000000-0000-0000-0000-000000000002', '92000000-0000-0000-0000-000000000001',
+             'hafal_lancar', current_date + 10) $$,
+  '42501', null,
+  'RLS-69: G2 cannot confirm murajaah for a child they do not guard'
+);
+
+-- ------------------------------------------------------------
+-- RLS-70: sguard_self_read — a guardian reads their own active links.
+-- ------------------------------------------------------------
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select set_eq(
+  $$ select student_id from public.student_guardians $$,
+  $$ values ('d0000000-0000-0000-0000-000000000001'::uuid),
+            ('d0000000-0000-0000-0000-000000000002'::uuid) $$,
+  'RLS-70: P1 reads exactly their own two active guardian links — not G2''s, not the removed GX row'
+);
+set local request.jwt.claim.sub to '92000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select is(
+  (select count(*) from public.student_guardians),
+  1::bigint, 'RLS-70: G2 reads exactly their one active link'
+);
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000002';
+insert into _tap_log(line) select is(
+  (select count(*) from public.student_guardians
+    where student_id in ('d0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000002')),
+  0::bigint, 'RLS-70: P2 — not a guardian of Child A or B — reads none of their links'
+);
+
+-- ------------------------------------------------------------
+-- RLS-71: sguard_tutor_read (Q1) and fn_student_guardians.
+-- ------------------------------------------------------------
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select is(
+  (select count(*) from public.student_guardians
+    where student_id in ('d0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000002')),
+  3::bigint, 'RLS-71: T1 reads the active guardian links of Class A students (P1+G2 for A, P1 for B); the removed GX row is excluded'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_student_guardians('d0000000-0000-0000-0000-000000000001')),
+  2::bigint, 'RLS-71: fn_student_guardians returns Child A''s two guardians with names to their class tutor'
+);
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_student_guardians('d0000000-0000-0000-0000-000000000001')),
+  2::bigint, 'RLS-71: …and to an admin'
+);
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000002';
+insert into _tap_log(line) select is(
+  (select count(*) from public.student_guardians where student_id = 'd0000000-0000-0000-0000-000000000001'),
+  0::bigint, 'RLS-71: T2 — tutor of a different class — reads none of Child A''s links'
+);
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000002';
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_student_guardians('d0000000-0000-0000-0000-000000000001')),
+  0::bigint, 'RLS-71: fn_student_guardians returns 0 rows — not an error — to an unrelated parent'
+);
+
+-- ------------------------------------------------------------
+-- RLS-72: writes to student_guardians are admin-only.
+-- ------------------------------------------------------------
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.student_guardians (student_id, user_id)
+     values ('d0000000-0000-0000-0000-000000000001', '90000000-0000-0000-0000-000000000003') $$,
+  '42501', null,
+  'RLS-72: a parent cannot INSERT a guardian link'
+);
+do $$
+declare affected int;
+begin
+  update public.student_guardians set unlinked_at = now()
+   where student_id = 'd0000000-0000-0000-0000-000000000001'
+     and user_id = '90000000-0000-0000-0000-000000000001';
+  get diagnostics affected = row_count;
+  drop table if exists _rls_check;
+  create temp table _rls_check(n int);
+  insert into _rls_check values (affected);
+end $$;
+insert into _tap_log(line) select is((select n from _rls_check), 0,
+  'RLS-72: a parent''s UPDATE on their own guardian link matches 0 rows (no write policy)');
+drop table _rls_check;
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.student_guardians (student_id, user_id)
+     values ('d0000000-0000-0000-0000-000000000003', '92000000-0000-0000-0000-000000000001') $$,
+  'RLS-72: an admin may add a guardian link'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ update public.student_guardians set unlinked_at = now()
+     where student_id = 'd0000000-0000-0000-0000-000000000003'
+       and user_id = '92000000-0000-0000-0000-000000000001' $$,
+  'RLS-72: an admin may unlink a guardian link'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ delete from public.student_guardians
+     where student_id = 'd0000000-0000-0000-0000-000000000003'
+       and user_id = '92000000-0000-0000-0000-000000000001' $$,
+  'RLS-72: an admin may delete a guardian link outright'
+);
+
+-- ------------------------------------------------------------
+-- RLS-73: trg_guardian_keep_one — the last active guardian cannot be
+--         removed, but an ON DELETE CASCADE from students is let through.
+-- ------------------------------------------------------------
+insert into _tap_log(line) select throws_ok(
+  $$ update public.student_guardians set unlinked_at = now()
+     where student_id = 'd0000000-0000-0000-0000-000000000002'
+       and user_id = '90000000-0000-0000-0000-000000000001' $$,
+  '23514', null,
+  'RLS-73: unlinking Child B''s last active guardian is refused'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ update public.student_guardians set unlinked_at = now()
+     where student_id = 'd0000000-0000-0000-0000-000000000001'
+       and user_id = '90000000-0000-0000-0000-000000000001' $$,
+  'RLS-73: …but Child A''s P1 link may be unlinked, because G2 is still active'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ update public.student_guardians set unlinked_at = now()
+     where student_id = 'd0000000-0000-0000-0000-000000000001'
+       and user_id = '92000000-0000-0000-0000-000000000001' $$,
+  '23514', null,
+  'RLS-73: …and now G2 is the last active guardian of Child A, so it cannot be unlinked either'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ delete from public.students where id = 'd0000000-0000-0000-0000-000000000003' $$,
+  'RLS-73: deleting the students row cascades its guardian links away (the trigger steps aside)'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.student_guardians where student_id = 'd0000000-0000-0000-0000-000000000003'),
+  0::bigint, 'RLS-73: …and no guardian rows for that student remain'
+);
+
+-- ------------------------------------------------------------
+-- RLS-74: trg_student_has_guardian (deferred) — a student with no
+--         active guardian is refused when the constraint is checked;
+--         one that has a guardian by check time is accepted.
+--
+-- `SET CONSTRAINTS` cannot be driven through pgTAP's throws_ok/lives_ok
+-- (it does not run cleanly inside their EXECUTE wrapper), so the check
+-- is done in a DO block that captures the outcome, and asserted with ok().
+-- ------------------------------------------------------------
+reset role;
+do $b2$
+declare bad_refused boolean := false; good_ok boolean := false;
+begin
+  -- guardian-less student → the deferred check must raise on IMMEDIATE.
+  -- A plpgsql BEGIN…EXCEPTION block is itself a subtransaction, so the
+  -- caught error rolls the stray INSERT back.
+  begin
+    insert into public.students (id, full_name, class_id, date_of_birth)
+      values ('d0000000-0000-0000-0000-0000000000fe', 'No Guardian',
+              'c0000000-0000-0000-0000-00000000000a', '2019-01-01');
+    set constraints all immediate;
+    -- reached only if the check WRONGLY passed
+  exception when check_violation then
+    bad_refused := true;
+  end;
+  set constraints all deferred;
+
+  -- student + guardian in one transaction → the check passes. Force an
+  -- unwind afterwards so the rows do not linger for later assertions.
+  begin
+    insert into public.students (id, full_name, class_id, date_of_birth)
+      values ('d0000000-0000-0000-0000-0000000000fd', 'Has Guardian',
+              'c0000000-0000-0000-0000-00000000000a', '2019-01-01');
+    insert into public.student_guardians (student_id, user_id)
+      values ('d0000000-0000-0000-0000-0000000000fd', '92000000-0000-0000-0000-000000000001');
+    set constraints all immediate;
+    good_ok := true;
+    raise exception 'unwind rls-74 positive case';
+  exception
+    when check_violation then good_ok := false;
+    when raise_exception then null;   -- our own unwind; good_ok already set
+  end;
+  set constraints all deferred;
+
+  drop table if exists _b2;
+  create temp table _b2(bad_refused boolean, good_ok boolean);
+  insert into _b2 values (bad_refused, good_ok);
+end $b2$;
+insert into _tap_log(line) select ok(
+  (select bad_refused from _b2),
+  'RLS-74: a guardian-less student is refused when the deferred constraint is checked'
+);
+insert into _tap_log(line) select ok(
+  (select good_ok from _b2),
+  'RLS-74: a student inserted together with a guardian passes the check'
+);
+drop table _b2;
+
+-- ------------------------------------------------------------
+-- RLS-75: fn_admin_save_student — admin-only, requires >=1 guardian,
+--         diffs the set and retains removed links.
+-- ------------------------------------------------------------
+set local role authenticated;
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000001';
+set local request.jwt.claim.role to 'authenticated';
+insert into _tap_log(line) select throws_ok(
+  $$ select public.fn_admin_save_student(
+       'Not Allowed', current_date, '[{"user_id":"90000000-0000-0000-0000-000000000001"}]'::jsonb) $$,
+  '42501', null,
+  'RLS-75: a non-admin caller of fn_admin_save_student is refused'
+);
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';
+insert into _tap_log(line) select throws_ok(
+  $$ select public.fn_admin_save_student('Empty Guardians', current_date, '[]'::jsonb) $$,
+  '23514', null,
+  'RLS-75: fn_admin_save_student refuses an empty guardian set'
+);
+do $$
+declare new_id uuid;
+begin
+  new_id := public.fn_admin_save_student(
+    'New Student', '2018-04-04',
+    '[{"user_id":"90000000-0000-0000-0000-000000000001","relation":"ibu"},
+      {"user_id":"92000000-0000-0000-0000-000000000001","relation":"ayah"}]'::jsonb,
+    null, 'c0000000-0000-0000-0000-00000000000a');
+  drop table if exists _saved;
+  create temp table _saved(id uuid);
+  insert into _saved values (new_id);
+end $$;
+insert into _tap_log(line) select is(
+  (select count(*) from public.student_guardians
+    where student_id = (select id from _saved) and unlinked_at is null),
+  2::bigint, 'RLS-75: fn_admin_save_student creates the student with both wanted guardians active'
+);
+do $$
+begin
+  perform public.fn_admin_save_student(
+    'New Student', '2018-04-04',
+    '[{"user_id":"90000000-0000-0000-0000-000000000001","relation":"ibu"},
+      {"user_id":"90000000-0000-0000-0000-000000000003","relation":"voogd"}]'::jsonb,
+    (select id from _saved), 'c0000000-0000-0000-0000-00000000000a');
+end $$;
+insert into _tap_log(line) select set_eq(
+  format($$ select user_id from public.student_guardians
+            where student_id = %L and unlinked_at is null $$, (select id from _saved)),
+  $$ values ('90000000-0000-0000-0000-000000000001'::uuid),
+            ('90000000-0000-0000-0000-000000000003'::uuid) $$,
+  'RLS-75: editing the student swaps G2 out for P3 — exactly the wanted active set'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.student_guardians
+    where student_id = (select id from _saved)
+      and user_id = '92000000-0000-0000-0000-000000000001' and unlinked_at is not null),
+  1::bigint, 'RLS-75: …and the dropped guardian is retained as an unlinked row (D7)'
+);
+drop table _saved;
+
+-- ------------------------------------------------------------
+-- RLS-76: the retired column. `students.parent_id` no longer exists;
+--         RLS-01…RLS-64 above are unchanged-green, which is the rest of
+--         the regression gate (the same evidence RLS-22…27 rely on).
+-- ------------------------------------------------------------
+insert into _tap_log(line) select throws_ok(
+  $$ select parent_id from public.students limit 1 $$,
+  '42703', null,
+  'RLS-76: students.parent_id is dropped — selecting it is an undefined-column error'
+);
+
+-- ------------------------------------------------------------
+-- RLS-77: the three ALTER'd family branches — classes_read,
+--         sessions_family_read, assignments_family_read.
+-- ------------------------------------------------------------
+set local request.jwt.claim.sub to '92000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select is(
+  (select count(*) from public.classes where id = 'c0000000-0000-0000-0000-00000000000a'),
+  1::bigint, 'RLS-77: G2 reads Child A''s class (classes_read family branch)'
+);
+insert into _tap_log(line) select isnt(
+  (select count(*) from public.sessions where class_id = 'c0000000-0000-0000-0000-00000000000a'),
+  0::bigint, 'RLS-77: G2 reads Child A''s class sessions (sessions_family_read)'
+);
+set local request.jwt.claim.sub to '92000000-0000-0000-0000-000000000002';
+insert into _tap_log(line) select is(
+  (select count(*) from public.classes where id = 'c0000000-0000-0000-0000-00000000000a'),
+  0::bigint, 'RLS-77: a removed guardian reads none of the class'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where class_id = 'c0000000-0000-0000-0000-00000000000a'),
+  0::bigint, 'RLS-77: …and none of its sessions'
 );
 
 reset role;

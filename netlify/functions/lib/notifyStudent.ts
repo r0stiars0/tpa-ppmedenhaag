@@ -12,12 +12,13 @@ import {
  * that decides it.
  *
  * Every notification in this system is *about a child*, so "who receives
- * it" is always answered from that child's row — `students.parent_id`,
- * and for a 16+ self-login student their own `students.user_id`. Nothing
- * about the recipient ever comes from the request that triggered the
- * notification, and since ADR-022 nothing about it comes from
- * `users.role` either: a person's relationship to *this* child is the
- * whole question, and a role column cannot express it.
+ * it" is always answered from that child's links — every active
+ * `student_guardians` row for the child (ADR-040: there may be more than
+ * one, and each is a recipient), and for a 16+ self-login student their
+ * own `students.user_id`. Nothing about the recipient ever comes from
+ * the request that triggered the notification, and since ADR-022 nothing
+ * about it comes from `users.role` either: a person's relationship to
+ * *this* child is the whole question, and a role column cannot express it.
  *
  * This lives in one module rather than per-Function on purpose. Sending
  * a family a notification about another family's child is the single
@@ -64,17 +65,24 @@ export interface StudentAudience {
 }
 
 /**
- * Resolves the audience for many students in two queries rather than two
- * per student — a new-homework notification fans out across a whole
- * class roster, and a per-student round trip would put the Function's
- * runtime at the mercy of class size.
+ * Resolves the audience for many students in three queries rather than
+ * three per student — a new-homework notification fans out across a
+ * whole class roster, and a per-student round trip would put the
+ * Function's runtime at the mercy of class size.
  */
 export interface StudentRow {
   id: string
   full_name: string
-  parent_id: string
   user_id: string | null
 }
+
+/**
+ * Active `student_guardians` links, grouped by student. Since ADR-040 a
+ * child has one *or more* guardians — every active one is a recipient
+ * (D5) — so the audience builder takes the set rather than the single
+ * `parent_id` column the table no longer has.
+ */
+export type GuardiansByStudent = Map<string, string[]>
 
 /**
  * `role` is deliberately absent. It was read here until ADR-022, to skip
@@ -99,6 +107,7 @@ export interface UserRow {
  */
 export function buildAudiences(
   students: StudentRow[],
+  guardiansByStudent: GuardiansByStudent,
   users: UserRow[],
   audience: Audience,
 ): StudentAudience[] {
@@ -124,13 +133,24 @@ export function buildAudiences(
 
   return students.map((student) => {
     const recipients: Recipient[] = []
-    const parent = reachable.get(student.parent_id)
-    if (parent) recipients.push(parent)
-    if (audience === 'family' && student.user_id) {
+    const seen = new Set<string>()
+    // Every active guardian of this child (D5). De-duplicated so a
+    // guardian named twice, or one who is also the child's own
+    // self-login account, is not sent the same notification twice.
+    for (const guardianId of guardiansByStudent.get(student.id) ?? []) {
+      if (seen.has(guardianId)) continue
+      const guardian = reachable.get(guardianId)
+      if (guardian) {
+        recipients.push(guardian)
+        seen.add(guardianId)
+      }
+    }
+    if (audience === 'family' && student.user_id && !seen.has(student.user_id)) {
       const self = reachable.get(student.user_id)
-      // A 16+ student who is also their own parent contact would
-      // otherwise be sent the same notification twice.
-      if (self && self.userId !== student.parent_id) recipients.push(self)
+      if (self) {
+        recipients.push(self)
+        seen.add(student.user_id)
+      }
     }
     return { studentId: student.id, childFullName: student.full_name, recipients }
   })
@@ -145,14 +165,32 @@ export async function audiencesForStudents(
 
   const { data: students, error } = await client
     .from('students')
-    .select('id, full_name, parent_id, user_id')
+    .select('id, full_name, user_id')
     .in('id', studentIds)
   if (error || !students) return []
 
+  // Active guardian links for these children (ADR-040). A removed link
+  // (`unlinked_at` set) is not an audience member.
+  const { data: guardianRows, error: guardiansError } = await client
+    .from('student_guardians')
+    .select('student_id, user_id')
+    .in('student_id', studentIds)
+    .is('unlinked_at', null)
+  if (guardiansError) return []
+
+  const guardiansByStudent: GuardiansByStudent = new Map()
+  for (const row of guardianRows ?? []) {
+    const list = guardiansByStudent.get(row.student_id)
+    if (list) list.push(row.user_id)
+    else guardiansByStudent.set(row.student_id, [row.user_id])
+  }
+
   const wanted = new Set<string>()
-  for (const student of students) {
-    wanted.add(student.parent_id)
-    if (audience === 'family' && student.user_id) wanted.add(student.user_id)
+  for (const row of guardianRows ?? []) wanted.add(row.user_id)
+  if (audience === 'family') {
+    for (const student of students) {
+      if (student.user_id) wanted.add(student.user_id)
+    }
   }
 
   const { data: users, error: usersError } = await client
@@ -161,7 +199,7 @@ export async function audiencesForStudents(
     .in('id', [...wanted])
   if (usersError) return []
 
-  return buildAudiences(students, users ?? [], audience)
+  return buildAudiences(students, guardiansByStudent, users ?? [], audience)
 }
 
 export interface DispatchResult {

@@ -317,6 +317,40 @@ that already carries a `registration_requests` submission.
 
 *Total after these: 284 pgTAP assertions.*
 
+### 3.5 Multiple guardians per student (RLS-65…77, ADR-040)
+
+`public.student_guardians` (migration 021), its three `select` policies
+and admin-only write policy, the two invariant triggers, the rewritten
+`fn_my_children()` and three `alter policy` family branches, and the
+four new functions (`fn_student_guardians`, `fn_my_family_students`,
+`fn_my_family_flags`, `fn_admin_save_student`). Every case asserts both
+the allowed and the denied/empty side, in the fixture-transaction style
+the rest of the suite uses.
+
+Fixture additions to the standard set: child **X2** in Class A with
+**two** active guardians — the existing parent **P1** and a second
+guardian **G2** (a `users` row, `role='parent'`, no child of their own
+beyond this link); and child **X3** in Class A with one active guardian
+**P1** plus one **removed** link to **GX** (`unlinked_at` set). This is
+the shape the whole block filters against — a real multi-guardian row, a
+real removed row.
+
+- [ ] RLS-65 — **The `fn_my_children()` rewrite carries every downstream policy.** P1 (an active guardian of X2 *and* X3) reads X2 and X3 across `students`, `attendance`, `assignment_status`, `yanbua_progress`, `quran_progress`, `murajaah_assignments`, `murajaah_log` and published `year_end_reports` — the same rows they read before the migration, none of the eleven `fn_my_children()` policies edited. Asserted alongside RLS-76's "RLS-01…64 still green".
+- [ ] RLS-66 — **Two active guardians, symmetric.** P1 and G2 each independently get the full read set for X2 across every family-scoped table. Neither is a promotion: G2 sees **0** rows for every other fixture child (X3 included — G2 holds no link to X3), and P1/G2 see 0 of Class B, of another family, of a classmate.
+- [ ] RLS-67 — **Cross-family negative, re-proven for the join-table model** (the RLS-02 assertion, re-run). G2 — guardian of X2 only — SELECT on `attendance`, `yanbua_progress`, `quran_progress`, `murajaah_log`, `assignment_status` and `year_end_reports` for P2's child → **0 rows** each; the rows exist and are invisible. *A failure here is a GDPR incident, not a bug (§1).*
+- [ ] RLS-68 — **A removed link grants nothing.** GX (whose only link to X3 has `unlinked_at` set) reads **0** for X3 across `students` and every progress / attendance / report table; `fn_my_children()` returns an empty set for GX. Asserted from outside GX's session too, since an empty grant and a filtered read are identical from inside it. Setting `unlinked_at` back to `null` is an admin-only write (RLS-72) — a non-admin cannot self-restore.
+- [ ] RLS-69 — **Murajaah confirmation, first guardian wins** (D4). P1 `INSERT murajaah_log` for X2's assignment on date *d* → allowed; G2's `INSERT` for the **same** `(assignment_id, d)` → `23505` unique violation; G2's `INSERT` for the same assignment on *d+1* → allowed (both are guardians, the table just holds one row per child-day). P1 or G2 `INSERT` for P2's child's assignment → rejected (`mlog_parent_insert` through `fn_my_children()`). `confirmed_by <> auth.uid()` still rejected for both (RLS-09 unchanged).
+- [ ] RLS-70 — **`sguard_self_read`.** P1 SELECT `student_guardians` → their own **active** link rows only (X2, X3); G2 sees only their X2 row; neither sees the other's rows, and neither sees GX's removed row (the policy filters `unlinked_at is null`). A non-guardian parent (P2) sees 0.
+- [ ] RLS-71 — **`sguard_tutor_read` (Q1) and `fn_student_guardians`.** T1 (tutor of Class A) SELECT `student_guardians` → the active links of Class A students, including both of X2's; T2 (Class B) sees 0 of them. `fn_student_guardians(X2)` returns two rows **with `full_name`/`email`** to T1 and to admin, and **0 rows** to P2 and to an unrelated parent — the caller check folded into the function's `where`, so a non-entitled caller gets emptiness, not an error.
+- [ ] RLS-72 — **Writes are admin-only.** A non-admin (`parent` P1, `tutor` T1, `student` S16) `INSERT` / `UPDATE` (e.g. set `unlinked_at`) / `DELETE` on `student_guardians` → refused: the grant-level cases raise `42501`, the row-filtered ones affect 0 rows, asserted both from inside the session and from outside. Admin `INSERT` a new link, `UPDATE` `unlinked_at`, and `DELETE` → all land.
+- [ ] RLS-73 — **Trigger `trg_guardian_keep_one` (B1).** Admin sets `unlinked_at` on X3's **last** active guardian (P1) → `check_violation`; the same on X2 (which still has G2) → allowed. A direct `DELETE` of X3's last active link → `check_violation`. Deleting the **`students` row** for X2 → succeeds and cascades away both `student_guardians` rows (the trigger detects the parent row is already gone and steps aside) — the GDPR art. 17 path, asserted like RLS-51/RLS-58.
+- [ ] RLS-74 — **Trigger `trg_student_has_guardian` (B2), deferred.** In one transaction: `INSERT` a `students` row and **no** `student_guardians` row → the constraint fires at `COMMIT` with `check_violation`. In one transaction: `INSERT` the student **and** one guardian → commits. Proves the guarantee `parent_id NOT NULL` used to give did not weaken to app-only.
+- [ ] RLS-75 — **`fn_admin_save_student`.** A non-admin caller → `insufficient_privilege` (nothing written). `p_guardians` `'[]'`/`null` → `check_violation`. Admin creates a student with two guardians → two active links, B2 satisfied. Admin then edits the same student swapping one guardian for another → exactly the wanted active set, plus **one** `unlinked_at` row for the dropped guardian (audit retained, D7) — asserted from outside the calling session.
+- [ ] RLS-76 — **Backfill + regression gate.** After migration 021: every pre-existing student has exactly **one** active `student_guardians` row whose `user_id` equals the value its dropped `parent_id` held; `students.parent_id` no longer exists (a `SELECT parent_id FROM students` errors); and **RLS-01…RLS-64 all still pass unchanged** — the same "unchanged-green is the evidence" gate RLS-22…27 and RLS-28…33 rely on.
+- [ ] RLS-77 — **The three `alter policy` family branches.** P1 still reads Class A (`classes_read`), its `sessions` (`sessions_family_read`) and its `assignments` (`assignments_family_read`) for X2/X3; G2 reads the same for X2; GX (removed) reads **none** of the three. The 16+ self-login branch of each policy is untouched — S16 still reads their own class, session and assignments.
+
+*Total after these: 284 + N pgTAP assertions (N ≈ 45; fill in from the file once the block is written).*
+
 ## 4. Unit tests (Vitest)
 
 ### 4.1 Streak logic
@@ -494,6 +528,20 @@ asserted here in code.
 - [ ] `rejectRegistration(admin, id)` (the lib fn, ADR-039): a missing/blank `id` → `400` with no GoTrue call; an `id` that has a `public.users` row → `409` and **`deleteUser` is not called** (the guard against cascading into a real profile); a `deleteUser` error → `400`; success → `ok` with `deleteUser` called once with that `id`
 - [ ] `rejectRegistration(id)` (the `src/features/admin/api.ts` method): reads the session, `POST`s a bearer token to `/.netlify/functions/reject-registration`, and throws the response body's `error` on a non-OK status — the `inviteUser` shape
 
+### 4.5f Guardian-set capability derivation (TAD ADR-040)
+
+`tests/unit/capabilities.test.ts`, extended. The family-link source
+moves from a PostgREST `or=` string on `students` to the
+`fn_my_family_students` / `fn_my_family_flags` RPCs, so the query-shape
+assertions in §4.5 change target and two new properties appear.
+
+- [ ] `fetchFamilyLinks` calls `rpc('fn_my_family_students')` and maps its rows to `{ id, full_name }` — no `parent_id` column is read or referenced anywhere (the type no longer has one), and a Postgrest error still rethrows rather than reporting an empty family
+- [ ] the old `familyLinkFilter` / `UUID_RE` string-guard assertions are **removed with the function** — there is no user-influenced value spliced into a filter expression any more, which is recorded here so a future reader does not think the guard was dropped by accident
+- [ ] `familyRelationships` reads `isParentOfAnyone` off `is_guardian` and `isSelfStudent` off `is_self`, and a row that is **both** (a 16+ santri who is also their own guardian — permitted by the schema) sets both without either implying the other
+- [ ] `selfStudentId` still comes from the `is_self` row and is `null` for a guardian however many children they have — the ADR-023(c) property that the register keeps submitting every child's row
+- [ ] `fetchFamilyRelationships` (the `push-subscribe` / settings path) calls `fn_my_family_flags` and gets back only two booleans — **no child names are loaded** to answer a yes/no, the data-minimisation property ADR-022(c) protects, now carried by a second RPC instead of a narrower `select`
+- [ ] the sixteen-combination sweep and `fetchViewerRelationships`'s "both queries together, either failure rejects" assertions are unchanged in intent — only the fake client's recorded call shape moves from `.or(...)` to `.rpc(...)`
+
 ### 4.6 Access control and delivery inside the Functions
 
 The three modules that decide who may make a Function act, and what
@@ -504,6 +552,7 @@ mistake made here.
 
 - `tests/unit/functionAuth.test.ts` (17) — `authenticateCaller` proves a **person**: the token is validated against GoTrue and the role is then read from `public.users`, never taken from the JWT, and the id filtered on is the one GoTrue returned rather than anything the request supplied. The service-role client is **not built at all** for a request whose token failed, which is the ordering the two-step shape exists for. A valid token with no profile row is 403 and not 401 (a real state: between an accepted invitation and a completed registration), a failed profile read is 500 rather than degrading into a plausible "not an admin", and a missing environment variable refuses every request. `verifyWebhookSecret` proves a **channel**: a wrong secret of the *same* length is refused by the digest rather than by the length check, a different length does not throw (which would surface as a 500 and leak the expected length), and every wrong shape returns the identical body. Unset, it fails closed — an open endpoint here can address any family in the TPA
 - `tests/unit/notifySend.test.ts` (13) — `notifyStudents`, the sequence all six senders share and the piece both existing notification suites reach past. The in-app row is written **before** the push, asserted as an ordering and not a count: a crash between them must not leave a family with a lock-screen notice and nothing to open. The four outcomes a Netlify log shows are distinguished — no such student, no recipient account, no push subscription, and a real send — because this feature's failures are silent and "nothing happened" otherwise looks like "nothing was supposed to happen". Plus `sendPush`: a 404/410 means *throw the subscription away* and anything else means *keep it*, and getting that backwards either drops a working subscription on a transient error or burns a request on a dead one forever
+- `tests/unit/notifyStudent.test.ts` — `buildAudiences` over a `Map<studentId, guardianUserId[]>` since ADR-040. **Two active guardians of one child produce two recipients**, each their own notification-centre row and their own dedup tag; a guardian who is also the child's `user_id` (16+ santri, own guardian) is **not** doubled; `audience: 'parent'` still ignores a self-login student; an unreachable guardian (no `push_sub`) stays in the audience and still gets a centre row (ADR-017). `audiencesForStudents` resolves the guardian set from `student_guardians` filtered to `unlinked_at is null` — a removed guardian is not notified
 - `tests/unit/pushClient.test.ts` (21) — the browser half, previously uncovered because it imports the Supabase singleton and touches four browser APIs. `subscriptionState` is keyed on what the **server** holds, so a browser that kept its subscription object after a sender cleared `users.push_sub` reads as off rather than showing "notifications are on" to a family who can never receive another; a failed read is off for the same reason. `subscribe` stores server-side before reporting success, sends the caller's JWT (so `push-subscribe` can apply ADR-022), reuses an existing browser subscription rather than minting a second, treats a declined permission as an outcome rather than an error, and gives up after 60s on a push service that never answers — observed for real with FCM, and set well clear of the 32s a successful subscribe once took. `unsubscribe` clears the server first, and leaves the browser alone if that fails
 - `tests/unit/weeklyActivity.test.ts` (10) — `fetchWeeklyActivity`, behind both the dashboard card and the Friday digest. The timezone narrowing is the point: an entry made at 00:30 Monday in Amsterdam is 23:30 Sunday in UTC, so the range asked of Postgres is deliberately a day wide on each side and the decision is made in the family's own timezone afterwards. Also that home-practice logs are attributed through `murajaah_assignments` to the right child (the one count that can silently land on a sibling), that a week with no sessions issues no attendance query, and that a row for a child that was not asked about is dropped — the digest runs on the service-role client, so its own filtering is the only thing keeping one family's numbers out of another's summary
 - `tests/unit/roster.test.ts` (3), `tests/unit/supabaseClient.test.ts` (3) — the class roster filters on `class_id` rather than leaning on RLS to scope it, which since ADR-019 is what keeps a tutor-parent's own child out of the register they are marking; and the browser client's guard clause names both variables and the file to copy, because the person reading it is setting the project up for the first time
