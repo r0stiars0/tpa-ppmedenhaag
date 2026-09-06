@@ -51,7 +51,17 @@ Layar pertama yang tampil sebelum masuk.
 | Tagline | "TPA Progress Tracker" |
 | **Tombol "Masuk dengan Google"** | Memulai proses masuk melalui akun Google (Google OAuth). Ini satu-satunya cara masuk untuk pengguna sungguhan. |
 
-Jika akun Google Anda belum terdaftar oleh admin TPA, setelah masuk Anda akan melihat layar **"Akun Anda belum terdaftar. Hubungi admin TPA."** dengan tombol **Keluar**. Hubungi admin untuk didaftarkan (lihat [§12.1](#121-pendaftaran)).
+Jika akun Google Anda belum terdaftar oleh admin TPA, setelah masuk Anda akan melihat layar **"Akun Anda belum terdaftar. Hubungi admin TPA."** dengan sebuah formulir singkat di bawahnya dan tombol **Keluar**.
+
+**Formulir "Minta akses"** — isi agar admin dapat mendaftarkan Anda lebih cepat dan dengan peran yang tepat:
+
+| Bidang | Fungsi |
+|---|---|
+| **Nama lengkap** | Wajib. Sudah terisi dengan nama dari akun Google Anda; dapat Anda ubah. |
+| **Keterangan** | Opsional. Teks bebas: siapa Anda, untuk anak yang mana, mengapa Anda memerlukan akses. |
+| **Kirim permintaan** | Mengirim data ke admin. Tombol nonaktif selama bidang nama masih kosong. |
+
+Setelah dikirim, teks di atas berubah menjadi **"Permintaan Anda telah diterima. Admin akan meninjaunya sesegera mungkin."** Anda tetap di layar ini — permintaan itu sendiri tidak memberi akses. Anda dapat membuka formulir lagi dan memperbaiki data Anda selama admin belum mendaftarkan Anda. Begitu itu terjadi, saat memuat berikutnya Anda otomatis masuk ke aplikasi. Lihat juga [§12.1](#121-pendaftaran).
 
 > Catatan: pada versi pengembangan (developer), muncul kotak tambahan "Dev only — local fixture sign-in" untuk menguji berbagai akun contoh tanpa Google. Kotak ini **tidak pernah muncul** di aplikasi produksi/nyata dan tidak relevan bagi pengguna sehari-hari.
 
@@ -455,9 +465,10 @@ Hanya bisa diakses oleh akun dengan peran Admin, lewat ubin **Kelola** di Berand
 | Kolom | Fungsi |
 |---|---|
 | Email & tanggal pertama masuk | Informasi otomatis, tidak bisa diubah. |
-| **Nama Lengkap** | Diisi admin sebelum mendaftarkan. |
+| **Keterangan dari pengguna** | Hanya tampil jika orang tersebut mengisi keterangan pada formulir permintaan (lihat [§2](#2-masuk-ke-aplikasi)). Hanya-baca. |
+| **Nama Lengkap** | Sudah terisi dengan nama yang diberikan orang tersebut sendiri; kosong jika tidak ada (misalnya untuk akun yang diundang). Selalu dapat Anda ubah sebelum mendaftarkan. |
 | **Peran** | Sama seperti di atas. |
-| **Daftarkan** | Menyelesaikan pendaftaran orang tersebut — baris otomatis hilang dari daftar setelah berhasil. |
+| **Daftarkan** | Menyelesaikan pendaftaran orang tersebut — baris otomatis hilang dari daftar setelah berhasil, dan permintaan (beserta keterangannya) dihapus. |
 
 > Tidak ada tombol untuk menolak/menghapus pendaftaran yang menunggu — pilihannya hanya mendaftarkan atau membiarkannya menunggu.
 
