@@ -63,6 +63,15 @@ export const FIXTURE_USERS: FixtureUser[] = [
     id: 'd1000000-0000-0000-0000-000000000004',
     label: 'Aisyah (Santri 16+ in Grup A + assists in Grup B)',
   },
+  // The pending sign-in (TAD ADR-038): an auth.users row with no
+  // public.users row, so signing in as them lands on the Unauthorized
+  // screen and its "request access" form. The fixture also seeds their
+  // submitted request, so it opens in the "request received" state; the
+  // matching context shows on Admin Dev's Registrations page.
+  {
+    id: 'b1000000-0000-0000-0000-000000000002',
+    label: 'Hendrik van Dijk (pending — not yet registered)',
+  },
 ]
 
 function base64UrlFromBytes(bytes: ArrayBuffer): string {
