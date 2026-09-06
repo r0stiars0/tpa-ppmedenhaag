@@ -13,7 +13,8 @@
     "pendaftaran": "Registraties",
     "kelas": "Groepen",
     "santri": "Leerlingen",
-    "kelola": "Beheer"
+    "kelola": "Beheer",
+    "kehadiranGuru": "Aanwezigheid docenten"
   },
   "dashboard": {
     "thisWeek": "Deze week",
@@ -323,6 +324,11 @@
     "notAuthorized": "U heeft geen toegang tot deze actie."
   },
   "admin": {
+    "tutorAttendanceTitle": "Aanwezigheid docenten",
+    "tutorAttendancePickTutor": "Kies docent",
+    "tutorAttendanceNoData": "Er is nog geen aanwezigheid van docenten vastgelegd.",
+    "tutorAttendanceCounts": "{{present}} aanwezig · {{late}} te laat · {{absent}} afwezig",
+    "allGroups": "Alle groepen",
     "registrationsTitle": "Gebruikersregistraties",
     "inviteSectionTitle": "Nieuwe gebruiker uitnodigen",
     "inviteEmail": "E-mailadres",

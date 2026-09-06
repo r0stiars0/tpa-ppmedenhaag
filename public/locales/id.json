@@ -13,7 +13,8 @@
     "pendaftaran": "Pendaftaran",
     "kelas": "Grup",
     "santri": "Santri",
-    "kelola": "Kelola"
+    "kelola": "Kelola",
+    "kehadiranGuru": "Kehadiran Guru"
   },
   "dashboard": {
     "thisWeek": "Minggu ini",
@@ -323,6 +324,11 @@
     "notAuthorized": "Anda tidak memiliki akses untuk tindakan ini."
   },
   "admin": {
+    "tutorAttendanceTitle": "Kehadiran Guru",
+    "tutorAttendancePickTutor": "Pilih guru",
+    "tutorAttendanceNoData": "Belum ada kehadiran guru yang tercatat.",
+    "tutorAttendanceCounts": "{{present}} hadir · {{late}} terlambat · {{absent}} absen",
+    "allGroups": "Semua grup",
     "registrationsTitle": "Pendaftaran Pengguna",
     "inviteSectionTitle": "Undang Pengguna Baru",
     "inviteEmail": "Alamat Email",

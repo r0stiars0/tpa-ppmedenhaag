@@ -148,6 +148,80 @@ export async function submitTutorAttendance(
   if (error) throw error
 }
 
+// ─── Admin review of tutor attendance (TAD ADR-041, part 2) ──────────
+// The `/admin/tutor-attendance` screen. Both queries below rely only on
+// the admin's existing grants — `tutor_attendance_admin_all` (RLS-85)
+// and `users_admin_all` — so there is no new policy or migration.
+
+/**
+ * The tutors an admin can review — everyone with at least one
+ * `tutor_attendance` row, so the picker is driven by recorded turnout
+ * rather than a raw `tutor_ids` list (a pure student-assistant, excluded
+ * from `fn_class_tutors`, never appears here for want of rows).
+ */
+export async function fetchReviewableTutors(): Promise<ClassTutor[]> {
+  const { data, error } = await supabase
+    .from('tutor_attendance')
+    .select('tutor_id, tutor:users!tutor_attendance_tutor_id_fkey(full_name)')
+  if (error) throw error
+
+  const byId = new Map<string, string>()
+  for (const row of (data ?? []) as { tutor_id: string; tutor: { full_name: string } | null }[]) {
+    if (!byId.has(row.tutor_id)) byId.set(row.tutor_id, row.tutor?.full_name ?? '')
+  }
+  return [...byId.entries()]
+    .map(([user_id, full_name]) => ({ user_id, full_name }))
+    .sort((a, b) => a.full_name.localeCompare(b.full_name))
+}
+
+export interface TutorAttendanceHistoryRow {
+  id: string
+  status: AttendanceStatus
+  reason: string | null
+  date: string
+  className: string
+}
+
+/**
+ * Every `tutor_attendance` row for one tutor, across all the groups they
+ * teach, with the session date and group name stitched in via a second
+ * query — the `fetchAttendanceHistory` shape, and small enough (~40
+ * sessions/year) that client-side date filtering is fine.
+ */
+export async function fetchTutorAttendanceHistory(
+  tutorId: string,
+): Promise<TutorAttendanceHistoryRow[]> {
+  const { data: rows, error } = await supabase
+    .from('tutor_attendance')
+    .select('id, status, reason, session_id')
+    .eq('tutor_id', tutorId)
+  if (error) throw error
+  if (!rows || rows.length === 0) return []
+
+  const sessionIds = [...new Set(rows.map((r) => r.session_id))]
+  const { data: sessions, error: sessionsError } = await supabase
+    .from('sessions')
+    .select('id, date, class:classes(name)')
+    .in('id', sessionIds)
+  if (sessionsError) throw sessionsError
+
+  const bySession = new Map(
+    ((sessions ?? []) as { id: string; date: string; class: { name: string } | null }[]).map((s) => [
+      s.id,
+      { date: s.date, className: s.class?.name ?? '' },
+    ]),
+  )
+  return rows
+    .map((r) => ({
+      id: r.id,
+      status: r.status,
+      reason: r.reason,
+      date: bySession.get(r.session_id)?.date ?? '',
+      className: bySession.get(r.session_id)?.className ?? '',
+    }))
+    .sort((a, b) => (a.date < b.date ? 1 : -1))
+}
+
 export interface AttendanceHistoryRow {
   id: string
   status: AttendanceStatus
