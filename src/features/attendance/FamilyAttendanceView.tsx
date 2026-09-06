@@ -6,7 +6,13 @@ import { isSelfRecord } from '../../lib/capabilities'
 import { ChildPicker } from '../../components/ChildPicker'
 import { computeAttendanceRate } from '../../lib/attendance'
 import { getErrorMessage } from '../../lib/errors'
-import { fetchAttendanceHistory, todayLocalDate, type AttendanceHistoryRow } from './api'
+import { formatDayList } from '../../lib/weekdays'
+import {
+  fetchAttendanceHistory,
+  fetchStudentMeetingDays,
+  todayLocalDate,
+  type AttendanceHistoryRow,
+} from './api'
 
 function daysAgo(days: number): string {
   const d = new Date()
@@ -34,10 +40,28 @@ export function FamilyAttendanceView() {
   const [error, setError] = useState<string | null>(null)
   const [from, setFrom] = useState(() => daysAgo(90))
   const [to, setTo] = useState(() => todayLocalDate())
+  const [meetingDays, setMeetingDays] = useState<number[] | null>(null)
 
   useEffect(() => {
     if (!studentId && students.length > 0) setStudentId(students[0].id)
   }, [students, studentId])
+
+  useEffect(() => {
+    if (!studentId) return
+    let active = true
+    setMeetingDays(null)
+    fetchStudentMeetingDays(studentId)
+      .then((cls) => {
+        if (active) setMeetingDays(cls?.meeting_days ?? [])
+      })
+      .catch(() => {
+        // A non-fatal extra: the history below is the screen's job.
+        if (active) setMeetingDays([])
+      })
+    return () => {
+      active = false
+    }
+  }, [studentId])
 
   useEffect(() => {
     if (!studentId) return
@@ -143,6 +167,11 @@ export function FamilyAttendanceView() {
       <div className="rounded-lg bg-white p-4 text-center shadow-sm">
         <p className="text-3xl font-bold text-ppme-primary">{rate}%</p>
         <p className="mt-1 text-sm text-ppme-text/70">{t('attendance.attendanceRate')}</p>
+        {meetingDays && meetingDays.length > 0 && (
+          <p className="mt-2 text-xs text-ppme-text/60">
+            {t('attendance.meetingDaysLabel')}: {formatDayList(meetingDays, t)}
+          </p>
+        )}
       </div>
 
       {error && <p className="rounded-lg bg-ppme-danger/10 p-3 text-sm text-ppme-danger">{error}</p>}

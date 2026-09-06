@@ -68,6 +68,28 @@ export async function getOrCreateScheduledSession(
   throw insertError
 }
 
+/**
+ * The meeting days (and time-range text) of the class a student is
+ * enrolled in, for the read-only "Lesdagen" line on the family
+ * attendance screen (TAD ADR-037). `classes_read` already grants a
+ * parent / 16+ student the class row for their own child, so no policy
+ * change is needed; the embed resolves through students.class_id. Null
+ * when the student is not enrolled in any class.
+ */
+export async function fetchStudentMeetingDays(
+  studentId: string,
+): Promise<{ meeting_days: number[]; schedule: string | null } | null> {
+  const { data, error } = await supabase
+    .from('students')
+    .select('class:classes(meeting_days, schedule)')
+    .eq('id', studentId)
+    .maybeSingle()
+  if (error) throw error
+  const cls = (data as { class: { meeting_days: number[]; schedule: string | null } | null } | null)
+    ?.class
+  return cls ?? null
+}
+
 export async function fetchAttendanceForSession(sessionId: string): Promise<Tables<'attendance'>[]> {
   const { data, error } = await supabase.from('attendance').select('*').eq('session_id', sessionId)
   if (error) throw error
