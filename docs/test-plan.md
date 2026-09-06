@@ -313,9 +313,9 @@ that already carries a `registration_requests` submission.
 - [ ] RLS-61 — an **already-registered** user's `INSERT` is refused by the `not exists (select 1 from public.users where id = auth.uid())` guard, even though no UI path reaches it — defence in depth asserted directly
 - [ ] RLS-62 — UR `SELECT`s and `UPDATE`s only their own row; another UR's request row is 0 rows on read and a silent no-op on write. Covers the `on conflict do update` (revise) path the client's `submitRegistrationRequest` upsert takes
 - [ ] RLS-63 — `fn_pending_registrations()` returns `full_name`/`description` to an **admin** caller and 0 rows to a non-admin caller; an entry with no `registration_requests` row comes back with both columns `null` (the invite-created / pre-migration-020 case)
-- [ ] RLS-64 — after an admin `INSERT`s the matching `public.users` row, the `registration_requests` row is **gone** — asserted from outside the approving session, since a filtered delete and a real one look identical from inside it. Proves `fn_cleanup_registration_request()` fired rather than assuming it
+- [ ] RLS-64 — after an admin `INSERT`s the matching `public.users` row, the `registration_requests` row is **gone** (and an unrelated request row is not) — asserted from outside the approving session, since a filtered delete and a real one look identical from inside it. Proves `fn_cleanup_registration_request()` fired rather than assuming it
 
-*Total after these: 280 pgTAP assertions.*
+*Total after these: 284 pgTAP assertions.*
 
 ## 4. Unit tests (Vitest)
 
@@ -487,6 +487,7 @@ mapping, not RLS (§3.4 owns that).
 - [ ] `submitRegistrationRequest` issues one `upsert` on `registration_requests` keyed `onConflict: 'id'`, trims `full_name`, and normalises an empty `description` to `null`
 - [ ] a post-approval write that fails the self-insert policy (`42501`, because the `public.users` row now exists) is surfaced as its own outcome, not a generic error — the state `Unauthorized.tsx` treats as "you're in, reload"
 - [ ] `fetchPendingRegistrations` maps the extra `full_name`/`description` columns through, leaving both `null` for a legacy entry, and the type is `string | null` on each
+- [ ] the Unauthorized form's initial `full_name` is the existing request's name when one exists, and otherwise `session.user.user_metadata.full_name ?? .name ?? ''` — the Google-profile prefill (FR-1a), asserted as a small pure helper so it needs no component render
 
 ### 4.6 Access control and delivery inside the Functions
 
@@ -572,7 +573,7 @@ Run against Preview deploys with fixture data; auth mocked via Supabase test JWT
 | E2E-15 | Admin opens "Grup Baru" → Saturday is preselected → clears every day → Save is disabled with the hint → picks Monday + Saturday → saves → reopens for edit, both are checked, and the list row shows "ma, za" (TAD ADR-037) | Admin |
 | E2E-16 | Tutor opens Attendance on a meeting day → the header shows today → steps back to the previous meeting day, edits and saves it → steps back onto a scheduled day marked "niet ingevuld", records it, save creates the session → forward step is disabled at the current session and back step stops at the academic-year start (TAD ADR-037) | Tutor |
 | E2E-17 | Parent opens the child's Attendance screen → the read-only "Lesdagen" line matches the child's class `meeting_days` (TAD ADR-037) | Parent |
-| E2E-18 | Unregistered Google account signs in → Unauthorized screen shows the name + context form → submits both → screen switches to the "request received" state, and reloading keeps it → admin opens Registrations and sees the name prefilled and the context read-only → admin approves → the `registration_requests` row is cleaned up (a second unregistered account that submits nothing still appears with blank fields) (TAD ADR-038) | Unregistered → Admin |
+| E2E-18 | Unregistered Google account signs in → Unauthorized screen shows the name + context form with `full_name` prefilled from the Google profile → user edits the name and adds context → submits → screen switches to the "request received" state, and reloading keeps it → admin opens Registrations and sees the edited name prefilled and the context read-only → admin approves → the `registration_requests` row is cleaned up (a second unregistered account that submits nothing still appears with blank fields) (TAD ADR-038) | Unregistered → Admin |
 
 *E2E-15…E2E-18 are specified but not implemented — this project has no
 authenticated Playwright harness yet (`e2e/sign-in.spec.ts` documents
