@@ -609,11 +609,25 @@ MD-01…MD-08, §3.4 RLS-60…64).*
 | iOS not-installed state → graceful explanation, no broken prompt | — | ☐ | — |
 | App installable (manifest valid, icons 192/512/maskable) | ☐ | ☐ | ☐ |
 | **Installed** PWA: notification is attributed to "TPA PPME Den Haag", not to Chrome | ☐ | ☐ | n/a |
-| Offline: app shell loads, cached data visible, clear offline banner | ☐ | ☐ | ☐ |
+| Offline: app shell loads, cached data visible, clear offline banner | ☐ | ☐ | ☐ (partial — see note; locale JSON now precached) |
 | Offline write-queue (ADR-029, in scope and built): attendance/murajaah recorded offline queues, shows "will sync", and replays once online; a genuine rejection (not a network failure) still surfaces immediately rather than queuing | ☐ | ☐ | ☑ |
 | Offline write-queue, Yanbu'a/Quran recording (ADR-030, `client_ref` idempotency): same queue/replay/"will sync" behavior as the row above, plus a replay whose response was lost after the write already committed must not create a duplicate progress row | ☐ | ☐ | ☐ |
 
 **The offline write-queue's Desktop Chrome column is now ticked for attendance/murajaah, verified live** against the local Postgres stack (`npx supabase start`, dev fixture loaded) and `npm run dev`, not just unit-tested. Signed in as Ustadz Ahmad (tutor), Chrome DevTools' Network throttling set to "Offline": marking attendance for Grup A showed the queued "will sync" banner instead of an error, and the entry appeared in IndexedDB (`tpa-offline-queue`). Switching throttling back to "No throttling" fired the `online` event, the entry replayed and cleared from IndexedDB, and the rows appeared in `attendance` in Supabase Studio. Repeated as Ibu Siti (parent) confirming a murajaah target assigned for the test: same queued banner, same replay-and-clear on reconnect, row landed in `murajaah_log`. A second same-day confirmation attempt while online correctly surfaced the red rejection banner rather than being queued, confirming the network-vs-server-rejection distinction holds under real conditions, not just in the mocked unit tests. Android and iOS remain unticked below, for the same reason as the rest of the matrix — no device available.
+
+**The "app shell loads offline" row is still unticked, but one necessary
+piece of it is now done.** The workbox `globPatterns` (`vite.config.ts`,
+ADR-015(f)) omitted `json`, so `/locales/{id,nl}.json` — which i18next
+fetches at runtime — was never in the precache: offline or in an
+installed PWA, the shell would paint but every `t()` key rendered raw.
+`json` is now in the glob (`precache 22 entries`, up from 20), and a
+Playwright check confirms an **offline** `fetch('/locales/nl.json')` is
+served from the precache with real content. `tests/unit/pwaPrecache.test.ts`
+pins the glob so a future edit that drops `json` fails. This does **not**
+tick the row: a full offline reload still does not mount the app, because
+`AuthContext` blocks the first render on `supabase.auth.getSession()`,
+which hangs with no network — graceful degradation of the auth boot is a
+separate, larger change.
 
 **The Yanbu'a/Quran row is unticked in every column, and that is accurate rather than merely cautious.** `client_ref`'s idempotency was verified against the same local Postgres+RLS stack, but at the REST layer directly — a fixture tutor's JWT minted the same way `DevAuthSwitcher` does it, not a browser click-through: a fresh `client_ref` insert into `yanbua_progress` returned `201`; resubmitting the identical `client_ref` — simulating a replay of an entry whose response was lost after the write had already committed — returned `409`/`23505`, and a follow-up read confirmed exactly one row existed for it, not two; a `tutor_id` not matching the caller's own returned `403`/`42501` (RLS); an out-of-range `ayah_to < ayah_from` on `quran_progress` returned `400`/`23514` (check constraint) — both genuine rejections, distinct from a network error, so the real UI's `isNetworkError` check would not have queued either. What this did **not** exercise is the actual browser: no automation tool was available in the session that built this, so the "will sync" banner, the IndexedDB entry, and replay-on-reconnect have not been driven through `npm run dev` for these two screens the way they were for attendance/murajaah above. That click-through — Chrome DevTools Network set to "Offline", record a Yanbu'a session and a Quran recitation as a tutor, confirm both queue and show the banner, go back online, confirm both replay and land in Supabase Studio — is the one remaining step before this row can be ticked.
 
