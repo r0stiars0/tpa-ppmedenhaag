@@ -11,17 +11,21 @@ import { bottomNavTabs } from './tabs'
  *
  * It carries the five prototype-validated operational tabs (ADR-014),
  * then Rapport for every role, then Beheer for admin — see
- * `bottomNavTabs`. Seven 44px targets do not fit across a 390px column,
- * so the bar **scrolls horizontally under the thumb** (`overflow-x-auto`,
- * the same pattern `AdminSectionNav` and now `DesktopTabs` use) rather
- * than clipping its tail: before this, "Rapport" and "Beheer" sat off
- * the right edge in portrait with no way to reach them.
+ * `bottomNavTabs`. Even four or five generous targets do not fit across
+ * a 390px column, so the bar **scrolls horizontally under the thumb**
+ * (`overflow-x-auto`, the same pattern `AdminSectionNav` and now
+ * `DesktopTabs` use) rather than clipping its tail: before this,
+ * "Rapport" and "Beheer" sat off the right edge in portrait with no way
+ * to reach them.
  *
- * Each tab is `flex-1` with a fixed min width, so the six-tab case (a
- * non-admin) still stretches to fill a 390px bar with only a little
- * overflow, while the seven-tab admin case overflows enough to need a
- * swipe. The active tab is scrolled into view on navigation so a
- * deep-linked Rapport or Beheer is never hidden past the edge.
+ * The targets are deliberately large — `min-h-14` (56px, above the 44px
+ * floor) and `min-w-[5.25rem]` with `text-sm` — so the bar is
+ * comfortable for a large thumb; because it scrolls, making each tab
+ * bigger costs reach on neither end. Each tab is also `flex-1`, so when
+ * only a few are present they still stretch to fill the bar rather than
+ * leaving dead space. The active tab is scrolled into view on
+ * navigation so a deep-linked Rapport or Beheer is never hidden past the
+ * edge.
  *
  * ADR-025's scope switch is still **not** here: a scope is not a
  * destination — pressing it changes what the current screen is about
@@ -51,7 +55,7 @@ export function BottomTabNav() {
           key={to}
           to={to}
           className={({ isActive }) =>
-            `flex min-h-11 min-w-[4.5rem] flex-1 shrink-0 flex-col items-center justify-center gap-0.5 whitespace-nowrap px-1 py-2 text-xs font-medium ${
+            `flex min-h-14 min-w-[5.25rem] flex-1 shrink-0 flex-col items-center justify-center gap-1 whitespace-nowrap px-2 py-2.5 text-sm font-medium ${
               isActive ? 'text-ppme-primary' : 'text-ppme-text/60'
             }`
           }
