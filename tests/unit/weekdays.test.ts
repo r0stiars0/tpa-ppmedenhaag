@@ -57,16 +57,16 @@ describe('isMeetingDay', () => {
 })
 
 describe('formatDayList', () => {
-  const t = (key: string) => key.replace('weekday.', 'd').replace('.', '-') // e.g. "d6-short"
+  const t = (key: string) => key // identity: assert the i18n keys chosen
 
   it('renders Monday-first regardless of the input order', () => {
-    expect(formatDayList([0, 6], t, 'short')).toBe('d6-short, d0-short') // Sat then Sun
-    expect(formatDayList([6, 3], t, 'short')).toBe('d3-short, d6-short') // Wed then Sat
+    expect(formatDayList([0, 6], t, 'short')).toBe('days.sat.short, days.sun.short')
+    expect(formatDayList([6, 3], t, 'short')).toBe('days.wed.short, days.sat.short')
   })
 
   it('honours the style argument and defaults to short', () => {
-    expect(formatDayList([1], t, 'long')).toBe('d1-long')
-    expect(formatDayList([1], t)).toBe('d1-short')
+    expect(formatDayList([1], t, 'long')).toBe('days.mon.long')
+    expect(formatDayList([1], t)).toBe('days.mon.short')
   })
 
   it('is empty for an empty set', () => {

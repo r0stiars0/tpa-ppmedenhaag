@@ -71,7 +71,13 @@
     "attendanceRate": "Kehadiran",
     "submitted": "Kehadiran berhasil dikirim",
     "confirmSubmit": "Kirim kehadiran untuk {{count}} santri?",
-    "ownRowNotEditable": "Kehadiranmu sendiri dicatat oleh ustadz lain atau admin."
+    "ownRowNotEditable": "Kehadiranmu sendiri dicatat oleh ustadz lain atau admin.",
+    "prevSession": "Sesi sebelumnya",
+    "nextSession": "Sesi berikutnya",
+    "sessionNotRecorded": "belum diisi",
+    "noEarlierSession": "Tidak ada sesi lebih awal pada tahun ajaran ini",
+    "offlineNoSession": "Sambungkan ke internet untuk mencatat sesi baru ini",
+    "meetingDaysLabel": "Hari pertemuan"
   },
   "assignments": {
     "title": "Tugas",
@@ -241,13 +247,13 @@
     "myFamily": "Keluarga saya"
   },
   "days": {
-    "mon": "Sn",
-    "tue": "Sl",
-    "wed": "Rb",
-    "thu": "Km",
-    "fri": "Jm",
-    "sat": "Sb",
-    "sun": "Ah"
+    "mon": { "short": "Sn", "long": "Senin" },
+    "tue": { "short": "Sl", "long": "Selasa" },
+    "wed": { "short": "Rb", "long": "Rabu" },
+    "thu": { "short": "Km", "long": "Kamis" },
+    "fri": { "short": "Jm", "long": "Jumat" },
+    "sat": { "short": "Sb", "long": "Sabtu" },
+    "sun": { "short": "Ah", "long": "Ahad" }
   },
   "reports": {
     "title": "Rapor",
@@ -324,6 +330,8 @@
     "newClass": "Grup Baru",
     "className": "Nama Grup",
     "classSchedule": "Jadwal",
+    "meetingDays": "Hari pertemuan",
+    "meetingDaysHint": "Pilih minimal satu hari",
     "assignTutors": "Ustadz Pengampu",
     "noTutors": "Belum ada ustadz terdaftar",
     "noClasses": "Belum ada grup",

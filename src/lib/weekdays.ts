@@ -19,6 +19,9 @@ export type Dow = 0 | 1 | 2 | 3 | 4 | 5 | 6
 /** Monday-first, for rendering. Storage and comparisons stay ascending. */
 export const DISPLAY_ORDER: readonly Dow[] = [1, 2, 3, 4, 5, 6, 0]
 
+/** dow (index) → i18n key under the `days` namespace, e.g. `days.sat.long`. */
+export const DOW_KEY = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
+
 const DAY_MS = 86_400_000
 
 function parseDate(date: string): number {
@@ -55,8 +58,8 @@ export function isMeetingDay(days: readonly number[], isoDate: string): boolean 
 }
 
 /**
- * Monday-first locale label list, e.g. "ma, za" / "sen, sab". `t` is
- * i18next's `t`; keys are `weekday.<dow>.short` and `weekday.<dow>.long`.
+ * Monday-first locale label list, e.g. "Za, Zo" / "Sb, Ah". `t` is
+ * i18next's `t`; keys are `days.<mon|tue|…>.short` and `.long`.
  */
 export function formatDayList(
   days: readonly number[],
@@ -64,7 +67,7 @@ export function formatDayList(
   style: 'short' | 'long' = 'short',
 ): string {
   return DISPLAY_ORDER.filter((d) => days.includes(d))
-    .map((d) => t(`weekday.${d}.${style}`))
+    .map((d) => t(`days.${DOW_KEY[d]}.${style}`))
     .join(', ')
 }
 

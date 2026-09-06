@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ROLE_I18N_KEY } from '../../lib/roleLabels'
-import { DISPLAY_ORDER, normaliseDows } from '../../lib/weekdays'
+import { DISPLAY_ORDER, DOW_KEY, normaliseDows } from '../../lib/weekdays'
 import type { DirectoryUser, AdminClass } from './api'
 
 interface ClassFormProps {
@@ -80,7 +80,7 @@ export function ClassForm({ initial, tutors, saving, onSave, onCancel }: ClassFo
                   onChange={() => toggleDay(dow)}
                   className="h-4 w-4"
                 />
-                {t(`weekday.${dow}.long`)}
+                {t(`days.${DOW_KEY[dow]}.long`)}
               </label>
             )
           })}
