@@ -223,16 +223,22 @@ grant execute on function public.fn_my_family_students() to authenticated;
 -- The data-minimising half: push-subscribe / the settings screen answer
 -- "may this account receive notifications" without loading child names
 -- (ADR-022(c), ADR-040(e)).
-create or replace function public.fn_my_family_flags()
+--
+-- `p_user` defaults to `auth.uid()` for the browser. `push-subscribe` is
+-- a Netlify Function on the service-role client — it has no `auth.uid()`
+-- — so it passes the caller's id explicitly. The result is two booleans
+-- about that account and no child data, so an authenticated caller
+-- passing someone else's id learns nothing sensitive.
+create or replace function public.fn_my_family_flags(p_user uuid default null)
 returns table (is_parent boolean, is_self boolean)
 language sql stable security definer set search_path = public as $$
   select
     exists (select 1 from public.student_guardians
-            where user_id = auth.uid() and unlinked_at is null),
-    exists (select 1 from public.students where user_id = auth.uid())
+            where user_id = coalesce(p_user, auth.uid()) and unlinked_at is null),
+    exists (select 1 from public.students where user_id = coalesce(p_user, auth.uid()))
 $$;
 
-grant execute on function public.fn_my_family_flags() to authenticated;
+grant execute on function public.fn_my_family_flags(uuid) to authenticated;
 
 -- One admin RPC for the whole student save — the students row and its
 -- guardian set written in a single transaction, so trigger B2 always has

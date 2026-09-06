@@ -125,9 +125,15 @@ export function familyRelationships(
  */
 export async function fetchFamilyRelationships(
   client: SupabaseClient<Database>,
-  _userId?: string,
+  userId?: string,
 ): Promise<RecipientRelationships> {
-  const { data, error } = await client.rpc('fn_my_family_flags')
+  // The browser omits `userId` and `fn_my_family_flags` uses `auth.uid()`.
+  // `push-subscribe` runs on the service-role client with no `auth.uid()`,
+  // so it passes the caller's id explicitly (ADR-040).
+  const { data, error } = await client.rpc(
+    'fn_my_family_flags',
+    userId ? { p_user: userId } : {},
+  )
   if (error) throw error
   const row = data?.[0]
   return {

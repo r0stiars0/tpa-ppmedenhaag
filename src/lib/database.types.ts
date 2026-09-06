@@ -817,7 +817,7 @@ export type Database = {
       fn_my_class_students: { Args: never; Returns: string[] }
       fn_my_classes: { Args: never; Returns: string[] }
       fn_my_family_flags: {
-        Args: never
+        Args: { p_user?: string }
         Returns: {
           is_parent: boolean
           is_self: boolean
