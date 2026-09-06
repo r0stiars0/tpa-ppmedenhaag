@@ -19,7 +19,10 @@
 -- is also a parent, a parent who is also a tutor, an admin who is both
 -- — TAD ADR-019 — and a 16+ student who assists in a class, ADR-020) +
 -- 2 classes + 8 students + 1 pending (unregistered) sign-in for the
--- Registrations page to show.
+-- Registrations page to show — which, since ADR-038, also carries the
+-- name + free-text context that person submitted from the Unauthorized
+-- screen, plus a Google `full_name` in its metadata so the form's
+-- prefill is visible if the request row is deleted.
 -- No attendance/yanbua_progress rows — left empty so the record/create
 -- flows can be exercised from scratch.
 -- ============================================================
@@ -59,8 +62,10 @@ values
   ('00000000-0000-0000-0000-000000000000', 'd1000000-0000-0000-0000-000000000003', 'authenticated', 'authenticated', 'ustadzah.laila@dev.local', '', now(), '{}', '{}', false, false, now(), now(), '', '', '', '', '', '', '', ''),
   ('00000000-0000-0000-0000-000000000000', 'd1000000-0000-0000-0000-000000000004', 'authenticated', 'authenticated', 'aisyah@dev.local', '', now(), '{}', '{}', false, false, now(), now(), '', '', '', '', '', '', '', ''),
   -- Deliberately no matching public.users row — this is what the
-  -- Registrations page (admin-only) is for.
-  ('00000000-0000-0000-0000-000000000000', 'b1000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'calon.ustadz@dev.local', '', now(), '{}', '{}', false, false, now(), now(), '', '', '', '', '', '', '', '');
+  -- Registrations page (admin-only) is for. `raw_user_meta_data` carries a
+  -- Google-style `full_name`, which the Unauthorized form (ADR-038)
+  -- prefills into its name field.
+  ('00000000-0000-0000-0000-000000000000', 'b1000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'calon.ustadz@dev.local', '', now(), '{}', '{"full_name":"Hendrik van Dijk","name":"Hendrik van Dijk"}', false, false, now(), now(), '', '', '', '', '', '', '', '');
 
 insert into public.users (id, email, full_name, role, locale)
 values
@@ -182,3 +187,15 @@ values
   -- login, who assists in Grup B. Still linked to a parent, as every
   -- student record is (the hybrid account model).
   ('a5000000-0000-0000-0000-000000000008', 'a2000000-0000-0000-0000-000000000002', 'd1000000-0000-0000-0000-000000000004', 'Aisyah', 'a4000000-0000-0000-0000-000000000001', '2008-06-12');
+
+-- Registration request (migration 020, TAD ADR-038): the context that the
+-- pending sign-in above submitted from the Unauthorized screen. Signing in
+-- as that account shows the "request received" state (and lets you revise
+-- it); signing in as Admin Dev shows this name pre-filled and the note
+-- read-only on the Registrations page. Delete this row in Studio to see
+-- the fresh form, prefilled from the Google `full_name` in the metadata
+-- above.
+insert into public.registration_requests (id, full_name, description)
+values
+  ('b1000000-0000-0000-0000-000000000002', 'Hendrik van Dijk',
+   'Ik wil graag als ustadz helpen bij Grup B. Afgesproken met Ustadz Ahmad tijdens de ouderavond.');

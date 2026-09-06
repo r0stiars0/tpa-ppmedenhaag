@@ -7,6 +7,14 @@ export interface PendingRegistration {
   id: string
   email: string
   created_at: string
+  /**
+   * The name and free-text context the user submitted from the
+   * Unauthorized screen (ADR-038). Both `null` for anyone who reached
+   * the pending list without submitting one — an `invite-user` account,
+   * or a sign-in predating migration 020.
+   */
+  full_name: string | null
+  description: string | null
 }
 
 export async function fetchPendingRegistrations(): Promise<PendingRegistration[]> {
@@ -52,6 +60,35 @@ export async function inviteUser(params: { email: string; full_name: string; rol
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { error?: string } | null
     throw new Error(body?.error ?? `Invite failed (${res.status})`)
+  }
+}
+
+/**
+ * Rejects a still-pending registration via the reject-registration
+ * Netlify Function (TAD ADR-039) — deletes the `auth.users` row the
+ * pending state is keyed on. Service-role only, same as inviteUser: the
+ * pending list is `auth.users` rows, which the browser client cannot
+ * touch. The Function refuses (409) if the id already has a profile, so
+ * this can never cascade into a real account.
+ */
+export async function rejectRegistration(id: string): Promise<void> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  if (!session) throw new Error('Not signed in')
+
+  const res = await fetch('/.netlify/functions/reject-registration', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ id }),
+  })
+
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: string } | null
+    throw new Error(body?.error ?? `Reject failed (${res.status})`)
   }
 }
 

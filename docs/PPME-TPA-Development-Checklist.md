@@ -173,6 +173,8 @@ Not part of the original PRD/TAD feature list or this checklist's build order �
 
 - [x] `/admin/registrations`, `/admin/classes`, `/admin/students` built (`src/features/admin/`)
 - [x] Migration 008: `fn_pending_registrations()` — admin-only (enforced in the function itself), the only way to discover a Google sign-in with no `public.users` profile yet
+- [x] Migration 020 (ADR-038): `registration_requests` staging table — a signed-in but unregistered user submits their own name + free-text context from the Unauthorized screen; `fn_pending_registrations()` widened to carry it; the admin Registrations page prefills the name and shows the context read-only; a trigger deletes the request on approval
+- [x] `reject-registration` Netlify Function (ADR-039): admin-only, deletes the pending `auth.users` row via GoTrue's Admin API (409 if it already has a profile); a "Reject" button beside "Register" on the Registrations page, behind a `window.confirm`. No migration — `auth.users` is outside RLS; the `registration_requests` row goes with it via cascade
 - [x] Email invite flow: `netlify/functions/invite-user.mts` — creates `auth.users` + `public.users` together in one admin action, via `auth.admin.createUser()` under the service-role key (ADR-026; `auth.admin.inviteUserByEmail()` until then). Verified live against the local stack: 201 with a confirmed row, 409 on re-invite, zero GoTrue mail. **Not verified from this machine**: a real Google OAuth sign-in against a `createUser`-created row — no test Google account is available here, so ADR-026(a)'s account-linking claim rests on reading GoTrue's own source rather than a click-through
 - [x] ~~Admin nav is exclusive, not additive~~ — **reversed by ADR-014.** `ADMIN_NAV_TABS` (which replaced the operational tabs) is now `ADMIN_SECTION_TABS`, a secondary pill strip *inside* `/admin/*`; admin gets the same five operational tabs as everyone else plus one "Kelola" entry point. `AdminRestricted.tsx` and its two i18n keys are deleted. `RequireAdmin.tsx` is unchanged and still guards every `/admin/*` route — including the new `/admin` index, which redirects to `/admin/registrations`
 - [x] Dev-only fixture sign-in panel (`src/dev/DevAuthSwitcher.tsx`) + `supabase/dev-fixture.sql` — lets the whole admin flow (and Milestone 1) be exercised locally without real Google OAuth. The panel now also offers the fixture's **second tutor** (Ustadz Baru, assigned to Grup B only), which the fixture always contained but the panel never listed — it is the only way to check a tutor's class scoping from the browser rather than with a hand-minted JWT, and that check got more important once admin stopped being the only role whose scope was worth re-testing
@@ -560,3 +562,34 @@ This change lets such a person *use* both halves; it does not let anyone
 *create* one. Widening those pickers is an enrolment decision about who
 may be attached to a child's record, with a DPIA question of its own, and
 belongs to the admin-UI change that follows.
+
+**Status update (registration context, TAD ADR-038):** the Unauthorized
+screen is no longer a dead end. A signed-in Google account with no
+`public.users` row can now submit its own full name (prefilled from the
+Google profile, still editable) and an optional free-text note for the
+admin, into a `registration_requests` staging table (migration 020) that
+mirrors `public.users`' own RLS shape plus a self-insert guarded against
+an already-registered caller. `fn_pending_registrations()` is dropped and
+recreated to carry `full_name`/`description` — `null` for any pending
+entry that predates this or came in through `invite-user` — and the admin
+Registrations page prefills the editable name from the submission and
+shows the note read-only above it. A `security definer` trigger on
+`public.users` insert deletes the request row on approval, whatever path
+created the profile. Six i18n keys per locale;
+pgTAP RLS-60…64; `tests/unit/registrationRequests.test.ts`.
+
+**Status update (reject a request, TAD ADR-039):** the pending list is
+now actionable in both directions. `reject-registration` — an admin-only
+Netlify Function mirroring `invite-user`, service-role key, in-code admin
+check — deletes the pending `auth.users` row via `auth.admin.deleteUser`,
+refusing (409) if that id already has a `public.users` row so it can
+never cascade into a real profile. The staged `registration_requests`
+row goes with it via its own `on delete cascade`. Core logic in
+`netlify/functions/lib/rejectRegistration.ts` (thin `.mts` handler, the
+`publishFlow`/`reportAccess` split); a filled-red "Reject" button beside
+"Register" on the Registrations page, behind `window.confirm`. No
+migration, no RLS — `auth.users` is outside both. Rejection is not a
+blocklist: the same Google account can sign in again and returns as a
+fresh pending entry, which the confirm dialog and the user manual both
+say. Two i18n keys per locale; `tests/unit/rejectRegistration.test.ts`
+(8); openapi `/reject-registration`; test-plan E2E-19.

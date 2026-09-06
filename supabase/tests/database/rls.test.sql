@@ -149,6 +149,20 @@ values
   ('d0000000-0000-0000-0000-000000000004', '2025/2026', '70000000-0000-0000-0000-000000000002', 'published'),  -- S16: published, class B / T2
   ('d0000000-0000-0000-0000-000000000004', '2024/2025', '70000000-0000-0000-0000-000000000002', 'draft');      -- S16: draft (different year), class B / T2
 
+-- registration requests (migration 020, TAD ADR-038)
+-- UR1/UR2/UR3: signed in (auth.users) but NOT registered (no public.users
+-- row). UR2 has already submitted a request; UR1 submits one in RLS-60;
+-- UR3 never does — the invite-created / pre-migration-020 shape.
+insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous, created_at, updated_at)
+values
+  ('4e000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'ur1@test.local', '', now(), '{}', '{}', false, false, now(), now()),
+  ('4e000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'ur2@test.local', '', now(), '{}', '{}', false, false, now(), now()),
+  ('4e000000-0000-0000-0000-000000000003', 'authenticated', 'authenticated', 'ur3@test.local', '', now(), '{}', '{}', false, false, now(), now());
+
+insert into public.registration_requests (id, full_name, description)
+values
+  ('4e000000-0000-0000-0000-000000000002', 'Ur Two Submitted', 'Ouder van een kind in Klas A');
+
 -- ============================================================
 -- RLS-01: P1 SELECT students → sees exactly their 2 children;
 --         P2's child absent from results
@@ -3033,6 +3047,136 @@ insert into _tap_log(line) select lives_ok(
   $$ update public.classes set meeting_days = '{1,4}'
       where id = 'c0000000-0000-0000-0000-0000000000cc' $$,
   'MD-02: an admin UPDATE of classes.meeting_days lands'
+);
+
+reset role;
+
+-- ============================================================
+-- RLS-60 … RLS-64 — registration_requests (migration 020,
+--                   TAD ADR-038)
+--
+-- A signed-in user with no public.users row (UR1/UR2/UR3) may stage a
+-- name + free-text context for admin approval — their own row only,
+-- and only while unregistered. The row is deleted by a security-definer
+-- trigger once the matching public.users row is inserted.
+-- fn_pending_registrations() now also returns full_name/description,
+-- NULL for a pending entry that never submitted one (UR3). Placed last
+-- because RLS-64 inserts a public.users row.
+-- ============================================================
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+
+-- RLS-60: UR1 inserts their own request; the same insert carrying
+-- another user's id is refused at WITH CHECK (42501), not dropped silently.
+set local request.jwt.claim.sub to '4e000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.registration_requests (id, full_name, description)
+     values ('4e000000-0000-0000-0000-000000000001', 'Ur One', 'Nieuwe ustadz voor Klas B') $$,
+  'RLS-60: an unregistered user inserts their own registration_requests row'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.registration_requests (id, full_name)
+     values ('4e000000-0000-0000-0000-000000000003', 'Not Mine') $$,
+  '42501', null,
+  'RLS-60: …but cannot insert a row carrying another user''s id'
+);
+
+-- RLS-61: an already-registered user (P1) is refused by the
+-- `not exists (... public.users ...)` guard — defence in depth, no UI
+-- path reaches this.
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.registration_requests (id, full_name)
+     values ('90000000-0000-0000-0000-000000000001', 'Parent One Again') $$,
+  '42501', null,
+  'RLS-61: an already-registered user''s INSERT is refused by the not-exists guard'
+);
+
+-- RLS-62: UR1 sees and revises only their own row; UR2's row is
+-- invisible on read and a no-op on write. The revise is the
+-- on-conflict-do-update path submitRegistrationRequest() uses.
+set local request.jwt.claim.sub to '4e000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select set_eq(
+  'select id from public.registration_requests',
+  array['4e000000-0000-0000-0000-000000000001']::uuid[],
+  'RLS-62: an unregistered user sees only their own request row'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.registration_requests (id, full_name, description)
+     values ('4e000000-0000-0000-0000-000000000001', 'Ur One Revised', 'bijgewerkt')
+     on conflict (id) do update
+       set full_name = excluded.full_name, description = excluded.description $$,
+  'RLS-62: …and may revise it via the upsert path the client uses'
+);
+insert into _tap_log(line) select is(
+  (select full_name from public.registration_requests
+    where id = '4e000000-0000-0000-0000-000000000001'),
+  'Ur One Revised',
+  'RLS-62: the revise landed'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.registration_requests
+    where id = '4e000000-0000-0000-0000-000000000002'),
+  0::bigint,
+  'RLS-62: UR2''s request row is invisible to UR1'
+);
+update public.registration_requests set full_name = 'hacked'
+  where id = '4e000000-0000-0000-0000-000000000002';
+reset role;
+insert into _tap_log(line) select is(
+  (select full_name from public.registration_requests
+    where id = '4e000000-0000-0000-0000-000000000002'),
+  'Ur Two Submitted',
+  'RLS-62: UR1''s UPDATE of UR2''s row matched nothing (checked outside RLS)'
+);
+
+-- RLS-63: fn_pending_registrations() returns the submitted context to an
+-- admin, NULL for a pending entry that never submitted one (UR3), and an
+-- empty result (not an error) to a non-admin caller.
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';
+insert into _tap_log(line) select is(
+  (select full_name from public.fn_pending_registrations()
+    where id = '4e000000-0000-0000-0000-000000000002'),
+  'Ur Two Submitted',
+  'RLS-63: fn_pending_registrations() returns full_name to an admin caller'
+);
+insert into _tap_log(line) select ok(
+  (select full_name is null and description is null
+     from public.fn_pending_registrations()
+    where id = '4e000000-0000-0000-0000-000000000003'),
+  'RLS-63: …and NULL name/description for a pending entry that never submitted one (UR3)'
+);
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_pending_registrations()),
+  0::bigint,
+  'RLS-63: a non-admin caller gets an empty result, not an error'
+);
+
+-- RLS-64: once an admin inserts the matching public.users row, UR1's
+-- request row is gone — the security-definer cleanup trigger fired.
+-- Asserted from outside the approving session; UR2's row is untouched.
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.users (id, email, full_name, role, locale)
+     values ('4e000000-0000-0000-0000-000000000001', 'ur1@test.local',
+             'Ur One Approved', 'tutor', 'id') $$,
+  'RLS-64: an admin approves UR1 by inserting the public.users row'
+);
+reset role;
+insert into _tap_log(line) select is(
+  (select count(*) from public.registration_requests
+    where id = '4e000000-0000-0000-0000-000000000001'),
+  0::bigint,
+  'RLS-64: UR1''s registration_requests row is gone — the cleanup trigger fired'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.registration_requests
+    where id = '4e000000-0000-0000-0000-000000000002'),
+  1::bigint,
+  'RLS-64: UR2''s unrelated request row is untouched'
 );
 
 reset role;

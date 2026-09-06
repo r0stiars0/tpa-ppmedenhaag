@@ -3,7 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { AdminSectionNav } from '../../components/AdminSectionNav'
 import type { Database } from '../../lib/database.types'
 import { getErrorMessage } from '../../lib/errors'
-import { fetchPendingRegistrations, inviteUser, registerUser, type PendingRegistration } from './api'
+import {
+  fetchPendingRegistrations,
+  inviteUser,
+  registerUser,
+  rejectRegistration,
+  type PendingRegistration,
+} from './api'
 
 type UserRole = Database['public']['Enums']['user_role']
 
@@ -21,6 +27,7 @@ export function RegistrationsPage() {
   const [error, setError] = useState<string | null>(null)
   const [drafts, setDrafts] = useState<Record<string, { full_name: string; role: UserRole }>>({})
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [rejectingId, setRejectingId] = useState<string | null>(null)
 
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteFullName, setInviteFullName] = useState('')
@@ -64,12 +71,15 @@ export function RegistrationsPage() {
     }
   }
 
-  function draftFor(userId: string) {
-    return drafts[userId] ?? { full_name: '', role: 'parent' as UserRole }
+  function draftFor(user: PendingRegistration) {
+    // Seed the editable name from what the user submitted themselves
+    // (ADR-038); blank for an invite-created or pre-feature entry. Still
+    // fully editable before the admin registers them.
+    return drafts[user.id] ?? { full_name: user.full_name ?? '', role: 'parent' as UserRole }
   }
 
   async function handleRegister(user: PendingRegistration) {
-    const draft = draftFor(user.id)
+    const draft = draftFor(user)
     if (!draft.full_name.trim()) return
     setSavingId(user.id)
     setError(null)
@@ -80,6 +90,20 @@ export function RegistrationsPage() {
       setError(getErrorMessage(err))
     } finally {
       setSavingId(null)
+    }
+  }
+
+  async function handleReject(user: PendingRegistration) {
+    if (!window.confirm(t('admin.confirmReject', { email: user.email }))) return
+    setRejectingId(user.id)
+    setError(null)
+    try {
+      await rejectRegistration(user.id)
+      setPending((prev) => prev.filter((p) => p.id !== user.id))
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setRejectingId(null)
     }
   }
 
@@ -154,7 +178,7 @@ export function RegistrationsPage() {
       ) : (
         <ul className="space-y-3">
           {pending.map((user) => {
-            const draft = draftFor(user.id)
+            const draft = draftFor(user)
             return (
               <li key={user.id} className="space-y-3 rounded-lg bg-white p-4 shadow-sm">
                 <div>
@@ -163,6 +187,15 @@ export function RegistrationsPage() {
                     {t('admin.registeredSince', { date: dateFormatter.format(new Date(user.created_at)) })}
                   </p>
                 </div>
+
+                {user.description && (
+                  <div className="rounded-lg bg-ppme-bg-alt p-3 text-sm text-ppme-text/80">
+                    <p className="mb-1 text-xs font-medium text-ppme-text/60">
+                      {t('admin.registrationDescription')}
+                    </p>
+                    <p className="whitespace-pre-wrap">{user.description}</p>
+                  </div>
+                )}
 
                 <label className="block text-xs font-medium text-ppme-text/70">
                   {t('admin.fullName')}
@@ -193,14 +226,26 @@ export function RegistrationsPage() {
                   </select>
                 </label>
 
-                <button
-                  type="button"
-                  disabled={savingId === user.id || !draft.full_name.trim()}
-                  onClick={() => void handleRegister(user)}
-                  className="min-h-11 w-full rounded-lg bg-ppme-primary px-4 font-semibold text-white shadow-sm hover:bg-ppme-primary-dark disabled:opacity-60"
-                >
-                  {savingId === user.id ? t('common.loading') : t('admin.register')}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={
+                      savingId === user.id || rejectingId === user.id || !draft.full_name.trim()
+                    }
+                    onClick={() => void handleRegister(user)}
+                    className="min-h-11 flex-1 rounded-lg bg-ppme-primary px-4 font-semibold text-white shadow-sm hover:bg-ppme-primary-dark disabled:opacity-60"
+                  >
+                    {savingId === user.id ? t('common.loading') : t('admin.register')}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={savingId === user.id || rejectingId === user.id}
+                    onClick={() => void handleReject(user)}
+                    className="min-h-11 flex-1 rounded-lg bg-ppme-danger px-4 font-semibold text-white shadow-sm hover:bg-ppme-danger/90 disabled:opacity-60"
+                  >
+                    {rejectingId === user.id ? t('common.loading') : t('admin.reject')}
+                  </button>
+                </div>
               </li>
             )
           })}

@@ -22,7 +22,12 @@
   "auth": {
     "signIn": "Inloggen met Google",
     "signOut": "Uitloggen",
-    "unauthorized": "Uw account is nog niet geregistreerd. Neem contact op met de TPA-beheerder."
+    "unauthorized": "Uw account is nog niet geregistreerd. Neem contact op met de TPA-beheerder.",
+    "registrationIntro": "Vul hieronder uw naam in en, als u wilt, een korte toelichting, zodat de beheerder uw aanvraag kan beoordelen.",
+    "registrationFullName": "Volledige naam",
+    "registrationDescription": "Toelichting (optioneel): wie u bent, om welk kind het gaat, waarom u toegang nodig heeft",
+    "registrationSubmit": "Aanvraag versturen",
+    "registrationSubmitted": "Uw aanvraag is ontvangen. Een beheerder beoordeelt deze zo snel mogelijk."
   },
   "common": {
     "save": "Opslaan",
@@ -326,6 +331,9 @@
     "assignRole": "Rol",
     "fullName": "Volledige naam",
     "register": "Registreren",
+    "reject": "Weigeren",
+    "confirmReject": "De aanvraag van {{email}} weigeren? Het account wordt verwijderd. Deze persoon kan opnieuw inloggen en verschijnt dan als een nieuwe aanvraag.",
+    "registrationDescription": "Toelichting van de gebruiker",
     "classesTitle": "Groepenbeheer",
     "newClass": "Nieuwe groep",
     "className": "Groepsnaam",

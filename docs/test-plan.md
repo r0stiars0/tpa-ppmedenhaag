@@ -299,6 +299,24 @@ assertions because Class MD and MD-07 add rows.
 
 *Total after these: 270 pgTAP assertions.*
 
+### 3.4 Registration requests (RLS-60…64, ADR-038)
+
+`public.registration_requests` (migration 020), its four policies, the
+`security definer` cleanup trigger on `public.users` insert, and the
+widened `fn_pending_registrations()`. Each case asserts both the allowed
+and the denied/empty side, in the fixture-transaction style the rest of
+the suite uses. Fixture additions: an `auth.users` row with **no**
+`public.users` row (persona **UR** — unregistered), and a second such row
+that already carries a `registration_requests` submission.
+
+- [ ] RLS-60 — UR `INSERT registration_requests` for their **own** `id` is allowed; the same INSERT carrying another user's `id` is refused (`42501`, a `WITH CHECK` refusal, not a silent filter)
+- [ ] RLS-61 — an **already-registered** user's `INSERT` is refused by the `not exists (select 1 from public.users where id = auth.uid())` guard, even though no UI path reaches it — defence in depth asserted directly
+- [ ] RLS-62 — UR `SELECT`s and `UPDATE`s only their own row; another UR's request row is 0 rows on read and a silent no-op on write. Covers the `on conflict do update` (revise) path the client's `submitRegistrationRequest` upsert takes
+- [ ] RLS-63 — `fn_pending_registrations()` returns `full_name`/`description` to an **admin** caller and 0 rows to a non-admin caller; an entry with no `registration_requests` row comes back with both columns `null` (the invite-created / pre-migration-020 case)
+- [ ] RLS-64 — after an admin `INSERT`s the matching `public.users` row, the `registration_requests` row is **gone** (and an unrelated request row is not) — asserted from outside the approving session, since a filtered delete and a real one look identical from inside it. Proves `fn_cleanup_registration_request()` fired rather than assuming it
+
+*Total after these: 284 pgTAP assertions.*
+
 ## 4. Unit tests (Vitest)
 
 ### 4.1 Streak logic
@@ -458,6 +476,24 @@ picker and the family "Lesdagen" label all share.
 - [x] `prevMeetingDay` / `nextMeetingDay` walk to the nearest meeting day within a week — across a week with no meeting day, within a multi-day week, and returning `null` when clamped past the academic-year bound
 - [x] `currentScheduledSessionDate` is today when today is a meeting day, otherwise the most recent past meeting day — the value the register opens on
 
+### 4.5e Registration request API (TAD ADR-038, ADR-039)
+
+`tests/unit/registrationRequests.test.ts` and `tests/unit/rejectRegistration.test.ts`,
+against `src/features/auth/api.ts`, the widened `PendingRegistration`
+shape and `rejectRegistration` in `src/features/admin/api.ts`, and
+`netlify/functions/lib/rejectRegistration.ts`. The Supabase client is
+stubbed — these assert the query shape and the mapping, not RLS (§3.4
+owns that); the reject Function has no RLS layer at all, so its guard is
+asserted here in code.
+
+- [ ] `fetchMyRegistrationRequest` returns `{ full_name, description }` for a hit and `null` for no row (PostgREST `maybeSingle`), and filters on the passed `userId`
+- [ ] `submitRegistrationRequest` issues one `upsert` on `registration_requests` keyed `onConflict: 'id'`, trims `full_name`, and normalises an empty `description` to `null`
+- [ ] a post-approval write that fails the self-insert policy (`42501`, because the `public.users` row now exists) is surfaced as its own outcome, not a generic error — the state `Unauthorized.tsx` treats as "you're in, reload"
+- [ ] `fetchPendingRegistrations` maps the extra `full_name`/`description` columns through, leaving both `null` for a legacy entry, and the type is `string | null` on each
+- [ ] the Unauthorized form's initial `full_name` is the existing request's name when one exists, and otherwise `session.user.user_metadata.full_name ?? .name ?? ''` — the Google-profile prefill (FR-1a), asserted as a small pure helper so it needs no component render
+- [ ] `rejectRegistration(admin, id)` (the lib fn, ADR-039): a missing/blank `id` → `400` with no GoTrue call; an `id` that has a `public.users` row → `409` and **`deleteUser` is not called** (the guard against cascading into a real profile); a `deleteUser` error → `400`; success → `ok` with `deleteUser` called once with that `id`
+- [ ] `rejectRegistration(id)` (the `src/features/admin/api.ts` method): reads the session, `POST`s a bearer token to `/.netlify/functions/reject-registration`, and throws the response body's `error` on a non-OK status — the `inviteUser` shape
+
 ### 4.6 Access control and delivery inside the Functions
 
 The three modules that decide who may make a Function act, and what
@@ -542,11 +578,14 @@ Run against Preview deploys with fixture data; auth mocked via Supabase test JWT
 | E2E-15 | Admin opens "Grup Baru" → Saturday is preselected → clears every day → Save is disabled with the hint → picks Monday + Saturday → saves → reopens for edit, both are checked, and the list row shows "ma, za" (TAD ADR-037) | Admin |
 | E2E-16 | Tutor opens Attendance on a meeting day → the header shows today → steps back to the previous meeting day, edits and saves it → steps back onto a scheduled day marked "niet ingevuld", records it, save creates the session → forward step is disabled at the current session and back step stops at the academic-year start (TAD ADR-037) | Tutor |
 | E2E-17 | Parent opens the child's Attendance screen → the read-only "Lesdagen" line matches the child's class `meeting_days` (TAD ADR-037) | Parent |
+| E2E-18 | Unregistered Google account signs in → Unauthorized screen shows the name + context form with `full_name` prefilled from the Google profile → user edits the name and adds context → submits → screen switches to the "request received" state, and reloading keeps it → admin opens Registrations and sees the edited name prefilled and the context read-only → admin approves → the `registration_requests` row is cleaned up (a second unregistered account that submits nothing still appears with blank fields) (TAD ADR-038) | Unregistered → Admin |
+| E2E-19 | Admin opens Registrations → clicks **Reject** on a pending entry → the `window.confirm` naming the email → confirms → the entry disappears from the list, and its `registration_requests` row (if any) is gone with the `auth.users` row → rejecting an entry whose id already has a profile is refused (`409`) → the same Google account signing in again reappears as a fresh pending entry, since GoTrue re-creates `auth.users` (intended — no blocklist) (TAD ADR-039) | Admin |
 
-*E2E-15…E2E-17 are specified but not implemented — this project has no
+*E2E-15…E2E-19 are specified but not implemented — this project has no
 authenticated Playwright harness yet (`e2e/sign-in.spec.ts` documents
 why the E2E-01…E2E-14 suite is also still unbuilt). The flows are
-covered at the unit layer (§4.5d) and the database layer (§3.3, MD-01…MD-08).*
+covered at the unit layer (§4.5d, §4.5e) and the database layer (§3.3
+MD-01…MD-08, §3.4 RLS-60…64).*
 
 ## 6. Notification & PWA test matrix (manual, real devices)
 

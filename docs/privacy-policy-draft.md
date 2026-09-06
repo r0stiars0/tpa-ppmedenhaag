@@ -25,6 +25,18 @@ is belegd bij het IT-team van PPME Den Haag, bereikbaar via `[e-mailadres]`.
 | Aanwezigheid | Aanwezig/afwezig/te laat per les, eventuele reden (bijv. ziek) | Leerlingen |
 | Leervoortgang | Yanbu'a-niveau en -pagina's, Quran-leesvoortgang, memorisatie (murajaah), beoordelingen en notities van docenten | Leerlingen |
 | Meldingen | Web Push-abonnementsgegevens (technische sleutels, geen inhoud) | Gebruikers die meldingen inschakelen |
+| Toegangsaanvraag | Uw naam en een vrije toelichting die u zelf invult vóór goedkeuring | Personen die zijn ingelogd maar nog geen account hebben |
+
+**Over een toegangsaanvraag.** Heeft u ingelogd met Google maar nog geen account
+bij de TPA, dan ziet u een scherm om toegang aan te vragen. Daar kunt u uw
+volledige naam invullen (die wordt alvast overgenomen uit uw Google-account en
+is aanpasbaar) en desgewenst een korte toelichting: wie u bent, om welk kind het
+gaat en waarom u toegang nodig heeft. Die gegevens zijn alleen zichtbaar voor
+uzelf en voor de beheerders, en helpen de beheerder om u de juiste rol te geven.
+De aanvraag geeft géén toegang — een beheerder maakt uw account aan. Zodra dat
+gebeurt, wordt uw aanvraag (inclusief de toelichting) automatisch verwijderd; ook
+als een beheerder de aanvraag afwijst, wordt hij verwijderd. De toelichting is
+optioneel: vult u niets in, dan bewaren wij niets extra's.
 
 **Over meldingen.** Meldingen zijn optioneel en staan standaard uit: u zet ze
 zelf aan onder "Meldingsinstellingen" en kunt ze daar op elk moment weer
@@ -186,6 +198,9 @@ vermijdt, laat meldingen uit staan; de app werkt daar verder volledig zonder.
 Leerlinggegevens en voortgangsgegevens worden bewaard tot uiterlijk `[3 jaar — te
 bevestigen]` na uitschrijving, waarna ze worden verwijderd of geanonimiseerd.
 
+Een toegangsaanvraag (uw naam en toelichting, zie §2) wordt verwijderd zodra een
+beheerder uw account aanmaakt of de aanvraag afwijst.
+
 ### 8. Uw rechten
 
 U heeft het recht op inzage, rectificatie, verwijdering (art. 17 AVG),
@@ -218,6 +233,18 @@ PPME Den Haag, dapat dihubungi melalui `[alamat email]`.
 | Kehadiran | Hadir/absen/terlambat per sesi, alasan (mis. sakit) | Santri |
 | Progres belajar | Level dan halaman Yanbu'a, progres tilawah Al-Quran, hafalan (murajaah), penilaian dan catatan ustadz | Santri |
 | Notifikasi | Data langganan Web Push (kunci teknis, bukan isi) | Pengguna yang mengaktifkan notifikasi |
+| Permintaan akses | Nama Anda dan keterangan bebas yang Anda isi sendiri sebelum disetujui | Orang yang sudah login tetapi belum memiliki akun |
+
+**Tentang permintaan akses.** Jika Anda login dengan Google tetapi belum
+memiliki akun di TPA, Anda akan melihat layar untuk meminta akses. Di sana Anda
+dapat mengisi nama lengkap (yang sudah diambil dari akun Google Anda dan bisa
+diubah) dan, jika mau, keterangan singkat: siapa Anda, untuk anak yang mana, dan
+mengapa Anda memerlukan akses. Data itu hanya terlihat oleh Anda sendiri dan oleh
+admin, dan membantu admin memberi Anda peran yang tepat. Permintaan ini **tidak**
+memberi akses — admin yang membuat akun Anda. Begitu itu terjadi, permintaan Anda
+(termasuk keterangannya) otomatis dihapus; jika admin menolak permintaan, ia juga
+dihapus. Keterangan bersifat opsional: jika Anda tidak mengisinya, kami tidak
+menyimpan data tambahan.
 
 **Tentang notifikasi.** Notifikasi bersifat opsional dan awalnya nonaktif: Anda
 mengaktifkannya sendiri di "Pengaturan notifikasi" dan dapat menonaktifkannya
@@ -376,6 +403,9 @@ tanpa itu. `[tim IT: masukkan ke daftar pemrosesan dan penilaian transfer data]`
 
 Data santri dan data progres disimpan paling lama `[3 tahun — perlu konfirmasi]`
 setelah keluar dari TPA, kemudian dihapus atau dianonimkan.
+
+Permintaan akses (nama dan keterangan Anda, lihat §2) dihapus segera setelah admin
+membuat akun Anda atau menolak permintaan tersebut.
 
 ### 8. Hak Anda
 

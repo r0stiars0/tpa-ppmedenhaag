@@ -51,7 +51,17 @@ Het eerste scherm dat verschijnt voordat u bent ingelogd.
 | Tagline | "TPA Voortgangstracker" |
 | **Knop "Inloggen met Google"** | Start het inlogproces via een Google-account (Google OAuth). Dit is de enige inlogmethode voor echte gebruikers. |
 
-Als uw Google-account nog niet door de TPA-beheerder is geregistreerd, ziet u na het inloggen het scherm **"Uw account is nog niet geregistreerd. Neem contact op met de TPA-beheerder."** met een knop **Uitloggen**. Neem contact op met de beheerder om geregistreerd te worden (zie [§12.1](#121-registraties)).
+Als uw Google-account nog niet door de TPA-beheerder is geregistreerd, ziet u na het inloggen het scherm **"Uw account is nog niet geregistreerd. Neem contact op met de TPA-beheerder."** met daaronder een klein formulier en een knop **Uitloggen**.
+
+**Formulier "Toegang aanvragen"** — vul dit in zodat de beheerder u sneller en met de juiste rol kan registreren:
+
+| Veld | Functie |
+|---|---|
+| **Volledige naam** | Verplicht. Wordt alvast ingevuld met de naam uit uw Google-account; u kunt hem aanpassen. |
+| **Toelichting** | Optioneel. Vrije tekst: wie u bent, om welk kind het gaat, waarom u toegang nodig heeft. |
+| **Aanvraag versturen** | Verstuurt de gegevens naar de beheerder. De knop is uitgeschakeld zolang het naamveld leeg is. |
+
+Na het versturen verandert de tekst bovenaan in **"Uw aanvraag is ontvangen. Een beheerder beoordeelt deze zo snel mogelijk."** U blijft op dit scherm — de aanvraag geeft zelf geen toegang. U kunt het formulier opnieuw openen en uw gegevens corrigeren zolang de beheerder u nog niet heeft geregistreerd. Zodra dat gebeurt, komt u bij de volgende keer laden vanzelf in de app. Een beheerder kan een aanvraag ook **weigeren** (zie [§12.1](#121-registraties)); u kunt daarna gewoon opnieuw inloggen en een nieuwe aanvraag indienen.
 
 > Let op: in de ontwikkelversie verschijnt een extra vak "Dev only — local fixture sign-in" om verschillende testaccounts te proberen zonder Google. Dit vak **verschijnt nooit** in de echte/productieomgeving en is niet relevant voor dagelijkse gebruikers.
 
@@ -455,11 +465,11 @@ Alleen toegankelijk voor een account met de rol Beheerder, via de tegel **Beheer
 | Veld | Functie |
 |---|---|
 | E-mail en datum eerste keer ingelogd | Automatische informatie, niet te wijzigen. |
-| **Volledige naam** | Door de beheerder ingevuld vóór de registratie. |
+| **Toelichting van de gebruiker** | Alleen zichtbaar als de persoon zelf een toelichting heeft ingevuld op het aanvraagformulier (zie [§2](#2-inloggen)). Alleen-lezen. |
+| **Volledige naam** | Alvast ingevuld met de naam die de persoon zelf heeft opgegeven; leeg als die er niet is (bijvoorbeeld bij een uitgenodigd account). U kunt hem altijd aanpassen vóór het registreren. |
 | **Rol** | Zoals hierboven. |
-| **Registreren** | Voltooit de registratie van die persoon — de rij verdwijnt automatisch uit de lijst na succes. |
-
-> Er is geen knop om een wachtende registratie te weigeren/verwijderen — de enige keuze is registreren of laten wachten.
+| **Registreren** | Voltooit de registratie van die persoon — de rij verdwijnt automatisch uit de lijst na succes, en de aanvraag (met toelichting) wordt verwijderd. |
+| **Weigeren** | Verwijdert de wachtende aanmelding. Er verschijnt eerst een bevestigingsvraag met het e-mailadres. Na bevestiging worden het (nog niet-geregistreerde) account en de bijbehorende aanvraag verwijderd en verdwijnt de rij uit de lijst. **Weigeren is geen blokkade**: dezelfde Google-gebruiker kan opnieuw inloggen en verschijnt dan als een nieuwe wachtende aanmelding. Een aanmelding waarvan het account inmiddels wél is aangemaakt, kan niet worden geweigerd. |
 
 ### 12.2 Groepen
 

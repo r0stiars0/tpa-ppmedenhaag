@@ -404,6 +404,30 @@ export type Database = {
           },
         ]
       }
+      registration_requests: {
+        Row: {
+          created_at: string
+          description: string | null
+          full_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          full_name: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          full_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sessions: {
         Row: {
           class_id: string
@@ -757,7 +781,13 @@ export type Database = {
       fn_my_student_id: { Args: never; Returns: string }
       fn_pending_registrations: {
         Args: never
-        Returns: { id: string; email: string; created_at: string }[]
+        Returns: {
+          id: string
+          email: string
+          created_at: string
+          full_name: string | null
+          description: string | null
+        }[]
       }
     }
     Enums: {
