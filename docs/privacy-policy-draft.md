@@ -20,10 +20,10 @@ is belegd bij het IT-team van PPME Den Haag, bereikbaar via `[e-mailadres]`.
 
 | Categorie | Gegevens | Van wie |
 |---|---|---|
-| Accountgegevens | Naam, e-mailadres, Google-account-ID, taalvoorkeur | Ouders, docenten (ustadz), beheerders, leerlingen van 16+ met eigen account |
+| Accountgegevens | Naam, e-mailadres, Google-account-ID, taalvoorkeur | Ouders, docenten, beheerders, leerlingen van 16+ met eigen account |
 | Leerlinggegevens | Naam, geboortedatum, inschrijfdatum, klas | Leerlingen (merendeels jonger dan 16) |
 | Aanwezigheid | Aanwezig/afwezig/te laat per les, eventuele reden (bijv. ziek) | Leerlingen |
-| Aanwezigheid van docenten | Aanwezig/afwezig/te laat per les, eventuele reden | Docenten (ustadz) |
+| Aanwezigheid van docenten | Aanwezig/afwezig/te laat per les, eventuele reden | Docenten |
 | Leervoortgang | Yanbu'a-niveau en -pagina's, Quran-leesvoortgang, memorisatie (murajaah), beoordelingen en notities van docenten | Leerlingen |
 | Meldingen | Web Push-abonnementsgegevens (technische sleutels, geen inhoud) | Gebruikers die meldingen inschakelen |
 | Toegangsaanvraag | Uw naam en een vrije toelichting die u zelf invult vóór goedkeuring | Personen die zijn ingelogd maar nog geen account hebben |
@@ -136,7 +136,7 @@ afgedwongen in de database zelf — niet alleen in het scherm:
 | Rol | Toegang |
 |---|---|
 | Ouder/verzorger | Uitsluitend de gegevens van de eigen kinderen |
-| Docent (ustadz) | Uitsluitend de leerlingen van de eigen klas(sen) |
+| Docent | Uitsluitend de leerlingen van de eigen klas(sen) |
 | Leerling van 16+ | Uitsluitend de eigen gegevens, die hij of zij niet zelf kan wijzigen |
 | Beheerder | Alle leerlingen en alle gegevens — ook wijzigen |
 
@@ -168,7 +168,7 @@ Zit het eigen kind in de klas die de docent zélf lesgeeft, dan vallen die twee 
 samen. Voor dat kind is hij of zij dan gewoon de docent: het vastleggen van
 aanwezigheid en voortgang hoort daarbij, en ook het schrijven van het jaarrapport,
 dat de docent dus al vóór vrijgave inziet. PPME heeft dit bewust zo besloten — op een
-kleine TPA geeft een ustadz of ustadzah nu eenmaal les aan de eigen kinderen. Wat
+kleine TPA geeft een docent nu eenmaal les aan de eigen kinderen. Wat
 onveranderd blijft: dit geldt alleen voor de eigen klas, en alleen voor het eigen
 kind dat daarin zit. Is een van die rollen beheerder, dan
 geldt de bredere toegang uit de vorige alinea: die is niet aan een klas of een kind
@@ -239,11 +239,11 @@ PPME Den Haag, dapat dihubungi melalui `[alamat email]`.
 
 | Kategori | Data | Dari siapa |
 |---|---|---|
-| Data akun | Nama, alamat email, ID akun Google, preferensi bahasa | Orang tua, ustadz, admin, santri 16+ dengan akun sendiri |
+| Data akun | Nama, alamat email, ID akun Google, preferensi bahasa | Orang tua, guru, admin, santri 16+ dengan akun sendiri |
 | Data santri | Nama, tanggal lahir, tanggal pendaftaran, kelas | Santri (sebagian besar di bawah 16 tahun) |
 | Kehadiran | Hadir/absen/terlambat per sesi, alasan (mis. sakit) | Santri |
-| Kehadiran ustadz | Hadir/absen/terlambat per sesi, alasan | Ustadz |
-| Progres belajar | Level dan halaman Yanbu'a, progres tilawah Al-Quran, hafalan (murajaah), penilaian dan catatan ustadz | Santri |
+| Kehadiran guru | Hadir/absen/terlambat per sesi, alasan | Guru |
+| Progres belajar | Level dan halaman Yanbu'a, progres tilawah Al-Quran, hafalan (murajaah), penilaian dan catatan guru | Santri |
 | Notifikasi | Data langganan Web Push (kunci teknis, bukan isi) | Pengguna yang mengaktifkan notifikasi |
 | Permintaan akses | Nama Anda dan keterangan bebas yang Anda isi sendiri sebelum disetujui | Orang yang sudah login tetapi belum memiliki akun |
 
@@ -295,7 +295,7 @@ Anda tidak kehilangan apa pun, hanya baru melihatnya saat membuka
 aplikasi. Di dalam aplikasi ditampilkan lebih banyak daripada yang boleh
 tampil di layar kunci: jilid apa yang diselesaikan anak Anda, surah apa,
 tugas apa dan kapan tenggatnya. Itu aman karena Anda sudah masuk lebih
-dulu. Hanya Anda yang melihat daftar Anda sendiri: orang tua lain, ustadz,
+dulu. Hanya Anda yang melihat daftar Anda sendiri: orang tua lain, guru,
 dan bahkan admin tidak dapat membukanya. Notifikasi yang berumur lebih
 dari **90 hari dihapus otomatis**.
 
@@ -352,38 +352,38 @@ di dalam basis data — bukan hanya di tampilan aplikasi:
 | Peran | Akses |
 |---|---|
 | Orang tua/wali | Hanya data anak sendiri |
-| Ustadz | Hanya santri di kelas yang diampu |
+| Guru | Hanya santri di kelas yang diampu |
 | Santri 16+ | Hanya data diri sendiri, dan tidak dapat mengubahnya |
 | Admin | Seluruh santri dan seluruh data — termasuk mengubahnya |
 
-**Kehadiran ustadz.** Pada daftar hadir yang sama juga dicatat apakah
-para ustadz kelas itu hadir, agar pimpinan TPA dapat meninjaunya secara
-berkala. Data ini hanya terlihat oleh admin dan oleh ustadz lain di
+**Kehadiran guru.** Pada daftar hadir yang sama juga dicatat apakah
+para guru kelas itu hadir, agar pimpinan TPA dapat meninjaunya secara
+berkala. Data ini hanya terlihat oleh admin dan oleh guru lain di
 kelas yang sama — tidak pernah oleh orang tua atau santri. Alasan bila
 berhalangan diperlakukan sama seperti alasan santri: hanya terlihat di
 aplikasi, tidak pernah dalam notifikasi atau ekspor.
 
 Admin adalah relawan pengurus TPA. Mereka memiliki akses yang lebih luas karena
-merekalah yang menjaga program tetap berjalan: menggantikan ustadz yang berhalangan,
+merekalah yang menjaga program tetap berjalan: menggantikan guru yang berhalangan,
 memperbaiki catatan kehadiran yang keliru, merampungkan rapor akhir tahun. Data yang
 mereka lihat adalah data pendidikan yang sama seperti yang dilihat orang tua dan
-ustadz — tidak ada data tambahan yang dikumpulkan untuk peran ini, dan tidak ada
+guru — tidak ada data tambahan yang dikumpulkan untuk peran ini, dan tidak ada
 yang dibagikan ke luar PPME. Dua tindakan sengaja tetap menjadi hak pihak lain:
 hanya orang tua yang dapat mengonfirmasi hafalan yang disetorkan di rumah, dan hanya
-ustadz penulis rapor yang dapat menerbitkannya kepada keluarga.
+guru penulis rapor yang dapat menerbitkannya kepada keluarga.
 
-Satu orang dapat memegang lebih dari satu peran sekaligus — ustadz yang anaknya
+Satu orang dapat memegang lebih dari satu peran sekaligus — guru yang anaknya
 sendiri juga mengaji di TPA, atau admin yang ikut mengajar. Aksesnya adalah
-gabungan dari peran-peran yang ia pegang dan tidak lebih: sebagai ustadz ia melihat
+gabungan dari peran-peran yang ia pegang dan tidak lebih: sebagai guru ia melihat
 kelas yang diampu, sebagai orang tua ia melihat anaknya sendiri. Batasan tiap peran
 tetap berlaku di bagiannya masing-masing — menjadi orang tua, misalnya, tidak memberi
 hak mencatat progres santri di kelas yang ia ampu.
 
 Bila anaknya sendiri berada di kelas yang ia ampu, kedua bagian itu menyatu. Untuk
-anak tersebut ia memang ustadznya: mencatat kehadiran dan progres termasuk di
+anak tersebut ia memang gurunya: mencatat kehadiran dan progres termasuk di
 dalamnya, begitu pula menulis rapor akhir tahun, sehingga ia sudah dapat melihat
 rapor itu sebelum diterbitkan. PPME memutuskan hal ini dengan sadar — di TPA kecil,
-seorang ustadz atau ustadzah memang mengajar anaknya sendiri. Yang tidak berubah: ini
+seorang guru memang mengajar anaknya sendiri. Yang tidak berubah: ini
 hanya berlaku untuk kelas yang ia ampu, dan hanya untuk anaknya yang ada di kelas itu. Bila salah satu perannya adalah admin,
 berlaku akses yang lebih luas seperti dijelaskan pada paragraf sebelumnya: akses itu
 tidak terikat pada kelas atau anak tertentu, sehingga melampaui gabungan peran-peran

@@ -30,12 +30,12 @@ De app bedient vier soorten relaties (geen vast "account-type", maar wat een acc
 
 | Rol | Wat kan deze persoon |
 |---|---|
-| **Ustadz** (begeleider/leraar) | Aanwezigheid, huiswerk, Yanbu'a en Al-Quran registreren, en murajaah-doelen instellen voor de groep(en) die hij/zij begeleidt; rapporten schrijven en publiceren. |
+| **Docent** (begeleider/leraar) | Aanwezigheid, huiswerk, Yanbu'a en Al-Quran registreren, en murajaah-doelen instellen voor de groep(en) die hij/zij begeleidt; rapporten schrijven en publiceren. |
 | **Ouder** | De aanwezigheids-, huiswerk-, Yanbu'a-, Al-Quran- en rapportgeschiedenis van het eigen kind bekijken; dagelijkse murajaah thuis bevestigen. |
 | **Leerling** (16+ met eigen account) | De eigen geschiedenis bekijken, net als een ouder, maar **kan geen** murajaah voor zichzelf bevestigen — dat blijft de taak van een ouder. |
-| **Beheerder** | Gebruikersregistraties, groepen en leerlinggegevens beheren; heeft dezelfde lees-/schrijftoegang als een ustadz op elke groep — maar **kan geen** rapporten publiceren. |
+| **Beheerder** | Gebruikersregistraties, groepen en leerlinggegevens beheren; heeft dezelfde lees-/schrijftoegang als een docent op elke groep — maar **kan geen** rapporten publiceren. |
 
-Eén account kan **meer dan één** relatie tegelijk hebben — bijvoorbeeld een ustadz die ook ouder is van een leerling in een andere groep. Zo'n account krijgt een **weergaveschakelaar (scope switch)** om te wisselen tussen "Mijn groep" (ustadz-weergave) en "Mijn kind" (ouder-weergave) — zie [§13](#13-accounts-met-een-dubbele-rol).
+Eén account kan **meer dan één** relatie tegelijk hebben — bijvoorbeeld een docent die ook ouder is van een leerling in een andere groep. Zo'n account krijgt een **weergaveschakelaar (scope switch)** om te wisselen tussen "Mijn groep" (docentweergave) en "Mijn kind" (ouder-weergave) — zie [§13](#13-accounts-met-een-dubbele-rol).
 
 ---
 
@@ -88,7 +88,7 @@ Vijf vaste tabbladen, hetzelfde voor elke rol inclusief beheerder:
 **Rapport** en **Beheer** (alleen beheerder) staan niet in de onderbalk — beide zijn bereikbaar via een tegel op het startscherm, omdat er op een mobiel scherm maar ruimte is voor vijf goed aantikbare knoppen.
 
 ### Weergaveschakelaar (Scope Switch)
-Verschijnt boven de inhoud, **alleen voor accounts met meer dan één relatie** (bijvoorbeeld een ustadz die ook ouder is), en **alleen** op deze zes schermen: Aanwezig, Huiswerk, Yanbu'a, Al-Quran, Murajaah, Rapport. Zie [§13](#13-accounts-met-een-dubbele-rol) voor de volledige uitleg.
+Verschijnt boven de inhoud, **alleen voor accounts met meer dan één relatie** (bijvoorbeeld een docent die ook ouder is), en **alleen** op deze zes schermen: Aanwezig, Huiswerk, Yanbu'a, Al-Quran, Murajaah, Rapport. Zie [§13](#13-accounts-met-een-dubbele-rol) voor de volledige uitleg.
 
 ---
 
@@ -96,14 +96,14 @@ Verschijnt boven de inhoud, **alleen voor accounts met meer dan één relatie** 
 
 Het eerste scherm na het inloggen. De inhoud verschilt licht per rol.
 
-### 4.1 Weergave voor een ustadz
+### 4.1 Weergave voor een docent
 
-<img src="./screenshots/nl/dashboard-tutor.png" width="360" alt="Startscherm — ustadz-weergave">
+<img src="./screenshots/nl/dashboard-tutor.png" width="360" alt="Startscherm — docentweergave">
 
 | Element | Functie |
 |---|---|
-| Begroetingskaart | Naam van de gebruiker + de relaties die het account heeft (bijv. "Ustadz", of "Ustadz · Ouder" als beide gelden). |
-| Kaart **"Deze week"** *(alleen voor accounts met een gekoppeld kind/leerling — zie §4.2)* | Wordt niet getoond voor een zuivere ustadz. |
+| Begroetingskaart | Naam van de gebruiker + de relaties die het account heeft (bijv. "Docent", of "Docent · Ouder" als beide gelden). |
+| Kaart **"Deze week"** *(alleen voor accounts met een gekoppeld kind/leerling — zie §4.2)* | Wordt niet getoond voor een zuivere docent. |
 | Tegels **Aanwezig / Huiswerk / Yanbu'a / Al-Quran / Murajaah / Rapport** | Tik op een tegel om die functie te openen. |
 | Regel **Meldingen →** | Opent de pagina [Meldingsinstellingen](#112-meldingsinstellingen) — beschikbaar voor elke rol, niet alleen voor ontvangers van meldingen, omdat iedereen moet kunnen lezen wat een melding precies inhoudt. |
 
@@ -126,15 +126,15 @@ Deze kaart wordt automatisch **verborgen** als er die week helemaal geen activit
 
 <img src="./screenshots/nl/dashboard-admin.png" width="360" alt="Startscherm — beheerder-weergave">
 
-Hetzelfde als de ustadz-weergave, plus een sectie **"Beheer"** onderaan — de enige toegang tot de [beheerpagina's](#12-beheer-alleen-beheerder) (registraties, groepen, leerlingen).
+Hetzelfde als de docentweergave, plus een sectie **"Beheer"** onderaan — de enige toegang tot de [beheerpagina's](#12-beheer-alleen-beheerder) (registraties, groepen, leerlingen).
 
 ---
 
 ## 5. Aanwezigheid
 
-### 5.1 Ustadz-weergave — Aanwezigheid registreren
+### 5.1 Docentweergave — Aanwezigheid registreren
 
-<img src="./screenshots/nl/attendance-tutor.png" width="360" alt="Aanwezigheid — presentielijst ustadz">
+<img src="./screenshots/nl/attendance-tutor.png" width="360" alt="Aanwezigheid — presentielijst docent">
 
 Het scherm om de aanwezigheid per groep te registreren. Het opent op de
 huidige les van de groep — vandaag als de groep vandaag samenkomt, anders
@@ -143,7 +143,7 @@ de beheerder in bij de groep (zie [§12.2](#122-groepen) → Lesdagen).
 
 | Element | Functie |
 |---|---|
-| **Kies groep** | Verschijnt alleen als de ustadz meer dan één groep begeleidt. Bij het wisselen worden de leerlingenlijst en de les opnieuw geladen. |
+| **Kies groep** | Verschijnt alleen als de docent meer dan één groep begeleidt. Bij het wisselen worden de leerlingenlijst en de les opnieuw geladen. |
 | Datumbalk met **‹** / **›** | Toont de datum van de getoonde les (weekdag, dag en maand; het jaartal erbij als de les niet in het huidige kalenderjaar valt). Met de pijlen stapt u door de lesdagen van de groep: **‹** terug tot 1 augustus van het huidige schooljaar, **›** vooruit tot en met de huidige les (verder vooruit kan niet). Staat er **niet ingevuld** onder de datum, dan is voor die lesdag nog geen aanwezigheid vastgelegd — u kunt dat alsnog doen; de les wordt aangemaakt zodra u verstuurt. Een al vastgelegde les blijft altijd te corrigeren, ook een die niet op een lesdag valt. |
 | Leerlingregel + knoppen **Aanwezig / Te laat / Afwezig** | Tik op een van de knoppen om de status van die leerling in te stellen. Groen = de status die op dit moment op het scherm staat (nog niet naar de server verstuurd totdat u op **Aanwezigheid versturen** tikt). De standaardstatus voor elke leerling is "Aanwezig". |
 
@@ -161,12 +161,12 @@ Onderaan:
 
 | Element | Functie |
 |---|---|
-| **Aanwezigheid versturen** | Opent een bevestigingsvak. Dat noemt het aantal leerlingen dat wordt verstuurd (een leerling-assistent die deel uitmaakt van de groep — zie de opmerking hieronder — telt niet mee) en, op een aparte regel, het aantal ustadz (zie **Aanwezigheid ustadz** hieronder). |
+| **Aanwezigheid versturen** | Opent een bevestigingsvak. Dat noemt het aantal leerlingen dat wordt verstuurd (een leerling-assistent die deel uitmaakt van de groep — zie de opmerking hieronder — telt niet mee) en, op een aparte regel, het aantal docenten (zie **Aanwezigheid docenten** hieronder). |
 | **Bevestigen** / **Annuleren** | Bevestigen verstuurt de gegevens naar de server; Annuleren stopt zonder iets te versturen. |
 
-**Bijzonderheid — leerling-assistent**: als een leerling van 16+ ook meehelpt met lesgeven in die groep, blijft haar/zijn naam op de presentielijst staan met een reeds opgeslagen status (standaard "Aanwezig"), maar die regel **kan niet door haarzelf/hemzelf** worden aangepast — alleen een andere ustadz of de beheerder kan haar/zijn aanwezigheid registreren. Deze uitleg staat direct onder de naam op het scherm.
+**Bijzonderheid — leerling-assistent**: als een leerling van 16+ ook meehelpt met lesgeven in die groep, blijft haar/zijn naam op de presentielijst staan met een reeds opgeslagen status (standaard "Aanwezig"), maar die regel **kan niet door haarzelf/hemzelf** worden aangepast — alleen een andere docent of de beheerder kan haar/zijn aanwezigheid registreren. Deze uitleg staat direct onder de naam op het scherm.
 
-**Aanwezigheid ustadz**: onder de leerlingenlijst staat een sectie **"Aanwezigheid ustadz"** met elke ustadz van die groep en dezelfde knoppen **Aanwezig / Te laat / Afwezig** (en hetzelfde redenveld bij Afwezig). Deze sectie wordt samen met de presentielijst verstuurd als u op **Aanwezigheid versturen** tikt. Een ustadz mag zowel de eigen aanwezigheid als die van een collega uit dezelfde groep registreren. Heeft de groep nog geen ustadz toegewezen, dan verschijnt een aanwijzing om dat via **Beheer** te doen. Aanwezigheidsgegevens van ustadz zijn **alleen zichtbaar voor de beheerder en voor de andere ustadz van dezelfde groep** — nooit voor ouders of leerlingen — en de TPA-leiding gebruikt ze om de aanwezigheid van ustadz periodiek na te kijken.
+**Aanwezigheid docenten**: onder de leerlingenlijst staat een sectie **"Aanwezigheid docenten"** met elke docent van die groep en dezelfde knoppen **Aanwezig / Te laat / Afwezig** (en hetzelfde redenveld bij Afwezig). Deze sectie wordt samen met de presentielijst verstuurd als u op **Aanwezigheid versturen** tikt. Een docent mag zowel de eigen aanwezigheid als die van een collega uit dezelfde groep registreren. Heeft de groep nog geen docent toegewezen, dan verschijnt een aanwijzing om dat via **Beheer** te doen. De aanwezigheidsgegevens van docenten zijn **alleen zichtbaar voor de beheerder en voor de andere docenten van dezelfde groep** — nooit voor ouders of leerlingen — en de TPA-leiding gebruikt ze om de aanwezigheid van docenten periodiek na te kijken.
 
 **Offline-status**: als de internetverbinding wegvalt tijdens het versturen, slaat de app de gegevens lokaal op en toont *"U bent offline. Gegevens worden verzonden zodra u weer online bent."* — de gegevens worden automatisch verstuurd zodra de verbinding terugkeert, zonder dat u opnieuw hoeft te registreren.
 
@@ -189,9 +189,9 @@ Dit scherm is **alleen om te bekijken** — ouders en leerlingen kunnen de aanwe
 
 ## 6. Huiswerk
 
-### 6.1 Ustadz-weergave — Huiswerk aanmaken & beoordelen
+### 6.1 Docentweergave — Huiswerk aanmaken & beoordelen
 
-<img src="./screenshots/nl/assignments-tutor.png" width="360" alt="Huiswerk — lijst ustadz">
+<img src="./screenshots/nl/assignments-tutor.png" width="360" alt="Huiswerk — lijst docent">
 
 | Element | Functie |
 |---|---|
@@ -221,7 +221,7 @@ Beoordelingsscherm (na het tikken op een opdracht in de lijst):
 | **← Terug** | Terug naar de lijst. |
 | Titel, beschrijving en deadline | Informatie over de gekozen opdracht. |
 | Leerlingregel + knoppen **In afwachting / Voltooid / Te laat / Gedeeltelijk** | Stelt de inleverstatus van die leerling in. Elke tik wordt **direct opgeslagen** op de server (geen apart "versturen"-knop zoals bij Aanwezigheid). |
-| Veld **Notities** per leerling | Vrije notitie van de ustadz voor die leerling; wordt automatisch opgeslagen zodra het veld de focus verliest (bijvoorbeeld na typen en dan elders op het scherm tikken). |
+| Veld **Notities** per leerling | Vrije notitie van de docent voor die leerling; wordt automatisch opgeslagen zodra het veld de focus verliest (bijvoorbeeld na typen en dan elders op het scherm tikken). |
 
 > Let op: de statuslabel "Te laat" bij Huiswerk betekent **te laat/onvolledig ingeleverd**, iets anders dan "Te laat" bij Aanwezigheid, wat **te laat op les komen** betekent — hetzelfde woord, andere betekenis op twee verschillende schermen.
 
@@ -229,13 +229,13 @@ Beoordelingsscherm (na het tikken op een opdracht in de lijst):
 
 <img src="./screenshots/nl/assignments-family.png" width="360" alt="Huiswerk — ouderweergave">
 
-Alleen om te bekijken — de status kan alleen door de ustadz worden gewijzigd.
+Alleen om te bekijken — de status kan alleen door de docent worden gewijzigd.
 
 | Element | Functie |
 |---|---|
 | **Kies kind** | Zoals bij Aanwezigheid. |
 | Regel met aantal actieve opdrachten | "{aantal} actieve huiswerkopdrachten" — telt opdrachten met status "In afwachting" of waarvan de deadline is verstreken. |
-| Kaart per opdracht | Titel, beschrijving, deadline, notities van de ustadz (indien aanwezig), en statuslabel: **In afwachting / Voltooid / Te laat / Gedeeltelijk / Termijn Verlopen**. |
+| Kaart per opdracht | Titel, beschrijving, deadline, notities van de docent (indien aanwezig), en statuslabel: **In afwachting / Voltooid / Te laat / Gedeeltelijk / Termijn Verlopen**. |
 
 ---
 
@@ -243,9 +243,9 @@ Alleen om te bekijken — de status kan alleen door de ustadz worden gewijzigd.
 
 Yanbu'a is een stapsgewijze leesmethode voor het Arabisch/Koranlezen (jilid 1–7 + pagina's). Dit scherm registreert de jilid, pagina en het beheersingsniveau van de leerling.
 
-### 7.1 Ustadz-weergave — Voortgang registreren
+### 7.1 Docentweergave — Voortgang registreren
 
-<img src="./screenshots/nl/yanbua-tutor.png" width="360" alt="Yanbu'a — leerlingenlijst ustadz">
+<img src="./screenshots/nl/yanbua-tutor.png" width="360" alt="Yanbu'a — leerlingenlijst docent">
 
 | Element | Functie |
 |---|---|
@@ -279,7 +279,7 @@ Alleen om te bekijken.
 |---|---|
 | **Kies kind** | Zoals bij andere schermen. |
 | Kaart **Huidig niveau** | Actuele jilid, pagina en beheersing. |
-| **Sessiegeschiedenis** | Net als bij de ustadz-weergave — de volledige geschiedenis, zonder mogelijkheid om iets te wijzigen. |
+| **Sessiegeschiedenis** | Net als bij de docentweergave — de volledige geschiedenis, zonder mogelijkheid om iets te wijzigen. |
 
 ---
 
@@ -287,9 +287,9 @@ Alleen om te bekijken.
 
 Registreert de tilawah-positie (leespositie) van de leerling in de Al-Quran: surah, versbereik en leeskwaliteit.
 
-### 8.1 Ustadz-weergave — Tilawah registreren
+### 8.1 Docentweergave — Tilawah registreren
 
-<img src="./screenshots/nl/quran-tutor.png" width="360" alt="Al-Quran — leerlingenlijst ustadz">
+<img src="./screenshots/nl/quran-tutor.png" width="360" alt="Al-Quran — leerlingenlijst docent">
 
 Zelfde structuur als Yanbu'a: **Kies groep** → leerlingenlijst → tik op een naam om te registreren.
 
@@ -319,9 +319,9 @@ Alleen om te bekijken: kaart **Huidige positie** + **Tilawah-geschiedenis**, net
 
 ## 9. Murajaah
 
-Murajaah is het regelmatig thuis herhalen van gememoriseerde Qur'an-verzen. Een ustadz stelt een doel in (surah + versbereik + frequentie), waarna een ouder elke keer bevestigt dat het thuis is gedaan.
+Murajaah is het regelmatig thuis herhalen van gememoriseerde Qur'an-verzen. Een docent stelt een doel in (surah + versbereik + frequentie), waarna een ouder elke keer bevestigt dat het thuis is gedaan.
 
-Het Murajaah-menu voor een ustadz heeft **twee tabbladen**:
+Het Murajaah-menu voor een docent heeft **twee tabbladen**:
 
 ### 9.1 Tabblad "Doel toewijzen"
 
@@ -343,7 +343,7 @@ Op het detailscherm van een leerling vindt u:
 
 <img src="./screenshots/nl/murajaah-tutor-overview.png" width="360" alt="Murajaah — tabblad Groepsoverzicht">
 
-Dit scherm is **alleen om te bekijken** — een ustadz kan geen murajaah bevestigen namens een leerling (dat kan alleen een ouder).
+Dit scherm is **alleen om te bekijken** — een docent kan geen murajaah bevestigen namens een leerling (dat kan alleen een ouder).
 
 | Element | Functie |
 |---|---|
@@ -360,7 +360,7 @@ Dit scherm is **alleen om te bekijken** — een ustadz kan geen murajaah bevesti
 | Kaart met actief doel | Surah, versbereik, frequentie, **aantal dagen/weken op rij (streak)**, en het beste record indien van toepassing. |
 | **Kwaliteit** (keuzelijst) | Vloeiend gememoriseerd / Gememoriseerd, nog niet vloeiend / Nog niet gememoriseerd — te kiezen vóór het bevestigen. |
 | **✓ Murajaah voltooid** (knop) | Registreert dat de murajaah van vandaag is gedaan. **Alleen zichtbaar voor een ouder/verzorger** — als u een leerling van 16+ bent die de eigen gegevens bekijkt, is deze knop niet beschikbaar; alleen een ouder/verzorger kan murajaah bevestigen, ook al kan de leerling wel de eigen voortgang zien. |
-| **Voltooide memorisatie** & **Bevestigingsgeschiedenis** | Net als bij de ustadz-weergave. |
+| **Voltooide memorisatie** & **Bevestigingsgeschiedenis** | Net als bij de docentweergave. |
 
 **Offline-status**: als een bevestiging niet kan worden verstuurd door een netwerkprobleem, verschijnt *"U bent offline..."* en wordt deze tijdelijk lokaal bewaard totdat automatisch opnieuw kan worden verstuurd.
 
@@ -370,15 +370,15 @@ Dit scherm is **alleen om te bekijken** — een ustadz kan geen murajaah bevesti
 
 ## 10. Rapport
 
-Het jaarrapport vat de aanwezigheid, cijfers per vak (Yanbu'a, Al-Quran, Murajaah) en de opmerking van de ustadz samen, en wordt vervolgens gepubliceerd als PDF die het gezin kan downloaden.
+Het jaarrapport vat de aanwezigheid, cijfers per vak (Yanbu'a, Al-Quran, Murajaah) en de opmerking van de docent samen, en wordt vervolgens gepubliceerd als PDF die het gezin kan downloaden.
 
-### 10.1 Ustadz-/beheerderweergave — Rapportenlijst
+### 10.1 Docent-/beheerderweergave — Rapportenlijst
 
-<img src="./screenshots/nl/reports-tutor.png" width="360" alt="Rapport — lijst voor ustadz">
+<img src="./screenshots/nl/reports-tutor.png" width="360" alt="Rapport — lijst voor docent">
 
 | Element | Functie |
 |---|---|
-| *(Alleen beheerder)* Paneel **"Conceptrapporten aanmaken"** | De beheerder kan conceptrapporten aanmaken voor alle groepen of voor één specifieke groep, voor één schooljaar (formaat "2025/2026"). Na het aanmaken toont het paneel het aantal succesvol aangemaakte concepten, plus het aantal overgeslagen (omdat er al een rapport bestond, of omdat de groep geen ustadz heeft). |
+| *(Alleen beheerder)* Paneel **"Conceptrapporten aanmaken"** | De beheerder kan conceptrapporten aanmaken voor alle groepen of voor één specifieke groep, voor één schooljaar (formaat "2025/2026"). Na het aanmaken toont het paneel het aantal succesvol aangemaakte concepten, plus het aantal overgeslagen (omdat er al een rapport bestond, of omdat de groep geen docent heeft). |
 | **Kies groep** | Zoals bij andere schermen. |
 | Rapportenlijst | Naam van de leerling, schooljaar, en statuslabel **Concept** (grijs) of **Gepubliceerd** (groen). Tik op een rij om te openen. |
 
@@ -390,15 +390,15 @@ Het jaarrapport vat de aanwezigheid, cijfers per vak (Yanbu'a, Al-Quran, Murajaa
 |---|---|
 | **← Terug** | Terug naar de lijst. |
 | **Aanwezigheidsoverzicht** | Percentage + aantal Aanwezig/Te laat/Niet aanwezig — dit is een **momentopname** van het moment waarop het concept werd aangemaakt, geen live gegevens, zodat het cijfer hetzelfde blijft ook als aanwezigheidsgegevens achteraf worden gecorrigeerd. |
-| **Voortgangsoverzicht** *(alleen voor ustadz/beheerder, niet zichtbaar in de gezinsweergave)* | Actuele positie in Yanbu'a en Al-Quran, en het aantal actuele murajaah-doelen — live gegevens, als hulpmiddel bij het invullen van de cijfers. |
+| **Voortgangsoverzicht** *(alleen voor docent/beheerder, niet zichtbaar in de gezinsweergave)* | Actuele positie in Yanbu'a en Al-Quran, en het aantal actuele murajaah-doelen — live gegevens, als hulpmiddel bij het invullen van de cijfers. |
 | **Cijfers per vak**: Yanbu'a, Al-Quran, Murajaah | Elk vak heeft een cijferkeuzelijst (Mumtaz / Jayyid Jiddan / Jayyid / Maqbul / Begeleiding nodig / "Nog geen cijfer") + een kort notitieveld. |
 | **Eindcijfer** | Keuzelijst voor het gecombineerde eindcijfer, zonder notitieveld. |
-| **Opmerking van de ustadz** | Lang tekstveld met een verhaal over de voortgang van de leerling — **verplicht in te vullen voordat het rapport gepubliceerd kan worden**. |
+| **Opmerking van de docent** | Lang tekstveld met een verhaal over de voortgang van de leerling — **verplicht in te vullen voordat het rapport gepubliceerd kan worden**. |
 | **Opslaan** | Slaat wijzigingen op zonder te publiceren — kan altijd, zowel bij een concept als bij een al gepubliceerd rapport. |
-| **Rapport publiceren** / **Opnieuw publiceren & PDF bijwerken** | Alleen zichtbaar voor de **ustadz die het rapport heeft geschreven** (niet voor de beheerder). Toont een bevestigingsvak, maakt daarna een PDF-bestand aan en verandert de status in "Gepubliceerd" — daarna kunnen ouder en leerling het bekijken en downloaden. Niet actief totdat het veld Opmerking van de ustadz is ingevuld. |
+| **Rapport publiceren** / **Opnieuw publiceren & PDF bijwerken** | Alleen zichtbaar voor de **docent die het rapport heeft geschreven** (niet voor de beheerder). Toont een bevestigingsvak, maakt daarna een PDF-bestand aan en verandert de status in "Gepubliceerd" — daarna kunnen ouder en leerling het bekijken en downloaden. Niet actief totdat het veld Opmerking van de docent is ingevuld. |
 | **PDF downloaden** | Verschijnt zodra er al eens een PDF is aangemaakt. |
 
-**Opmerking voor beheerders**: een beheerder kan de cijfers/opmerkingen van elk rapport wijzigen, maar **kan het niet publiceren** — alleen de oorspronkelijke ustadz kan op de publiceerknop drukken. Als een beheerder een al gepubliceerd rapport wijzigt, wordt de wijziging direct in de app opgeslagen, maar het PDF-bestand blijft verouderd totdat de betreffende ustadz het opnieuw publiceert.
+**Opmerking voor beheerders**: een beheerder kan de cijfers/opmerkingen van elk rapport wijzigen, maar **kan het niet publiceren** — alleen de oorspronkelijke docent kan op de publiceerknop drukken. Als een beheerder een al gepubliceerd rapport wijzigt, wordt de wijziging direct in de app opgeslagen, maar het PDF-bestand blijft verouderd totdat de betreffende docent het opnieuw publiceert.
 
 ### 10.3 Gezinsweergave — Rapport bekijken & downloaden
 
@@ -409,7 +409,7 @@ Een gezin **kan alleen gepubliceerde rapporten zien** — een rapport met de sta
 | Element | Functie |
 |---|---|
 | **Kies kind** | Zoals bij andere schermen. |
-| Aanwezigheidsoverzicht, cijfers per vak en opmerking van de ustadz | Zoals door de ustadz geschreven, alleen om te lezen. |
+| Aanwezigheidsoverzicht, cijfers per vak en opmerking van de docent | Zoals door de docent geschreven, alleen om te lezen. |
 | **PDF downloaden** | Opent het PDF-bestand van het rapport in een nieuw tabblad. |
 
 Als er nog geen rapport is gepubliceerd voor dat kind, toont het scherm het bericht **"Nog geen rapporten beschikbaar"**.
@@ -422,7 +422,7 @@ Als er nog geen rapport is gepubliceerd voor dat kind, toont het scherm het beri
 
 <img src="./screenshots/nl/notifications-centre.png" width="360" alt="Meldingencentrum">
 
-Wordt geopend via het belletje in de bovenbalk. Bevat alleen gegevens voor accounts die als ontvanger van meldingen gelden (ouder, of een leerling van 16+ met eigen account) — een zuivere ustadz of beheerder ziet hier het bericht dat het account nog aan geen enkele leerling is gekoppeld.
+Wordt geopend via het belletje in de bovenbalk. Bevat alleen gegevens voor accounts die als ontvanger van meldingen gelden (ouder, of een leerling van 16+ met eigen account) — een zuivere docent of beheerder ziet hier het bericht dat het account nog aan geen enkele leerling is gekoppeld.
 
 | Element | Functie |
 |---|---|
@@ -461,7 +461,7 @@ Alleen toegankelijk voor een account met de rol Beheerder, via de tegel **Beheer
 |---|---|
 | **E-mailadres** | Verplicht. |
 | **Volledige naam** | Verplicht. |
-| **Rol** | Ouder / Ustadz / Leerling / Beheerder (standaard: Ouder). |
+| **Rol** | Ouder / Docent / Leerling / Beheerder (standaard: Ouder). |
 | **Uitnodiging versturen** | Maakt een nieuw account aan en stuurt een uitnodigingslink naar dat e-mailadres. |
 
 **Sectie "In afwachting van registratie"** — mensen die al eerder via Google zijn ingelogd, maar nog geen profiel/rol hebben gekregen (bijvoorbeeld omdat ze door iemand anders zijn uitgenodigd, of zelf inlogden voordat de beheerder ze registreerde):
@@ -482,7 +482,7 @@ Alleen toegankelijk voor een account met de rol Beheerder, via de tegel **Beheer
 | Element | Functie |
 |---|---|
 | **+ Nieuwe groep** | Opent het formulier voor een nieuwe groep (zie afbeelding hieronder). |
-| Kaart per groep | Naam, rooster, lesdagen (bijv. "wo, za"), en lijst van toegewezen ustadz. |
+| Kaart per groep | Naam, rooster, lesdagen (bijv. "wo, za"), en lijst van toegewezen docenten. |
 | **Bewerken** | Opent het bewerkingsformulier voor die groep, al ingevuld met bestaande gegevens. |
 
 Groepsformulier (hetzelfde voor nieuw aanmaken of bewerken):
@@ -494,7 +494,7 @@ Groepsformulier (hetzelfde voor nieuw aanmaken of bewerken):
 | **Groepsnaam** | Verplicht. |
 | **Rooster** | Optioneel, vrije tekst voor de tijd (bijv. "Sabtu 10:00-12:00"). |
 | **Lesdagen** | Aanvinklijst maandag t/m zondag. Bij een nieuwe groep staat **zaterdag** al aangevinkt; meerdere dagen mag. Er moet minstens één dag gekozen zijn — anders is **Opslaan** uitgeschakeld met de melding *"Kies minstens één dag"*. Deze dagen bepalen op welke datums de aanwezigheidslijst een les kan aanmaken. |
-| **Toegewezen ustadz** | Aanvinklijst — er kan meer dan één ustadz worden gekozen, of geen enkele. |
+| **Toegewezen docenten** | Aanvinklijst — er kan meer dan één docent worden gekozen, of geen enkele. |
 | **Opslaan** / **Annuleren** | Opslaan of annuleren. |
 
 > Er is geen knop om een groep te verwijderen in deze app.
@@ -528,17 +528,17 @@ Leerlingformulier:
 
 ## 13. Accounts met een dubbele rol
 
-Sommige accounts hebben meer dan één relatie — bijvoorbeeld een ustadz die ook ouder is van een leerling in een andere groep (niet de groep die hij/zij zelf begeleidt). Zulke accounts zien een **weergaveschakelaar** boven de schermen Aanwezigheid, Huiswerk, Yanbu'a, Al-Quran, Murajaah en Rapport:
+Sommige accounts hebben meer dan één relatie — bijvoorbeeld een docent die ook ouder is van een leerling in een andere groep (niet de groep die hij/zij zelf begeleidt). Zulke accounts zien een **weergaveschakelaar** boven de schermen Aanwezigheid, Huiswerk, Yanbu'a, Al-Quran, Murajaah en Rapport:
 
 <img src="./screenshots/nl/dualrole-scope-class.png" width="360" alt="Weergaveschakelaar — Mijn groep" style="margin-right:12px">
 <img src="./screenshots/nl/dualrole-scope-family.png" width="360" alt="Weergaveschakelaar — Mijn kind">
 
 | Knop | Functie |
 |---|---|
-| **Mijn groep** | Toont de ustadz-weergave — de groep(en) die wordt/worden begeleid. |
+| **Mijn groep** | Toont de docentweergave — de groep(en) die wordt/worden begeleid. |
 | **Mijn kind** *(of "Mijzelf" voor een 16+ leerling, of "Mijn gezin" als beide gelden)* | Toont de gezinsweergave — het kind dat aan dit account gekoppeld is. |
 
-Het geopende scherm **verandert niet** bij het indrukken van deze schakelaar — alleen de inhoud wisselt tussen de groepsweergave en de gezinsweergave. Een account met slechts één relatie (uitsluitend ustadz, uitsluitend ouder, of uitsluitend beheerder) ziet deze schakelaar nooit.
+Het geopende scherm **verandert niet** bij het indrukken van deze schakelaar — alleen de inhoud wisselt tussen de groepsweergave en de gezinsweergave. Een account met slechts één relatie (uitsluitend docent, uitsluitend ouder, of uitsluitend beheerder) ziet deze schakelaar nooit.
 
 ---
 
@@ -548,11 +548,11 @@ De volgende elementen komen op veel schermen terug en worden hier één keer uit
 
 | Element | Wanneer zichtbaar | Functie |
 |---|---|---|
-| **Kies groep** | Elk ustadz-scherm | Verschijnt alleen als de ustadz meer dan één groep begeleidt. |
+| **Kies groep** | Elk docentscherm | Verschijnt alleen als de docent meer dan één groep begeleidt. |
 | **Kies kind** | Elk gezinsscherm | Verschijnt alleen als het account meer dan één gekoppeld kind heeft. |
 | *"Laden…"* | Alle schermen | Gegevens worden van de server opgehaald. |
 | *"Nog geen gegevens"* | Alle schermen | Er zijn geen gegevens om te tonen in de huidige situatie. |
-| *"U bent nog aan geen enkele groep toegewezen"* | Ustadz-schermen | Het ustadz-account heeft nog geen groep(en) van de beheerder gekregen. |
+| *"U bent nog aan geen enkele groep toegewezen"* | Docentschermen | Het docentaccount heeft nog geen groep(en) van de beheerder gekregen. |
 | *"U bent offline. Gegevens worden verzonden zodra u weer online bent."* | Aanwezigheid, Yanbu'a, Al-Quran, Murajaah | Uw actie is lokaal opgeslagen en **wordt automatisch verstuurd** zodra de internetverbinding terugkeert — geen herhaling nodig. |
 | Foutmelding (rood vak) | Alle schermen | Er is iets misgegaan bij het laden of opslaan van gegevens — probeer het opnieuw of neem contact op met de beheerder bij herhaling. |
 
@@ -566,7 +566,7 @@ Om tweetalige communicatie binnen de TPA te vergemakkelijken, hier de belangrijk
 |---|---|---|
 | Groep | Grup | Voorheen "Klas"/"Kelas" genoemd — de officiële term is nu "Groep"/"Grup". |
 | Leerling | Santri | — |
-| Ustadz | Ustadz / Ustadzah | De term "Ustadz" wordt in beide talen hetzelfde gebruikt. |
+| Docent | Guru | Neutrale term voor een begeleider; vervangt "Ustadz/Ustadzah". |
 | Ouder | Orang Tua | — |
 | Aanwezig | Hadir | — |
 | Huiswerk | Tugas | Voorheen "Opdrachten" genoemd — de officiële term is nu "Huiswerk"/"Tugas". |
@@ -576,4 +576,4 @@ Om tweetalige communicatie binnen de TPA te vergemakkelijken, hier de belangrijk
 
 ---
 
-*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **12.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026), en met **§5.1 aangevuld voor de sectie "Aanwezigheid ustadz"** (ADR-041, september 2026). De indeling kan in latere app-versies licht afwijken. De PDF-versie moet uit deze bijgewerkte tekst opnieuw worden gegenereerd.*
+*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **12.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026), en met **§5.1 aangevuld voor de sectie "Aanwezigheid docenten"** (ADR-041, september 2026). De indeling kan in latere app-versies licht afwijken. De PDF-versie moet uit deze bijgewerkte tekst opnieuw worden gegenereerd.*

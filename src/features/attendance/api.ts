@@ -115,7 +115,7 @@ export interface ClassTutor {
 
 /**
  * The tutors named in a class's `tutor_ids`, id + name, to label the
- * register's "Ustadz" section. Goes through `fn_class_tutors` rather
+ * register's tutor section. Goes through `fn_class_tutors` rather
  * than a `users` select because `users_self_read` does not expose other
  * users to a tutor; the function returns zero rows to a caller who is
  * neither an admin nor a tutor of the class (the `fn_student_guardians`

@@ -67,7 +67,7 @@ interface RowState {
  * tutor-parent's children, who stay on the register and are marked by
  * their parent in the ordinary way (ADR-024, ADR-024(c)).
  *
- * ── The "Ustadz" section (TAD ADR-041) ─────────────────────────────
+ * ── The tutor section (TAD ADR-041) ────────────────────────────────
  * Below the student roster is a section listing the tutors of the
  * selected class (`fetchClassTutors` → `fn_class_tutors`, because
  * `users_self_read` hides other users), each with the same
@@ -461,7 +461,7 @@ export function TutorAttendanceView() {
       )}
 
       {/*
-        The "Ustadz" section (TAD ADR-041). Same row shape as a student,
+        The tutor section (TAD ADR-041). Same row shape as a student,
         keyed by the tutor's user id. No self-record carve-out: a tutor's
         own row is theirs to set. Rendered whenever the class has tutors;
         an empty `tutor_ids` shows the assign-in-Beheer hint instead so

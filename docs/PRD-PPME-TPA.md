@@ -479,7 +479,7 @@ Digital attendance management system allowing tutors to record student presence/
 
 **FR-008: Tutor Attendance**
 - Priority: Medium
-- The class-scope Attendance screen has an "Ustadz" section below the student roster listing the tutors assigned to the selected class, each with the same Present / Late / Absent (with reason) control a student row has.
+- The class-scope Attendance screen has a tutor section below the student roster (labelled "Kehadiran guru" / "Aanwezigheid docenten") listing the tutors assigned to the selected class, each with the same Present / Late / Absent (with reason) control a student row has.
 - A tutor of the class, or an admin, records it; it is submitted together with the student roster for the same session and the confirm dialog states the student count and the tutor count separately. It rides the FR-007 schedule stepper, so a missed session's tutor attendance can be backfilled through the current academic year exactly as student attendance can.
 - **A TPA admin can review a tutor's attendance over a date range** — a Beheer screen where the admin picks a tutor and sees a present-rate and a dated list across all classes that tutor teaches — so tutor attendance can be checked periodically.
 - Tutor attendance is visible only to an admin and to a tutor of that class. Parents and 16+ students never see it. The absence reason is treated exactly like the student one — shown in-app only, never in a notification or an export.
@@ -1311,7 +1311,7 @@ When someone signs in with Google for the first time and has no account yet, the
 *   **Ayah:** A verse of the Quran.
 *   **Juz:** One of 30 equal divisions of the Quran.
 *   **Santri:** A student of Islamic studies/Quran.
-*   **Ustadz/Ustadzah:** Male/Female Islamic teacher or tutor.
+*   **Ustadz/Ustadzah:** Male/Female Islamic teacher or tutor. The app UI uses the gender-neutral **"Guru"** (Indonesian) / **"Docent"** (Dutch) instead.
 *   **Lancar:** Fluent/smooth (used as a quality assessment).
 *   **Mumtaz:** Excellent (highest quality grade for recitation).
 *   **Ahlus Sunnah wal Djama'ah:** The religious framework followed by PPME — mainstream Sunni Islam.

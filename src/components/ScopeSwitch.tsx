@@ -8,7 +8,7 @@ import { scopeAppliesTo, scopeLabelKey } from '../lib/viewScope'
  * which of them the screen is about (TAD ADR-025).
  *
  * ── Labelled by subject, never by role ──────────────────────────────
- * "Grup saya" / "Anak saya", not "Ustadz" / "Orang Tua". PRD §70
+ * "Grup saya" / "Anak saya", not "Guru" / "Orang Tua". PRD §70
  * records that the prototype's "Pilih Peran" switcher is not a feature
  * to build, because production derives role from the authenticated
  * user rather than letting anyone pick one — and that objection is
