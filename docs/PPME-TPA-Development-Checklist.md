@@ -672,3 +672,24 @@ PRD FR-008 + a user story, openapi (`/tutor_attendance` + schemas +
 user manual (both languages), test-plan §3.6 + §4.5g + E2E-20/21. **PR 2**
 adds the admin per-tutor review timeline (`/admin/tutor-attendance`, a
 4th `ADMIN_SECTION_TABS` entry).
+
+**Post-milestone change (TAD ADR-041(g)) — PR 2 of 2:** the admin
+per-tutor **review timeline**. `/admin/tutor-attendance`
+(`TutorAttendanceReviewPage`, `RequireAdmin` on the route, a 4th
+`AdminSectionNav` pill "Kehadiran Guru"): the head picks a tutor and sees
+a present-rate + present/late/absent counts over a date range (default: 1
+Aug of the current academic year → today) and a dated list (date · group
+· status) across every group that tutor teaches, with a group filter once
+more than one group appears. **No new policy or migration** — it reads
+`tutor_attendance` (RLS-85) and stitches the session date + group name
+from `sessions`/`classes`, all admin grants. Two client functions in
+`attendance/api.ts`: `fetchTutorAttendanceHistory` (the
+`fetchAttendanceHistory` shape + `className`) and `fetchReviewableTutors`
+— the picker is everyone with ≥1 recorded row, so a group's
+student-assistant never shows. Reuses `computeAttendanceRate` and the
+`FamilyAttendanceView` layout. Verified: `typecheck` +
+`typecheck:functions` + `test` (557, +6 in
+`tutorAttendanceReview.test.ts`) + `build` green; click-tested on the
+local stack (record as a tutor → review as admin, picker + rate + list +
+group filter, zero console errors). Docs: ADR-041(g), PRD FR-008 status,
+openapi note, test-plan §4.5h + E2E-21, the user manual (both languages).

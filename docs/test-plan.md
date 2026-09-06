@@ -569,6 +569,18 @@ assertions in §4.5 change target and two new properties appear.
 - [x] a `tutor_attendance` queue entry replays through `submitTutorAttendance` (not `submitAttendance`) and is removed on success
 - [x] a real (non-network) failure is recorded on the entry via `markAttempt` rather than dropping it — the same "a genuine rejection must not sit in the queue pretending to be handled" rule the other kinds follow; the `(session_id, tutor_id)` upsert makes a lost-response replay a harmless no-op, so there is no unique-violation-is-success branch to test as there is for murajaah/yanbua/quran
 
+### 4.5h Admin tutor-attendance review (TAD ADR-041(g))
+
+`tests/unit/tutorAttendanceReview.test.ts`, against
+`src/features/attendance/api.ts` — the two reads behind
+`/admin/tutor-attendance`. No new policy: both lean on the admin's
+existing `tutor_attendance` / `users` / `classes` grants.
+
+- [x] `fetchReviewableTutors` dedupes by `tutor_id`, keeps the embedded name, and sorts by name — the picker is driven by *recorded* rows, so a group's student-assistant (no rows, since `fn_class_tutors` already omits them) never appears
+- [x] …returns `[]` when nothing is recorded, and rethrows a query error rather than reporting an empty roster
+- [x] `fetchTutorAttendanceHistory` filters on `tutor_id`, stitches in the session date **and group name** from a second `sessions` query, and sorts newest-first — the `fetchAttendanceHistory` contract, extended with `className`
+- [x] …returns `[]` without a second query when the tutor has no rows, and rethrows a sessions-query error
+
 ### 4.6 Access control and delivery inside the Functions
 
 The three modules that decide who may make a Function act, and what
@@ -657,7 +669,7 @@ Run against Preview deploys with fixture data; auth mocked via Supabase test JWT
 | E2E-18 | Unregistered Google account signs in → Unauthorized screen shows the name + context form with `full_name` prefilled from the Google profile → user edits the name and adds context → submits → screen switches to the "request received" state, and reloading keeps it → admin opens Registrations and sees the edited name prefilled and the context read-only → admin approves → the `registration_requests` row is cleaned up (a second unregistered account that submits nothing still appears with blank fields) (TAD ADR-038) | Unregistered → Admin |
 | E2E-19 | Admin opens Registrations → clicks **Reject** on a pending entry → the `window.confirm` naming the email → confirms → the entry disappears from the list, and its `registration_requests` row (if any) is gone with the `auth.users` row → rejecting an entry whose id already has a profile is refused (`409`) → the same Google account signing in again reappears as a fresh pending entry, since GoTrue re-creates `auth.users` (intended — no blocklist) (TAD ADR-039) | Admin |
 | E2E-20 | Tutor opens Attendance → below the student roster a tutor section ("Kehadiran guru" / "Aanwezigheid docenten") lists the class's tutors → tutor marks a co-tutor absent with a reason and marks themselves present → submits → the confirm dialog names the student count and the tutor count on separate lines → an admin opens the same session and sees those tutor statuses; the affected tutor's own family view (if they are also a parent) shows nothing new, and a parent of a child in the class sees no tutor attendance anywhere (TAD ADR-041) | Tutor → Admin → Parent |
-| E2E-21 | Admin opens Beheer → "Kehadiran guru" → picks a tutor and a date range → sees a present-rate and a dated list spanning every class that tutor teaches; a tutor visiting `/admin/tutor-attendance` directly is redirected home (PR 2, TAD ADR-041) | Admin, Tutor |
+| E2E-21 | Admin opens Beheer → the "Kehadiran Guru" pill → picks a tutor → sees a present-rate, present/late/absent counts, and a dated list (date · group · status) spanning every group that tutor teaches, with a group filter once more than one group appears; narrowing the date range recomputes the rate; the picker lists only tutors with recorded rows (no student-assistant); a non-admin visiting `/admin/tutor-attendance` directly is redirected home by `RequireAdmin` (TAD ADR-041(g)) | Admin, Tutor |
 
 *E2E-15…E2E-21 are specified but not implemented — this project has no
 authenticated Playwright harness yet (`e2e/sign-in.spec.ts` documents

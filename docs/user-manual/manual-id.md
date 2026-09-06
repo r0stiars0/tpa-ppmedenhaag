@@ -449,7 +449,7 @@ Jika peramban memblokir izin notifikasi, layar menampilkan penjelasan untuk memb
 
 ## 12. Kelola (Khusus Admin)
 
-Hanya bisa diakses oleh akun dengan peran Admin, lewat ubin **Kelola** di Beranda. Terdiri dari tiga sub-halaman dengan menu tab di bagian atas: **Pendaftaran · Grup · Santri**.
+Hanya bisa diakses oleh akun dengan peran Admin, lewat ubin **Kelola** di Beranda. Terdiri dari empat sub-halaman dengan menu tab di bagian atas: **Pendaftaran · Grup · Santri · Kehadiran Guru**.
 
 ### 12.1 Pendaftaran
 
@@ -524,6 +524,20 @@ Formulir Santri:
 
 > Tidak ada tombol hapus santri di aplikasi ini.
 
+### 12.4 Kehadiran Guru
+
+Layar untuk meninjau kehadiran seorang guru secara berkala. Kehadiran guru dicatat oleh guru atau admin di layar **Kehadiran** biasa (lihat [§5.1](#51-tampilan-guru--mencatat-kehadiran) → "Kehadiran guru").
+
+| Elemen | Fungsi |
+|---|---|
+| **Pilih guru** | Daftar guru yang sudah pernah tercatat kehadirannya. Guru yang belum pernah dicatat tidak muncul; jika belum ada satu pun, muncul keterangan "Belum ada kehadiran guru yang tercatat." |
+| **Pilih grup** *(muncul bila guru mengampu lebih dari satu grup)* | Menyaring daftar ke satu grup, atau **"Semua grup"**. |
+| **Dari** / **Sampai** | Rentang tanggal. Standar: 1 Agustus tahun ajaran berjalan sampai hari ini. |
+| Kartu persentase | Persentase kehadiran pada rentang terpilih (Terlambat dihitung hadir; hanya Absen yang mengurangi), diikuti rincian **{n} hadir · {n} terlambat · {n} absen**. |
+| **Riwayat Kehadiran** | Daftar per tanggal: tanggal, nama grup, dan status **Hadir / Terlambat / Tidak Hadir** (beserta alasan jika tidak hadir). |
+
+Layar ini **hanya untuk melihat** — koreksi kehadiran dilakukan di layar Kehadiran grup yang bersangkutan. Orang tua dan santri tidak pernah melihat kehadiran guru.
+
 ---
 
 ## 13. Akun dengan Peran Ganda
@@ -576,4 +590,4 @@ Untuk memudahkan komunikasi dua bahasa di lingkungan TPA, berikut padanan istila
 
 ---
 
-*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **12.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026), serta **§5.1 dilengkapi dengan bagian "Kehadiran guru"** (ADR-041, September 2026). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF perlu dibuat ulang dari teks yang telah diperbarui ini.*
+*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **12.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026), serta **§5.1 dilengkapi dengan bagian "Kehadiran guru"** dan **§12.4 ditambahkan untuk layar peninjauan "Kehadiran Guru" admin** (ADR-041, September 2026). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF dibuat ulang dari teks ini dengan `scripts/gen-manual-pdf.mjs`; layar §12.4 belum memiliki tangkapan layar.*

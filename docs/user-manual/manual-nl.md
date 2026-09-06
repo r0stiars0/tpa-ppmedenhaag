@@ -449,7 +449,7 @@ Als de browser meldingsrechten blokkeert, toont het scherm uitleg om deze handma
 
 ## 12. Beheer (alleen beheerder)
 
-Alleen toegankelijk voor een account met de rol Beheerder, via de tegel **Beheer** op het startscherm. Bestaat uit drie subpagina's met een tabmenu bovenaan: **Registraties · Groepen · Leerlingen**.
+Alleen toegankelijk voor een account met de rol Beheerder, via de tegel **Beheer** op het startscherm. Bestaat uit vier subpagina's met een tabmenu bovenaan: **Registraties · Groepen · Leerlingen · Aanwezigheid docenten**.
 
 ### 12.1 Registraties
 
@@ -524,6 +524,20 @@ Leerlingformulier:
 
 > Er is geen knop om een leerling te verwijderen in deze app.
 
+### 12.4 Aanwezigheid docenten
+
+Scherm om de aanwezigheid van een docent periodiek na te kijken. De aanwezigheid van docenten wordt door een docent of de beheerder vastgelegd op het gewone scherm **Aanwezigheid** (zie [§5.1](#51-docentweergave--aanwezigheid-registreren) → "Aanwezigheid docenten").
+
+| Element | Functie |
+|---|---|
+| **Kies docent** | Lijst met docenten van wie al aanwezigheid is vastgelegd. Een docent zonder registraties verschijnt niet; is er nog niets, dan staat er "Er is nog geen aanwezigheid van docenten vastgelegd." |
+| **Kies groep** *(verschijnt als de docent meer dan één groep begeleidt)* | Beperkt de lijst tot één groep, of **"Alle groepen"**. |
+| **Van** / **Tot** | Datumbereik. Standaard: 1 augustus van het huidige schooljaar tot vandaag. |
+| Percentagekaart | Aanwezigheidspercentage over het gekozen bereik (Te laat telt als aanwezig; alleen Afwezig telt mee), met daaronder **{n} aanwezig · {n} te laat · {n} afwezig**. |
+| **Aanwezigheidsgeschiedenis** | Lijst per datum: datum, groepsnaam en status **Aanwezig / Te laat / Niet aanwezig** (met reden bij afwezigheid). |
+
+Dit scherm is **alleen om te bekijken** — corrigeren gebeurt op het Aanwezigheidsscherm van de betreffende groep. Ouders en leerlingen zien de aanwezigheid van docenten nooit.
+
 ---
 
 ## 13. Accounts met een dubbele rol
@@ -576,4 +590,4 @@ Om tweetalige communicatie binnen de TPA te vergemakkelijken, hier de belangrijk
 
 ---
 
-*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **12.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026), en met **§5.1 aangevuld voor de sectie "Aanwezigheid docenten"** (ADR-041, september 2026). De indeling kan in latere app-versies licht afwijken. De PDF-versie moet uit deze bijgewerkte tekst opnieuw worden gegenereerd.*
+*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **12.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026), en met **§5.1 aangevuld voor de sectie "Aanwezigheid docenten"** en **§12.4 toegevoegd voor het beheerdersscherm "Aanwezigheid docenten"** (ADR-041, september 2026). De indeling kan in latere app-versies licht afwijken. De PDF-versie is uit deze tekst opnieuw gegenereerd met `scripts/gen-manual-pdf.mjs`; het scherm van §12.4 heeft nog geen schermafbeelding.*

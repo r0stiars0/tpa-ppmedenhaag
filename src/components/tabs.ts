@@ -48,4 +48,8 @@ export const ADMIN_SECTION_TABS = [
   { to: '/admin/registrations', key: 'nav.pendaftaran' },
   { to: '/admin/classes', key: 'nav.kelas' },
   { to: '/admin/students', key: 'nav.santri' },
+  // Per-tutor attendance review (ADR-041 part 2). `AdminSectionNav`
+  // already scrolls horizontally, so a fourth pill does not reflow the
+  // header; `tabs.test.ts` only checks each entry is an `/admin/*` path.
+  { to: '/admin/tutor-attendance', key: 'nav.kehadiranGuru' },
 ] as const
