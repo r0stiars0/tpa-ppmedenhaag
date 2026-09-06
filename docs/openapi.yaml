@@ -532,7 +532,71 @@ paths:
                     id: { type: string, format: uuid }
                     email: { type: string, format: email }
                     created_at: { type: string, format: date-time }
+                    full_name: { type: string, nullable: true }
+                    description: { type: string, nullable: true }
         '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /registration_requests:
+    description: >-
+      Staging table (migration 020, TAD ADR-038) for a signed-in Google
+      account with no `public.users` row yet: it lets that user submit their
+      own full name plus free-text context for an admin to see when
+      approving. RLS: the caller GETs/PATCHes only their own row
+      (`id = auth.uid()`), and may POST their own row only while no
+      `public.users` row exists for them; admins see and manage every row.
+      Submitting does not grant access - approval is still an admin creating
+      the `public.users` row, at which point a trigger deletes the request.
+    get:
+      tags: [auth]
+      summary: Get the caller's own registration request
+      parameters:
+        - $ref: '#/components/parameters/select'
+        - name: id
+          in: query
+          schema: { type: string }
+          description: 'PostgREST filter `eq.{uuid}` - must be the caller''s own id'
+      responses:
+        '200':
+          description: Zero or one row
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/RegistrationRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [auth]
+      summary: Submit or revise the caller's registration request (upsert on id)
+      description: >-
+        `Prefer: resolution=merge-duplicates`. The client sends its own
+        `id`; RLS rejects any other, and rejects the insert once the caller
+        is registered.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegistrationRequestWrite' }
+      responses:
+        '201': { description: Created }
+        '200': { description: Updated (merge-duplicates) }
+        '403': { $ref: '#/components/responses/ForbiddenRLS' }
+    patch:
+      tags: [auth]
+      summary: Revise the caller's registration request
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: string }
+          description: 'Must be `eq.{caller uuid}`'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegistrationRequestWrite' }
+      responses:
+        '204': { description: Updated }
+        '403': { $ref: '#/components/responses/ForbiddenRLS' }
 
   /generate-year-end-drafts:
     post:
@@ -1468,6 +1532,27 @@ components:
         current_surah: { type: integer, minimum: 1, maximum: 114 }
         current_ayah: { type: integer, minimum: 1 }
         created_at: { type: string, format: date-time }
+
+    RegistrationRequest:
+      type: object
+      description: A pre-approval submission (migration 020, TAD ADR-038).
+      properties:
+        id: { type: string, format: uuid, description: 'PK, = auth.users.id (the caller''s own)' }
+        full_name: { type: string, minLength: 1, maxLength: 120 }
+        description:
+          type: string
+          nullable: true
+          maxLength: 2000
+          description: Free-text context for the admin; who they are / which child / why.
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    RegistrationRequestWrite:
+      type: object
+      required: [id, full_name]
+      properties:
+        id: { type: string, format: uuid, description: Must be the caller's own id }
+        full_name: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, nullable: true, maxLength: 2000 }
 
     Attendance:
       type: object

@@ -1181,6 +1181,62 @@ sequenceDiagram
 
 ---
 
+### Feature 7: Self-Service Registration Context
+
+#### 7.1. Feature Overview
+When someone signs in with Google for the first time and has no account yet, they see an "account not registered — contact the admin" screen. This feature adds a short form to that screen so the person can submit their full name and an optional free-text note (who they are, which child they belong to, why they need access). The admin sees that information on the Registrations page when deciding which role to assign, instead of approving a bare email address. Submitting the form does not grant access — an admin still has to create the account.
+
+*   **Feature Name:** Feature-PRD-TPA-Registration-Context
+*   **Parent EPIC:** EPIC-001 - Build a Digital Progress Tracking Platform for TPA
+*   **Product Code:** TPA
+*   **Product:** PPME - TPA
+*   **Feature Type:** New Feature
+*   **Priority:** Low
+*   **Owner:** [TBD]
+*   **Status:** Draft
+*   **Feature Access:** External
+*   **Applies To:** Any authenticated user without a profile
+*   **Region Availability:** Netherlands (PPME Den Haag, expandable to other branches)
+*   **Targeted Product Offerings:** PPME - TPA (Web/Mobile)
+
+#### 7.2. Feature User Stories
+*   *As a person who just signed in and cannot get further, I want to tell the admin who I am and which child I'm here for, so that my request is approved faster and with the right role.*
+*   *As an admin, I want to see the applicant's own stated name and context next to their email, so that I'm not typing a name blind or guessing whether they're a parent, tutor or student.*
+*   *As a person who already submitted a request, I want to see and correct what I sent, so that a typo doesn't follow me into my account.*
+
+#### 7.3. Functional Requirements
+*   **FR-001: Submit name + context.** The unauthorized screen shows a form with a required full-name field (1–120 characters) and an optional free-text note (up to 2,000 characters). The full-name field is pre-filled from the Google profile the user signed in with, and stays editable. Submit is disabled until the name is non-empty.
+*   **FR-002: Revise before approval.** If the user has already submitted, the form loads pre-filled with their previous values and re-submitting overwrites them. This is allowed up until an admin approves the account.
+*   **FR-003: Confirmation state.** After a successful submission the screen shows a "request received, an admin will review it" message instead of the plain "contact the admin" line, and keeps showing it on reload.
+*   **FR-004: Admin context.** On the Registrations page, a pending entry's editable name field is pre-filled with the applicant's submitted name (still editable), and the note, when present, is shown read-only above it. Entries with no submission (invited accounts, or sign-ins from before this feature) appear exactly as before.
+*   **FR-005: Cleanup on approval.** Once the admin creates the account, the submitted request — including the free-text note — is deleted automatically.
+
+#### 7.4. Non-Functional Requirements
+*   **Security/Privacy:** The request is visible only to the submitting user and to admins (enforced at the database layer). The free-text note may contain a child's name, so it is treated as personal data: deleted on approval, deleted on rejection (see §8), and never exposed to other users. See DPIA draft and TAD ADR-038.
+*   **i18n:** All new copy is available in Bahasa Indonesia and Dutch.
+
+#### 7.5. Non-Goals (Out of Scope)
+*   An admin "reject" action for an unwanted request (tracked separately as TAD ADR-039).
+*   Any automatic expiry of a request that is never approved.
+*   Letting the applicant choose or suggest their own role.
+
+#### 7.6. User Flows
+1.  User signs in with Google → lands on the unauthorized screen → name field pre-filled from their Google profile.
+2.  User edits the name if needed, optionally writes a note, taps submit → screen switches to the "request received" state.
+3.  Admin opens Registrations → sees the email, the submitted name (pre-filled, editable) and the note (read-only) → picks a role → registers the account.
+4.  The request row is deleted; the user, on their next load, is taken into the app.
+
+#### 7.7. Design & Technical Considerations
+*   A dedicated `registration_requests` staging table rather than a provisional row in the accounts table, so "registered" keeps its single meaning. Database-enforced cleanup by trigger. See TAD ADR-038 and migration 020.
+
+#### 7.8. Acceptance Criteria
+*   **AC-001:** A signed-in user with no profile can submit a name and note, and the admin sees both on the Registrations page.
+*   **AC-002:** Re-opening the screen after submitting shows the "request received" state and the previously entered values.
+*   **AC-003:** After the admin registers the account, no `registration_requests` row remains for that user.
+*   **AC-004:** A pending entry with no submission still shows a blank, editable name field and no note.
+
+---
+
 ## 7. Timeline and Milestones
 
 *   **Target Release Date:** [TBD]
