@@ -495,6 +495,15 @@ Digital attendance management system allowing tutors to record student presence/
 - *User story:* As the TPA head, I can correct someone's role or the spelling of their name from one screen, without asking a developer to run SQL, and I can see afterwards that a role was changed and by whom.
 - *Implementation status: **built** — TAD ADR-042 / migration 023 (`public.user_role_changes`, `fn_admin_update_user`, `fn_admin_user_role_impact`); screen at `/admin/users`.*
 
+**FR-010: Form-Driven Enrolment**
+- Priority: Medium
+- Families are enrolled through the annual "Daftar Ulang" Google Form. Each submission (one per child, with the parent signed into Google so the e-mail is verified) is turned automatically into a parent account, a student record and the guardian link, and the parent is sent the branded invitation e-mail — no admin re-typing.
+- Re-submitting the same child (same verified parent e-mail, same name, same birthdate) updates the existing records in place rather than creating duplicates, and does not resend the invitation.
+- The Grup is **not** set from the form — an admin assigns it in Beheer afterwards. The re-registration payment is **not** checked by the automation; the treasurer reconciles it against the bank separately, and the form's payment answer is kept only for reference.
+- Every submission — success or failure — is recorded in an admin-only enrolment log with its outcome (`enrolled` / `updated` / `needs_attention` / `error`), and the outcome is also written back onto the response sheet row. A row needing a human (e.g. the parent's e-mail already belongs to an unrelated account) is flagged `needs_attention` for an admin to finish.
+- *User story:* As the TPA admin, I publish one Google Form for re-registration and the families appear in the app as I go, already linked parent-to-child, without me copying every response by hand.
+- *Implementation status: **built** — TAD ADR-043 / migration 024 (`public.enrolment_submissions`, `fn_enrol_from_form`), the `enrol-from-form` Netlify Function, and `apps-script/enrol-from-form.gs` (installed by hand on the response sheet).*
+
 #### 1.4. Non-Functional Requirements
 *   **Performance:** Attendance submission must complete within 2 seconds on 4G connection; Netlify CDN ensures fast asset delivery across EU
 *   **Security:** Google OAuth 2.0 authentication; role-based access control (tutors mark, parents view own children only); all data encrypted at rest (AES-256) and in transit (TLS 1.3); GDPR-compliant EU data residency

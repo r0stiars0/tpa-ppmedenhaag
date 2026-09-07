@@ -389,7 +389,24 @@ shared personas, whose role and guardian state earlier blocks mutate.
 - [ ] RLS-96 — **The two hard blocks.** With other admins present, an admin's `fn_admin_user_role_impact(self, 'tutor')` → `would_block = 'self'` and the write → `P0001`. After demoting the suite's spare admins (AP, AT, TAP) to isolate one, `fn_admin_user_role_impact(sole_admin, 'tutor')` → `would_block = 'last_admin'` and the write → `P0001`.
 - [ ] RLS-97 — **Read scope of the log.** Admin SELECT `user_role_changes` → ≥ 4 rows (everything written above); the just-demoted UDT (now a parent) → **0**.
 
-*Total after these: 372 pgTAP assertions (verified: `supabase test db` reports `1..372`).*
+### 3.8 Form-driven enrolment (RLS-98…106, ADR-043)
+
+New table `public.enrolment_submissions` and function `fn_enrol_from_form`
+(migration 024). An isolated `ef…` fixture island — EFP (an `auth.users`
+row with no profile, the "new family" parent) and EFT (an existing
+tutor, for the ADR-024 reuse path).
+
+- [ ] RLS-98 — **`fn_enrol_from_form` is service-role-only.** An `authenticated` caller (even the suite admin) → `42501` (the `REVOKE` from `authenticated`, and the in-body `auth.role()` guard behind it).
+- [ ] RLS-99 — **`enrolment_submissions` is admin-read-only.** Seeded row (as owner): admin reads ≥ 1; a tutor, a guardian, a 16+ student and anon each read **0**.
+- [ ] RLS-100 — **`enrolment_submissions` is service-role-write.** An `authenticated` admin `INSERT` → `42501` (only `enrolment_submissions_service_write` grants the verb).
+- [ ] RLS-101 — **A new family.** `fn_enrol_from_form(EFP, …, locale nl, '  Enrol Child ', 2016-05-05, 'ayah')` → `status = 'enrolled'`; the `users` row is created as `parent` with the submitted name + `nl`; the `students` row has `class_id` null and `enrollment_date = today`; one active `student_guardians` link (relation `ayah`).
+- [ ] RLS-102 — **Idempotent re-submission.** The same call with a differently-cased name → `status = 'updated'`, and **no** second `students` row.
+- [ ] RLS-103 — **A second child.** `fn_enrol_from_form(EFP, …, 'Enrol Child Two', …)` → `student_created` true, `parent_created` false; EFP now has two active guardian links.
+- [ ] RLS-104 — **A tutor account reused as parent (ADR-024).** `fn_enrol_from_form(EFT, …, 'WRONG NAME', …)` → the child is enrolled; EFT's `users` row keeps `tutor` / `id` / its original name; the guardian link to the new student is made.
+- [ ] RLS-105 — **The guardian invariant holds.** No form-created student (`Enrol Child`, `Enrol Child Two`, `Tutor Kid`) is left without an active guardian (migration 021's `trg_student_has_guardian`).
+- [ ] RLS-106 — **Cross-family isolation for a form-created family.** As EFP: reads their own child (1), and **0** for another family's `students` row and **0** for its `attendance` rows (the ADR-040 negative, re-proven).
+
+*Total after these: 393 pgTAP assertions (verified: `supabase test db` reports `1..393` on a clean `supabase db reset`).*
 
 ## 4. Unit tests (Vitest)
 
@@ -614,6 +631,22 @@ the pgTAP suite (§3.7); this layer pins the client shape.
 - [x] `fetchUserRoleImpact` calls `fn_admin_user_role_impact` with `p_user` / `p_new_role` and maps the row to `{ tutorGroups, guardianChildren, linkedStudent, wouldBlock }`; defaults every field when the RPC returns no row; passes a `would_block` value through; rethrows an RPC error
 - [x] `updateUser` calls `fn_admin_update_user` with `{ p_user, p_full_name, p_new_role }` and rethrows the RPC error (the last-admin / self / `42501` refusals all arrive this way)
 
+### 4.5j Form-driven enrolment (TAD ADR-043)
+
+`tests/unit/enrolFromForm.test.ts`, against
+`netlify/functions/lib/enrolFromForm.ts` — the parsing and the
+orchestration branches. The `service_role` guard, the one-transaction
+upsert and the idempotency are proven in the pgTAP suite (§3.8); this
+layer pins what the Function decides before and after the RPC.
+
+- [x] `parseEnrolPayload`: lower-cases the e-mail; trims and length-caps (120) the names; maps `Nederlands`/`nl` → `nl` and anything else → `id`; accepts `YYYY-MM-DD` and a locale date string; rejects a non-date and a future date; treats a blank / `Tidak` / `Nee` / `false` consent as not given (→ `400`); drops an over-long `relation` and a blank `student_email` to null; flattens a one-element array value (the Apps Script `namedValues` shape)
+- [x] a new family → `auth.admin.createUser({ email, email_confirm: true })` is called, `rpc('fn_enrol_from_form', …)` gets the mapped args, the invitation e-mail is sent, the `enrolment_submissions` row is `enrolled`
+- [x] an existing `public.users` row by e-mail → `createUser` is **not** called and no invitation e-mail is sent
+- [x] `createUser` returns `email_exists` with no profile → `status = 'needs_attention'`, `{ ok: true }`, no throw, the RPC is not called
+- [x] a `createUser` failure other than `email_exists` → `502` and an `error` log row; an RPC error → `500` and an `error` log row
+- [x] a failed invitation e-mail still returns `{ ok: true }` with `invitation_email` reflecting the failure
+- [x] the RPC created the student against a reused account (`parent_created` false) → no invitation e-mail
+
 ### 4.6 Access control and delivery inside the Functions
 
 The three modules that decide who may make a Function act, and what
@@ -622,7 +655,7 @@ service-role key, which bypasses RLS entirely — so for the duration of a
 request these are the access control, and the database will not catch a
 mistake made here.
 
-- `tests/unit/functionAuth.test.ts` (17) — `authenticateCaller` proves a **person**: the token is validated against GoTrue and the role is then read from `public.users`, never taken from the JWT, and the id filtered on is the one GoTrue returned rather than anything the request supplied. The service-role client is **not built at all** for a request whose token failed, which is the ordering the two-step shape exists for. A valid token with no profile row is 403 and not 401 (a real state: between an accepted invitation and a completed registration), a failed profile read is 500 rather than degrading into a plausible "not an admin", and a missing environment variable refuses every request. `verifyWebhookSecret` proves a **channel**: a wrong secret of the *same* length is refused by the digest rather than by the length check, a different length does not throw (which would surface as a 500 and leak the expected length), and every wrong shape returns the identical body. Unset, it fails closed — an open endpoint here can address any family in the TPA
+- `tests/unit/functionAuth.test.ts` (20) — `authenticateCaller` proves a **person**: the token is validated against GoTrue and the role is then read from `public.users`, never taken from the JWT, and the id filtered on is the one GoTrue returned rather than anything the request supplied. The service-role client is **not built at all** for a request whose token failed, which is the ordering the two-step shape exists for. A valid token with no profile row is 403 and not 401 (a real state: between an accepted invitation and a completed registration), a failed profile read is 500 rather than degrading into a plausible "not an admin", and a missing environment variable refuses every request. `verifyWebhookSecret` proves a **channel**: a wrong secret of the *same* length is refused by the digest rather than by the length check, a different length does not throw (which would surface as a 500 and leak the expected length), and every wrong shape returns the identical body. Unset, it fails closed — an open endpoint here can address any family in the TPA. Its env-var-name parameter (TAD ADR-043) is covered too: `verifyWebhookSecret(req, 'ENROL_FORM_SECRET')` checks that var and not `NOTIFY_WEBHOOK_SECRET`, still refuses a wrong or missing secret, and fails closed naming `ENROL_FORM_SECRET` when it is unset
 - `tests/unit/notifySend.test.ts` (13) — `notifyStudents`, the sequence all six senders share and the piece both existing notification suites reach past. The in-app row is written **before** the push, asserted as an ordering and not a count: a crash between them must not leave a family with a lock-screen notice and nothing to open. The four outcomes a Netlify log shows are distinguished — no such student, no recipient account, no push subscription, and a real send — because this feature's failures are silent and "nothing happened" otherwise looks like "nothing was supposed to happen". Plus `sendPush`: a 404/410 means *throw the subscription away* and anything else means *keep it*, and getting that backwards either drops a working subscription on a transient error or burns a request on a dead one forever
 - `tests/unit/notifyStudent.test.ts` — `buildAudiences` over a `Map<studentId, guardianUserId[]>` since ADR-040. **Two active guardians of one child produce two recipients**, each their own notification-centre row and their own dedup tag; a guardian who is also the child's `user_id` (16+ santri, own guardian) is **not** doubled; `audience: 'parent'` still ignores a self-login student; an unreachable guardian (no `push_sub`) stays in the audience and still gets a centre row (ADR-017). `audiencesForStudents` resolves the guardian set from `student_guardians` filtered to `unlinked_at is null` — a removed guardian is not notified
 - `tests/unit/pushClient.test.ts` (21) — the browser half, previously uncovered because it imports the Supabase singleton and touches four browser APIs. `subscriptionState` is keyed on what the **server** holds, so a browser that kept its subscription object after a sender cleared `users.push_sub` reads as off rather than showing "notifications are on" to a family who can never receive another; a failed read is off for the same reason. `subscribe` stores server-side before reporting success, sends the caller's JWT (so `push-subscribe` can apply ADR-022), reuses an existing browser subscription rather than minting a second, treats a declined permission as an outcome rather than an error, and gives up after 60s on a push service that never answers — observed for real with FCM, and set well clear of the 32s a successful subscribe once took. `unsubscribe` clears the server first, and leaves the browser alone if that fails
@@ -704,13 +737,14 @@ Run against Preview deploys with fixture data; auth mocked via Supabase test JWT
 | E2E-20 | Tutor opens Attendance → below the student roster a tutor section ("Kehadiran guru" / "Aanwezigheid docenten") lists the class's tutors → tutor marks a co-tutor absent with a reason and marks themselves present → submits → the confirm dialog names the student count and the tutor count on separate lines → an admin opens the same session and sees those tutor statuses; the affected tutor's own family view (if they are also a parent) shows nothing new, and a parent of a child in the class sees no tutor attendance anywhere (TAD ADR-041) | Tutor → Admin → Parent |
 | E2E-21 | Admin opens Beheer → the "Kehadiran Guru" pill → picks a tutor → sees a present-rate, present/late/absent counts, and a dated list (date · group · status) spanning every group that tutor teaches, with a group filter once more than one group appears; narrowing the date range recomputes the rate; the picker lists only tutors with recorded rows (no student-assistant); a non-admin visiting `/admin/tutor-attendance` directly is redirected home by `RequireAdmin` (TAD ADR-041(g)) | Admin, Tutor |
 | E2E-22 | Admin opens Beheer → the "Pengguna" / "Gebruikers" pill → the directory lists every account; typing in the search box filters by name/email and the role dropdown filters by role → **own row**: the role `<select>` is disabled with the "you cannot change your own role" hint, the name stays editable → renames a parent (role unchanged) → saves with no dialog, the list shows the new name → changes a tutor still assigned to groups to Orang Tua → a confirm dialog names those groups → confirms → the row shows the new role and that tutor is gone from the groups' tutor lists on the Grup screen; a `user_role_changes` row now exists → attempting to demote the last remaining admin is refused with an explanatory message (TAD ADR-042) | Admin |
+| E2E-23 | A parent (signed into Google, so the form records a verified e-mail) submits the Daftar Ulang form for one child → within seconds the response-sheet row shows `Enrolment status = enrolled` and an invitation e-mail arrives → an admin opens Beheer and sees the new parent account and the student (no Grup yet), linked guardian-to-child, and an `enrolment_submissions` row with `status = enrolled` → the parent signs in with that Google account and sees only their own child → the parent submits the form again for the same child with a corrected spelling → the sheet row shows `updated`, no second student or e-mail, the name is fixed in Beheer (TAD ADR-043) | Parent → Admin → Parent |
 
-*E2E-15…E2E-22 are specified but not implemented — this project has no
+*E2E-15…E2E-23 are specified but not implemented — this project has no
 authenticated Playwright harness yet (`e2e/sign-in.spec.ts` documents
 why the E2E-01…E2E-14 suite is also still unbuilt). The flows are
-covered at the unit layer (§4.5d, §4.5e, §4.5g, §4.5i) and the database
-layer (§3.3 MD-01…MD-08, §3.4 RLS-60…64, §3.6 RLS-78…86, §3.7
-RLS-88…97).*
+covered at the unit layer (§4.5d, §4.5e, §4.5g, §4.5i, §4.5j) and the
+database layer (§3.3 MD-01…MD-08, §3.4 RLS-60…64, §3.6 RLS-78…86, §3.7
+RLS-88…97, §3.8 RLS-98…106).*
 
 ## 6. Notification & PWA test matrix (manual, real devices)
 

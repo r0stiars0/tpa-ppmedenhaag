@@ -316,6 +316,33 @@ describe('verifyWebhookSecret', () => {
     // misconfigured deploy is never mistaken for an attack in the logs.
     expect(verifyWebhookSecret(webhookRequest())?.error.status).toBe(500)
   })
+
+  // enrol-from-form (ADR-043) is a third caller of the same shape and
+  // passes its own env-var name. The channel it authenticates is a
+  // Google Apps Script, kept on a separate secret so a leak or a
+  // rotation of one is not a leak or a rotation of both.
+  describe('with a caller-supplied env var (ENROL_FORM_SECRET)', () => {
+    const ENROL_SECRET = 'an-even-longer-enrol-form-secret'
+    beforeEach(() => vi.stubEnv('ENROL_FORM_SECRET', ENROL_SECRET))
+
+    it('checks the named var, not NOTIFY_WEBHOOK_SECRET', () => {
+      expect(verifyWebhookSecret(webhookRequest(ENROL_SECRET), 'ENROL_FORM_SECRET')).toBeNull()
+      // The notify secret is set (beforeEach above) but must not satisfy this call.
+      expect(verifyWebhookSecret(webhookRequest(SECRET), 'ENROL_FORM_SECRET')?.error.status).toBe(401)
+    })
+
+    it('still refuses a wrong secret and a missing header', () => {
+      expect(verifyWebhookSecret(webhookRequest('wrong'), 'ENROL_FORM_SECRET')?.error.status).toBe(401)
+      expect(verifyWebhookSecret(webhookRequest(), 'ENROL_FORM_SECRET')?.error.status).toBe(401)
+    })
+
+    it('fails closed, naming the missing var, when ENROL_FORM_SECRET is unset', async () => {
+      vi.stubEnv('ENROL_FORM_SECRET', '')
+      const result = verifyWebhookSecret(webhookRequest(ENROL_SECRET), 'ENROL_FORM_SECRET')
+      expect(result?.error.status).toBe(500)
+      expect((await body(result!.error)).error).toMatch(/ENROL_FORM_SECRET is not set/)
+    })
+  })
 })
 
 describe('serviceClient', () => {

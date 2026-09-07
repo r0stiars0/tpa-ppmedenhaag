@@ -40,6 +40,19 @@ gebeurt, wordt uw aanvraag (inclusief de toelichting) automatisch verwijderd; oo
 als een beheerder de aanvraag afwijst, wordt hij verwijderd. De toelichting is
 optioneel: vult u niets in, dan bewaren wij niets extra's.
 
+**Over de herinschrijving via Google Formulieren.** De jaarlijkse herinschrijving
+verloopt via een Google Formulier. U vult daarin de naam en geboortedatum van uw
+kind in, uw eigen naam, en u vinkt aan dat u dit privacybeleid heeft gelezen; uw
+e-mailadres wordt door Google zelf bevestigd doordat u ingelogd moet zijn. Met
+die gegevens maken wij automatisch het account van de ouder/verzorger, het
+leerlingdossier en de koppeling tussen beide aan, en sturen wij u een
+uitnodigingsmail. Stuurt u het formulier voor hetzelfde kind nogmaals in, dan
+werken wij de bestaande gegevens bij in plaats van een tweede dossier aan te
+maken. De antwoorden blijven ook staan in het Google-spreadsheet achter het
+formulier, dat alleen toegankelijk is voor de beheerders. Een eventueel opgegeven
+e-mailadres van de leerling en het antwoord op de betaalvraag bewaren wij alleen
+ter referentie; de betaling zelf wordt buiten de app om gecontroleerd.
+
 **Over meldingen.** Meldingen zijn optioneel en staan standaard uit: u zet ze
 zelf aan onder "Meldingsinstellingen" en kunt ze daar op elk moment weer
 uitzetten, waarna uw abonnementsgegevens direct worden verwijderd. Een melding
@@ -265,6 +278,18 @@ memberi akses — admin yang membuat akun Anda. Begitu itu terjadi, permintaan A
 (termasuk keterangannya) otomatis dihapus; jika admin menolak permintaan, ia juga
 dihapus. Keterangan bersifat opsional: jika Anda tidak mengisinya, kami tidak
 menyimpan data tambahan.
+
+**Tentang pendaftaran ulang lewat Google Formulir.** Pendaftaran ulang tahunan
+dilakukan melalui Google Formulir. Di sana Anda mengisi nama dan tanggal lahir
+anak, nama Anda sendiri, dan Anda mencentang bahwa Anda telah membaca kebijakan
+privasi ini; alamat email Anda dikonfirmasi sendiri oleh Google karena Anda harus
+login. Dengan data itu kami otomatis membuat akun orang tua/wali, data santri,
+dan tautan di antara keduanya, lalu mengirimi Anda email undangan. Jika Anda
+mengirim formulir untuk anak yang sama lagi, kami memperbarui data yang ada
+alih-alih membuat data kedua. Jawaban juga tetap tersimpan di spreadsheet Google
+di balik formulir, yang hanya dapat diakses oleh admin. Alamat email santri yang
+mungkin Anda isi dan jawaban atas pertanyaan pembayaran hanya kami simpan sebagai
+referensi; pembayarannya sendiri diperiksa di luar aplikasi.
 
 **Tentang notifikasi.** Notifikasi bersifat opsional dan awalnya nonaktif: Anda
 mengaktifkannya sendiri di "Pengaturan notifikasi" dan dapat menonaktifkannya

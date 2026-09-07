@@ -3979,6 +3979,203 @@ insert into _tap_log(line) select is(
 
 reset role;
 
+-- ======================================================================
+-- RLS-98…RLS-106: enrolment from the Google form (migration 024, ADR-043)
+--
+-- `fn_enrol_from_form` is the service-role-only RPC the enrol-from-form
+-- Function calls to write a parent profile + a student + its guardian
+-- link in one transaction (the DEFERRABLE guardian invariant needs the
+-- student and its first guardian in the same transaction, and
+-- `fn_admin_save_student` cannot be reused — it gates on `fn_is_admin()`,
+-- false for the callerless service role). `enrolment_submissions` is its
+-- append log: admin-readable, service-role-write.
+--
+-- Isolated fixtures (an ef…/df… island):
+--   EFP  ef…001  auth.users only, no profile — the "new family" parent
+--   EFT  ef…002  an existing tutor, to prove the ADR-024 reuse path
+-- ======================================================================
+reset role;
+
+insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous, created_at, updated_at)
+values
+  ('ef000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'efp@test.local', '', now(), '{}', '{}', false, false, now(), now()),
+  ('ef000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'eft@test.local', '', now(), '{}', '{}', false, false, now(), now());
+insert into public.users (id, email, full_name, role, locale)
+values ('ef000000-0000-0000-0000-000000000002', 'eft@test.local', 'Enrol Form Tutor', 'tutor', 'id');
+
+-- RLS-98: a non-service caller is refused — belt (the REVOKE from
+-- authenticated: "permission denied for function") and braces (the
+-- in-body `auth.role()` guard, defence in depth for any future re-grant).
+-- Both raise 42501.
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- even the suite admin
+insert into _tap_log(line) select throws_ok(
+  $$ select public.fn_enrol_from_form('ef000000-0000-0000-0000-000000000001', 'efp@test.local',
+       'Enrol Parent', 'id', 'Enrol Child', date '2016-05-05', 'ayah') $$,
+  '42501', null,
+  'RLS-98: a non-service_role caller of fn_enrol_from_form is refused'
+);
+
+-- RLS-99: enrolment_submissions is admin-read-only. Seed one row as the
+-- table owner (bypasses RLS), then check who can see it.
+reset role;
+insert into public.enrolment_submissions (verified_email, parent_name, student_name, date_of_birth, locale, consent, status)
+values ('efp@test.local', 'Enrol Parent', 'Enrol Child', date '2016-05-05', 'id', true, 'enrolled');
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+insert into _tap_log(line) select ok(
+  (select count(*) from public.enrolment_submissions) >= 1,
+  'RLS-99: an admin reads enrolment_submissions'
+);
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';  -- T1, a tutor
+insert into _tap_log(line) select is(
+  (select count(*) from public.enrolment_submissions), 0::bigint,
+  'RLS-99: a tutor sees no enrolment_submissions rows'
+);
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000001';  -- P1, a parent
+insert into _tap_log(line) select is(
+  (select count(*) from public.enrolment_submissions), 0::bigint,
+  'RLS-99: a guardian sees no enrolment_submissions rows'
+);
+set local request.jwt.claim.sub to '50000000-0000-0000-0000-000000000001';  -- S16, a 16+ student
+insert into _tap_log(line) select is(
+  (select count(*) from public.enrolment_submissions), 0::bigint,
+  'RLS-99: a 16+ student sees no enrolment_submissions rows'
+);
+set local role anon;
+set local request.jwt.claim.role to 'anon';
+set local request.jwt.claim.sub to '';
+insert into _tap_log(line) select is(
+  (select count(*) from public.enrolment_submissions), 0::bigint,
+  'RLS-99: anon sees no enrolment_submissions rows'
+);
+
+-- RLS-100: an authenticated caller (even an admin) cannot write it — the
+-- only write policy is `to service_role`.
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.enrolment_submissions (status) values ('error') $$,
+  '42501', null,
+  'RLS-100: an authenticated admin cannot INSERT into enrolment_submissions'
+);
+
+-- RLS-101: fn_enrol_from_form as service_role enrols a new family.
+set local role service_role;
+set local request.jwt.claim.role to 'service_role';
+insert into _tap_log(line) select is(
+  (select status from public.fn_enrol_from_form('ef000000-0000-0000-0000-000000000001',
+     'EFP@test.local', 'Enrol Parent', 'nl', '  Enrol Child ', date '2016-05-05', 'ayah')),
+  'enrolled', 'RLS-101: fn_enrol_from_form enrols a new family — status=enrolled'
+);
+reset role;
+insert into _tap_log(line) select is(
+  (select role::text || '/' || locale::text || '/' || full_name
+     from public.users where id = 'ef000000-0000-0000-0000-000000000001'),
+  'parent/nl/Enrol Parent',
+  'RLS-101: …the profile is created as a parent with the submitted name + locale'
+);
+insert into _tap_log(line) select ok(
+  exists (
+    select 1 from public.students s
+    join public.student_guardians g on g.student_id = s.id
+    where lower(btrim(s.full_name)) = 'enrol child'
+      and s.class_id is null
+      and s.enrollment_date = current_date
+      and g.user_id = 'ef000000-0000-0000-0000-000000000001'
+      and g.relation = 'ayah'
+      and g.unlinked_at is null
+  ),
+  'RLS-101: …and the student (class_id null, enrolled today) has one active guardian link'
+);
+
+-- RLS-102: an identical re-submission is idempotent (FE-7).
+set local role service_role;
+set local request.jwt.claim.role to 'service_role';
+insert into _tap_log(line) select is(
+  (select status from public.fn_enrol_from_form('ef000000-0000-0000-0000-000000000001',
+     'efp@test.local', 'Enrol Parent', 'nl', 'enrol child', date '2016-05-05', 'ayah')),
+  'updated', 'RLS-102: an identical re-submission returns status=updated'
+);
+reset role;
+insert into _tap_log(line) select is(
+  (select count(*) from public.students where lower(btrim(full_name)) = 'enrol child'),
+  1::bigint, 'RLS-102: …and creates no second student row'
+);
+
+-- RLS-103: a second child for the same parent — new student, same profile.
+set local role service_role;
+set local request.jwt.claim.role to 'service_role';
+insert into _tap_log(line) select ok(
+  (select student_created and not parent_created
+     from public.fn_enrol_from_form('ef000000-0000-0000-0000-000000000001',
+       'efp@test.local', 'Enrol Parent', 'nl', 'Enrol Child Two', date '2018-02-02', null)),
+  'RLS-103: a second child is created without re-creating the parent'
+);
+reset role;
+insert into _tap_log(line) select is(
+  (select count(*) from public.student_guardians g
+     where g.user_id = 'ef000000-0000-0000-0000-000000000001' and g.unlinked_at is null),
+  2::bigint, 'RLS-103: …the parent now has two active guardian links'
+);
+
+-- RLS-104: an existing tutor used as a parent is reused, profile untouched (ADR-024).
+set local role service_role;
+set local request.jwt.claim.role to 'service_role';
+insert into _tap_log(line) select is(
+  (select status from public.fn_enrol_from_form('ef000000-0000-0000-0000-000000000002',
+     'eft@test.local', 'WRONG NAME', 'nl', 'Tutor Kid', date '2017-03-03', 'ibu')),
+  'enrolled', 'RLS-104: a tutor account used as a parent still enrols the child'
+);
+reset role;
+insert into _tap_log(line) select is(
+  (select role::text || '/' || locale::text || '/' || full_name
+     from public.users where id = 'ef000000-0000-0000-0000-000000000002'),
+  'tutor/id/Enrol Form Tutor',
+  'RLS-104: the tutor account is reused as guardian — role, locale and name unchanged'
+);
+insert into _tap_log(line) select ok(
+  exists (select 1 from public.student_guardians g
+    join public.students s on s.id = g.student_id
+    where s.full_name = 'Tutor Kid' and g.user_id = 'ef000000-0000-0000-0000-000000000002'
+      and g.unlinked_at is null),
+  'RLS-104: …and the guardian link to the new student is made'
+);
+
+-- RLS-105: the guardian invariant still holds — every form-created
+-- student has at least one active guardian (migration 021 trigger).
+insert into _tap_log(line) select is(
+  (select count(*) from public.students s
+     where s.full_name in ('Enrol Child', 'Enrol Child Two', 'Tutor Kid')
+       and not exists (select 1 from public.student_guardians g
+                       where g.student_id = s.id and g.unlinked_at is null)),
+  0::bigint,
+  'RLS-105: no form-created student is left without an active guardian'
+);
+
+-- RLS-106: cross-family isolation for a form-created family — the new
+-- parent reads their own children and nobody else's (the ADR-040 negative).
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to 'ef000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select is(
+  (select count(*) from public.students where lower(btrim(full_name)) = 'enrol child'),
+  1::bigint, 'RLS-106: the form-created parent sees their own child'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.students where id = 'd0000000-0000-0000-0000-000000000001'),
+  0::bigint, 'RLS-106: …and cannot see another family''s child'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.attendance where student_id = 'd0000000-0000-0000-0000-000000000001'),
+  0::bigint, 'RLS-106: …nor another family''s attendance rows'
+);
+
+reset role;
+
 -- ---------- done ----------
 reset role;
 insert into _tap_log(line) select * from finish();

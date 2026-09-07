@@ -51,7 +51,9 @@ Het eerste scherm dat verschijnt voordat u bent ingelogd.
 | Tagline | "TPA Voortgangstracker" |
 | **Knop "Inloggen met Google"** | Start het inlogproces via een Google-account (Google OAuth). Dit is de enige inlogmethode voor echte gebruikers. |
 
-Als uw Google-account nog niet door de TPA-beheerder is geregistreerd, ziet u na het inloggen het scherm **"Uw account is nog niet geregistreerd. Neem contact op met de TPA-beheerder."** met daaronder een klein formulier en een knop **Uitloggen**.
+> **Nieuwe gezinnen** worden ingeschreven via het jaarlijkse Google-inschrijfformulier ("Daftar Ulang"). U vult daarin per kind de naam en geboortedatum in, uw eigen naam en e-mailadres (u moet bij Google ingelogd zijn), en u vinkt het privacybeleid aan. Kort daarna ontvangt u een **uitnodigingsmail**; als u daarna met datzelfde Google-account inlogt, staat uw account al klaar en komt u meteen in de app. Stuurt u het formulier per ongeluk nog een keer in voor hetzelfde kind, dan verandert er niets — de bestaande gegevens worden bijgewerkt. De beheerder deelt uw kind daarna nog in bij een groep.
+
+Als uw Google-account nog niet door de TPA-beheerder is geregistreerd (bijvoorbeeld omdat u zonder het inschrijfformulier hebt ingelogd), ziet u na het inloggen het scherm **"Uw account is nog niet geregistreerd. Neem contact op met de TPA-beheerder."** met daaronder een klein formulier en een knop **Uitloggen**.
 
 **Formulier "Toegang aanvragen"** — vul dit in zodat de beheerder u sneller en met de juiste rol kan registreren:
 

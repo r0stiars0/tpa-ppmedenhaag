@@ -1749,6 +1749,78 @@ paths:
         '409': { description: That id already has a public.users profile and cannot be rejected }
         '500': { description: Server misconfigured, or the profile-existence lookup failed }
 
+  /enrol-from-form:
+    post:
+      tags: [functions, admin]
+      summary: Enrol a family from the Daftar Ulang Google Form (shared-secret channel)
+      description: |
+        Called by the container-bound Apps Script on the re-registration
+        form's response sheet (TAD ADR-043, PRD FR-010). No caller — the
+        channel is authenticated with the `ENROL_FORM_SECRET` shared
+        secret in the `X-Webhook-Secret` header, the `notify-*` webhook
+        shape (`verifyWebhookSecret`, fail-closed, timing-safe). A
+        dedicated secret, not `NOTIFY_WEBHOOK_SECRET`.
+
+        Resolves the parent's `auth.users` id — an e-mail lookup on
+        `public.users` first (the re-submission path), else
+        `auth.admin.createUser({ email, email_confirm: true })` under
+        `SUPABASE_SERVICE_ROLE_KEY` — then calls
+        `public.fn_enrol_from_form`, which writes the parent profile, the
+        student and the guardian link in one transaction (the DEFERRABLE
+        guardian invariant from migration 021 needs the student and its
+        first guardian in the same transaction; `fn_admin_save_student`
+        cannot be reused — it gates on `fn_is_admin()`).
+
+        Idempotent on the **verified** e-mail + `lower(trim(student
+        name))` + `date_of_birth`: a repeat refreshes names/locale in
+        place, keeps ids, returns `status: updated`, and sends no second
+        invitation. A brand-new account gets the branded invitation
+        e-mail (ADR-018); a mail failure never fails the enrolment.
+
+        Every submission — including a validation failure — writes one
+        `public.enrolment_submissions` row (admin-read, service-role-write).
+        `class_id` is left null (an admin assigns the Grup); the payment
+        answer and the optional student e-mail are stored only.
+
+        `fn_enrol_from_form` itself is `service_role`-only (REVOKEd from
+        `authenticated`, plus an `auth.role()` guard) and is not a
+        PostgREST route the app calls.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [verified_email, parent_name, student_name, date_of_birth, consent]
+              properties:
+                submitted_at: { type: string, format: date-time, description: The form Timestamp; defaults to now if absent }
+                verified_email: { type: string, format: email, description: The Google-verified respondent address — the parent identity }
+                parent_name: { type: string, maxLength: 120 }
+                student_name: { type: string, maxLength: 120 }
+                date_of_birth: { type: string, format: date, description: A real, non-future date; YYYY-MM-DD or a locale string }
+                locale: { type: string, description: "'Bahasa Indonesia' / 'Nederlands' / 'id' / 'nl'; defaults to id", enum: [id, nl, 'Bahasa Indonesia', 'Nederlands'] }
+                relation: { type: string, maxLength: 40, description: Ayah / Ibu / Wali / Lainnya — stored on the guardian link }
+                student_email: { type: string, description: Optional; stored on the log row only, never acted on }
+                payment_answer: { type: string, description: Ya / Tidak — stored on the log row only }
+                consent: { description: The consent checkbox — required truthy; accepts the option text or a boolean }
+      responses:
+        '201':
+          description: Processed — accounts created or updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [enrolled, updated, needs_attention] }
+                  parent_user_id: { type: string, format: uuid, nullable: true }
+                  student_id: { type: string, format: uuid, nullable: true }
+                  invitation_email: { type: string, nullable: true, description: sendEmail result status, or null when no invitation was due }
+        '200': { description: Processed but a human is needed (status needs_attention) — e.g. the verified e-mail belongs to an account with no profile }
+        '400': { description: Invalid JSON, or a payload that fails validation (bad e-mail, missing name, non-date DOB, consent not given) — still logged as an error row }
+        '401': { description: Missing or wrong X-Webhook-Secret }
+        '500': { description: ENROL_FORM_SECRET unset, a Supabase env var missing, or the RPC failed }
+        '502': { description: Creating the parent auth account failed for a reason other than "already exists" }
+
 components:
   securitySchemes:
     bearerAuth:

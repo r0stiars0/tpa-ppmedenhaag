@@ -721,3 +721,37 @@ ADR-042 in the TAD + RLS policy table, PRD FR-009 + a user story, openapi
 `/rpc/fn_admin_user_role_impact` + `UserRoleChange` schema), DPIA R15
 `[IT TEAM]` note, both privacy-policy halves, the user manual (both
 languages), test-plan §3.7 + §4.5i + E2E-22.
+
+**Post-milestone change (TAD ADR-043, migration 024):** **automatic
+enrolment from the annual "Daftar Ulang" Google Form.** A container-bound
+Apps Script on the form's response sheet
+(`apps-script/enrol-from-form.gs`, installed by hand — nothing in CI or
+the Netlify build deploys it) POSTs each submission, authenticated with a
+dedicated `ENROL_FORM_SECRET` (`X-Webhook-Secret`, the `notify-*` webhook
+shape — `verifyWebhookSecret` gained an env-var-name parameter), to the
+new `enrol-from-form` Netlify Function. The Function resolves the
+parent's `auth.users` id (e-mail lookup on `public.users` first, then
+`auth.admin.createUser` — the ADR-026 shape) and calls
+`public.fn_enrol_from_form`, which writes the parent profile, the student
+and the guardian link **in one transaction** — required because
+migration 021's `trg_student_has_guardian` is `DEFERRABLE` and
+`fn_admin_save_student` gates on `fn_is_admin()`, false for the callerless
+service role; the new RPC is `SECURITY DEFINER` guarded by
+`auth.role() = 'service_role'` and `REVOKE`d from `authenticated`.
+Idempotent on verified e-mail + `lower(trim(student name))` +
+`date_of_birth` (a repeat → `status = 'updated'`, no duplicate, no second
+invite). The branded invitation e-mail (ADR-018) goes out only for a
+brand-new account. `class_id` is left null for an admin to assign; the
+payment answer and the optional student e-mail are stored on the new
+`public.enrolment_submissions` log row only (admin-read,
+service-role-write, kept indefinitely). Verified: `typecheck` +
+`typecheck:functions` + `test` (585, +16 in `enrolFromForm.test.ts`, +3
+in `functionAuth.test.ts`) + `build` green; `fn_enrol_from_form`
+exercised directly via psql on a real local stack (new family / re-submit
+/ second child / tutor-as-parent / bad locale / non-service caller); the
+RLS suite gains RLS-98…106 and `supabase test db` reports `1..393` all
+green on a clean `supabase db reset`. Docs: ADR-043 in the TAD, PRD
+FR-010 + a user story, openapi (`/enrol-from-form`), DPIA (data
+categories, processors, retention, R16, a §6 `[IT TEAM]` item), both
+privacy-policy halves, test-plan §3.8 + §4.5j + §4.6 + E2E-23,
+`apps-script/README.md` for the manual install.
