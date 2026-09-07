@@ -99,6 +99,20 @@ create policy enrolment_submissions_service_update on public.enrolment_submissio
 -- the parent's auth.users id already resolved (GoTrue has no SQL API, so
 -- the Function does that half). Everything below is one transaction, so
 -- the DEFERRABLE guardian invariant is satisfied by insert order.
+--
+-- How a submission is matched to a student (requirements FE-7):
+--   1. p_student_email matches an existing student's own login e-mail
+--      (students.user_id → users.email) — a strong, self-supplied key:
+--      link this parent as a guardian of that student. status=updated.
+--   2. this parent already actively guards a student with this
+--      name + DOB: update in place. status=updated.
+--   3. a student with this name + DOB exists but neither (1) nor (2)
+--      holds — most often a second guardian submitting for a child the
+--      first already enrolled. Create nothing; return status=needs_
+--      attention for an admin to link the guardian in Beheer (or confirm
+--      it is a different child). The sheet's Status/Error columns are the
+--      surface (requirements R4 — no in-app queue, no admin e-mail).
+--   4. no match at all: create the student + guardian link. status=enrolled.
 create or replace function public.fn_enrol_from_form(
   p_parent_id     uuid,     -- auth.users id, already created by the Function
   p_parent_email  text,
@@ -106,7 +120,8 @@ create or replace function public.fn_enrol_from_form(
   p_locale        text,     -- 'id' | 'nl'
   p_student_name  text,
   p_dob           date,
-  p_relation      text default null
+  p_relation      text default null,
+  p_student_email text default null   -- optional; a strong match key (step 1)
 ) returns table (
   parent_user_id  uuid,
   student_id      uuid,
@@ -121,7 +136,7 @@ declare
   v_match_count int;
   v_status      text := null;
   v_parent_new  boolean := false;
-  v_student_new boolean := false;
+  v_has_link    boolean;
 begin
   -- Callerless channel: only the service role may enrol (ADR-043).
   if auth.role() <> 'service_role' then
@@ -154,8 +169,36 @@ begin
   end if;
   -- v_role in ('tutor','admin'): reuse as guardian, profile untouched (ADR-024).
 
-  -- ── find the existing student (requirements FE-7) ────────────
-  -- same verified parent + case-insensitive trimmed name + same DOB.
+  -- ── Step 1: exact student-e-mail match → link this guardian ──
+  if p_student_email is not null and btrim(p_student_email) <> '' then
+    select s.id into v_student
+    from public.students s
+    join public.users u on u.id = s.user_id
+    where lower(u.email) = lower(btrim(p_student_email))
+    order by s.created_at, s.id
+    limit 1;
+
+    if v_student is not null then
+      select exists (
+        select 1 from public.student_guardians g
+        where g.student_id = v_student and g.user_id = p_parent_id
+          and g.unlinked_at is null
+      ) into v_has_link;
+      if v_has_link then
+        update public.student_guardians g set relation = p_relation
+          where g.student_id = v_student and g.user_id = p_parent_id
+            and g.unlinked_at is null and g.relation is distinct from p_relation;
+      else
+        insert into public.student_guardians (student_id, user_id, relation)
+        values (v_student, p_parent_id, p_relation);
+      end if;
+      update public.students set full_name = btrim(p_student_name) where id = v_student;
+      return query select p_parent_id, v_student, v_parent_new, false, coalesce(v_status, 'updated');
+      return;
+    end if;
+  end if;
+
+  -- ── Step 2: this parent already guards a student with this name+DOB ──
   -- The earliest match is the one updated; more than one is flagged.
   with matches as (
     select s.id, s.created_at
@@ -177,48 +220,55 @@ begin
     v_status := 'needs_attention';   -- ambiguous; the earliest is updated
   end if;
 
-  if v_student is null then
-    -- class_id left null (admin assigns — R2); enrollment_date defaults
-    -- to today; user_id null (the optional student email is not acted
-    -- on — R9). Guardian inserted straight after, same txn.
-    insert into public.students (full_name, date_of_birth)
-    values (btrim(p_student_name), p_dob)
-    returning id into v_student;
-
-    insert into public.student_guardians (student_id, user_id, relation)
-    values (v_student, p_parent_id, p_relation);
-
-    v_student_new := true;
-    v_status := coalesce(v_status, 'enrolled');
-  else
-    update public.students
-      set full_name = btrim(p_student_name)
-      where id = v_student;
-
+  if v_student is not null then
+    update public.students set full_name = btrim(p_student_name) where id = v_student;
     -- table aliased: `student_id` also names an OUT column of this function.
     update public.student_guardians g
       set relation = p_relation
       where g.student_id = v_student and g.user_id = p_parent_id
         and g.unlinked_at is null
         and g.relation is distinct from p_relation;
-
-    v_status := coalesce(v_status, 'updated');
+    return query select p_parent_id, v_student, v_parent_new, false, coalesce(v_status, 'updated');
+    return;
   end if;
 
-  return query select p_parent_id, v_student, v_parent_new, v_student_new, v_status;
+  -- ── Step 3: a name+DOB match exists but this parent does not guard
+  --    them and no e-mail matched — needs a human. Create nothing.
+  if exists (
+    select 1 from public.students s
+    where lower(btrim(s.full_name)) = lower(btrim(p_student_name))
+      and s.date_of_birth = p_dob
+  ) then
+    return query select p_parent_id, null::uuid, v_parent_new, false, 'needs_attention'::text;
+    return;
+  end if;
+
+  -- ── Step 4: genuinely new — create the student + guardian link ──
+  -- class_id left null (admin assigns — R2); enrollment_date defaults to
+  -- today; user_id null (the optional student e-mail is a match key, not
+  -- a self-login link — R9). Guardian inserted straight after, same txn.
+  insert into public.students (full_name, date_of_birth)
+  values (btrim(p_student_name), p_dob)
+  returning id into v_student;
+
+  insert into public.student_guardians (student_id, user_id, relation)
+  values (v_student, p_parent_id, p_relation);
+
+  return query select p_parent_id, v_student, v_parent_new, true, coalesce(v_status, 'enrolled');
 end $$;
 
 revoke all on function
-  public.fn_enrol_from_form(uuid, text, text, text, text, date, text)
+  public.fn_enrol_from_form(uuid, text, text, text, text, date, text, text)
   from public, anon, authenticated;
 grant execute on function
-  public.fn_enrol_from_form(uuid, text, text, text, text, date, text)
+  public.fn_enrol_from_form(uuid, text, text, text, text, date, text, text)
   to service_role;
 
-comment on function public.fn_enrol_from_form(uuid, text, text, text, text, date, text) is
+comment on function public.fn_enrol_from_form(uuid, text, text, text, text, date, text, text) is
   'Upserts a parent profile + a student + its guardian link in one '
   'transaction for the enrol-from-form Function (ADR-043, FR-010). '
-  'service_role only (auth.role() guard). Idempotent on '
-  '(parent, lower(trim(student name)), date_of_birth): a repeat refreshes '
-  'names in place and returns status=updated. A tutor/admin parent is '
-  'reused as guardian with their profile untouched (ADR-024).';
+  'service_role only (auth.role() guard). Matches a submission to a '
+  'student by (1) the optional student e-mail against students.user_id, '
+  '(2) this parent + lower(trim(name)) + DOB, then (3) name + DOB alone '
+  '-> needs_attention for an admin, else (4) creates it. A tutor/admin '
+  'parent is reused as guardian with their profile untouched (ADR-024).';

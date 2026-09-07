@@ -1800,12 +1800,18 @@ paths:
                 date_of_birth: { type: string, format: date, description: A real, non-future date; YYYY-MM-DD or a locale string }
                 locale: { type: string, description: "'Bahasa Indonesia' / 'Nederlands' / 'id' / 'nl'; defaults to id", enum: [id, nl, 'Bahasa Indonesia', 'Nederlands'] }
                 relation: { type: string, maxLength: 40, description: Ayah / Ibu / Wali / Lainnya — stored on the guardian link }
-                student_email: { type: string, description: Optional; stored on the log row only, never acted on }
+                student_email: { type: string, description: "Optional; used as a match key against an existing student's login (students.user_id -> users.email) and stored on the log row. Never written as a self-login link." }
                 payment_answer: { type: string, description: Ya / Tidak — stored on the log row only }
                 consent: { description: The consent checkbox — required truthy; accepts the option text or a boolean }
       responses:
         '201':
-          description: Processed — accounts created or updated
+          description: >
+            Processed. `status` is `enrolled` (new student created), `updated`
+            (an existing student matched — by the child's login e-mail or by
+            this guardian + name + DOB — and was refreshed), or `needs_attention`
+            (a student with the same name + DOB exists that this submitter
+            neither guards nor matched by e-mail; nothing was created, an admin
+            links the guardian from Beheer).
           content:
             application/json:
               schema:
@@ -1813,9 +1819,9 @@ paths:
                 properties:
                   status: { type: string, enum: [enrolled, updated, needs_attention] }
                   parent_user_id: { type: string, format: uuid, nullable: true }
-                  student_id: { type: string, format: uuid, nullable: true }
+                  student_id: { type: string, format: uuid, nullable: true, description: null when status is needs_attention }
                   invitation_email: { type: string, nullable: true, description: sendEmail result status, or null when no invitation was due }
-        '200': { description: Processed but a human is needed (status needs_attention) — e.g. the verified e-mail belongs to an account with no profile }
+        '200': { description: "Processed but a human is needed (status needs_attention) — the verified e-mail already belongs to an auth account that has no profile; supabase-js cannot resolve it, so an admin finishes it from Registrations" }
         '400': { description: Invalid JSON, or a payload that fails validation (bad e-mail, missing name, non-date DOB, consent not given) — still logged as an error row }
         '401': { description: Missing or wrong X-Webhook-Secret }
         '500': { description: ENROL_FORM_SECRET unset, a Supabase env var missing, or the RPC failed }

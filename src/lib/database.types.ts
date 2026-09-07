@@ -996,6 +996,7 @@ export type Database = {
           p_parent_id: string
           p_parent_name: string
           p_relation?: string
+          p_student_email?: string
           p_student_name: string
         }
         Returns: {

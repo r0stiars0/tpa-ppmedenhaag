@@ -174,6 +174,7 @@ describe('enrolFromForm', () => {
         p_student_name: 'Ali Santoso',
         p_dob: '2016-03-04',
         p_relation: 'ayah',
+        p_student_email: undefined,
       }),
     )
     expect(invitationEmailMock).toHaveBeenCalledWith(
@@ -237,5 +238,28 @@ describe('enrolFromForm', () => {
     const res = await enrolFromForm(client, GOOD)
     expect(res).toMatchObject({ ok: true, data: { status: 'enrolled', invitation_email: null } })
     expect(sendEmailMock).not.toHaveBeenCalled()
+  })
+
+  it('passes a filled student e-mail to the RPC as p_student_email', async () => {
+    const { client, rpc } = fakeClient()
+    await enrolFromForm(client, { ...GOOD, student_email: '  Kid16@Example.com ' })
+    expect(rpc).toHaveBeenCalledWith(
+      'fn_enrol_from_form',
+      expect.objectContaining({ p_student_email: 'kid16@example.com' }),
+    )
+  })
+
+  it('propagates a needs_attention from the RPC (name+DOB match, not a guardian)', async () => {
+    const { client, inserted } = fakeClient({
+      existingUser: { id: RPC_ROW.parent_user_id, role: 'parent' },
+      rpc: {
+        data: [{ parent_user_id: RPC_ROW.parent_user_id, student_id: null, parent_created: false, student_created: false, status: 'needs_attention' }],
+        error: null,
+      },
+    })
+    const res = await enrolFromForm(client, GOOD)
+    expect(res).toMatchObject({ ok: true, status: 201, data: { status: 'needs_attention', student_id: null } })
+    expect(sendEmailMock).not.toHaveBeenCalled()
+    expect(inserted.at(-1)).toMatchObject({ status: 'needs_attention', error: null })
   })
 })

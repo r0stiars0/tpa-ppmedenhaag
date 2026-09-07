@@ -389,7 +389,7 @@ shared personas, whose role and guardian state earlier blocks mutate.
 - [ ] RLS-96 — **The two hard blocks.** With other admins present, an admin's `fn_admin_user_role_impact(self, 'tutor')` → `would_block = 'self'` and the write → `P0001`. After demoting the suite's spare admins (AP, AT, TAP) to isolate one, `fn_admin_user_role_impact(sole_admin, 'tutor')` → `would_block = 'last_admin'` and the write → `P0001`.
 - [ ] RLS-97 — **Read scope of the log.** Admin SELECT `user_role_changes` → ≥ 4 rows (everything written above); the just-demoted UDT (now a parent) → **0**.
 
-### 3.8 Form-driven enrolment (RLS-98…106, ADR-043)
+### 3.8 Form-driven enrolment (RLS-98…108, ADR-043)
 
 New table `public.enrolment_submissions` and function `fn_enrol_from_form`
 (migration 024). An isolated `ef…` fixture island — EFP (an `auth.users`
@@ -405,8 +405,10 @@ tutor, for the ADR-024 reuse path).
 - [ ] RLS-104 — **A tutor account reused as parent (ADR-024).** `fn_enrol_from_form(EFT, …, 'WRONG NAME', …)` → the child is enrolled; EFT's `users` row keeps `tutor` / `id` / its original name; the guardian link to the new student is made.
 - [ ] RLS-105 — **The guardian invariant holds.** No form-created student (`Enrol Child`, `Enrol Child Two`, `Tutor Kid`) is left without an active guardian (migration 021's `trg_student_has_guardian`).
 - [ ] RLS-106 — **Cross-family isolation for a form-created family.** As EFP: reads their own child (1), and **0** for another family's `students` row and **0** for its `attendance` rows (the ADR-040 negative, re-proven).
+- [ ] RLS-107 — **A submission carrying the child's login e-mail links the guardian.** EFP submits `p_student_email = 's16@test.local'` (the suite's 16+ santri's own login e-mail, `students.user_id → users.email`) → `status = updated`; EFP becomes an active guardian of that existing student; **no** duplicate `students` row.
+- [ ] RLS-108 — **An unrelated submitter matching only name + DOB gets `needs_attention`.** EFT submits for `Enrol Child` (EFP's child from RLS-101) — not a guardian, no e-mail match → `status = needs_attention`; **no** guardian link and **no** second `students` row are created (an admin links it from Beheer).
 
-*Total after these: 393 pgTAP assertions (verified: `supabase test db` reports `1..393` on a clean `supabase db reset`).*
+*Total after these: 399 pgTAP assertions (verified: `supabase test db` reports `1..399` on a clean `supabase db reset`).*
 
 ## 4. Unit tests (Vitest)
 
@@ -642,6 +644,8 @@ layer pins what the Function decides before and after the RPC.
 - [x] `parseEnrolPayload`: lower-cases the e-mail; trims and length-caps (120) the names; maps `Nederlands`/`nl` → `nl` and anything else → `id`; accepts `YYYY-MM-DD` and a locale date string; rejects a non-date and a future date; treats a blank / `Tidak` / `Nee` / `false` consent as not given (→ `400`); drops an over-long `relation` and a blank `student_email` to null; flattens a one-element array value (the Apps Script `namedValues` shape)
 - [x] a new family → `auth.admin.createUser({ email, email_confirm: true })` is called, `rpc('fn_enrol_from_form', …)` gets the mapped args, the invitation e-mail is sent, the `enrolment_submissions` row is `enrolled`
 - [x] an existing `public.users` row by e-mail → `createUser` is **not** called and no invitation e-mail is sent
+- [x] a filled student e-mail is lower-cased and passed to the RPC as `p_student_email`
+- [x] the RPC returns `needs_attention` (name+DOB match, not a guardian) → `{ ok: true, status: 201 }` with `student_id` null, no invitation e-mail, an `error`-free `needs_attention` log row
 - [x] `createUser` returns `email_exists` with no profile → `status = 'needs_attention'`, `{ ok: true }`, no throw, the RPC is not called
 - [x] a `createUser` failure other than `email_exists` → `502` and an `error` log row; an RPC error → `500` and an `error` log row
 - [x] a failed invitation e-mail still returns `{ ok: true }` with `invitation_email` reflecting the failure
@@ -744,7 +748,7 @@ authenticated Playwright harness yet (`e2e/sign-in.spec.ts` documents
 why the E2E-01…E2E-14 suite is also still unbuilt). The flows are
 covered at the unit layer (§4.5d, §4.5e, §4.5g, §4.5i, §4.5j) and the
 database layer (§3.3 MD-01…MD-08, §3.4 RLS-60…64, §3.6 RLS-78…86, §3.7
-RLS-88…97, §3.8 RLS-98…106).*
+RLS-88…97, §3.8 RLS-98…108).*
 
 ## 6. Notification & PWA test matrix (manual, real devices)
 

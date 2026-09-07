@@ -507,11 +507,17 @@ name as a parameter) — but a **separate** secret, so the form channel and
 the database-webhook channel can be rotated independently. With it unset
 the Function rejects every request.
 
+A submission is matched to a student by (1) the optional student e-mail
+against an existing student's login, (2) this guardian already having a
+student at that name + DOB, then (3) name + DOB alone → `needs_attention`
+for an admin (a second guardian, or a corrected name), else (4) a new
+student is created. `class_id` is left null for an admin to assign; the
+payment answer is stored on the log row only.
+
 The Apps Script itself is version-controlled at
 `apps-script/enrol-from-form.gs` and installed by hand on the response
 sheet — see `apps-script/README.md`. Nothing in CI or the Netlify build
-deploys it. `class_id` is left null for an admin to assign; the payment
-answer and the optional student e-mail are stored on the log row only.
+deploys it.
 
 ### Verifying it end to end
 

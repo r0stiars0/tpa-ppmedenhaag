@@ -4174,6 +4174,58 @@ insert into _tap_log(line) select is(
   0::bigint, 'RLS-106: …nor another family''s attendance rows'
 );
 
+-- RLS-107: a second guardian submitting WITH the child's own login e-mail
+-- (students.user_id → users.email) is linked to that existing student —
+-- no duplicate, status=updated. S16 (50…001) is the suite's 16+ santri,
+-- their own login, guarded by P3 (90…003); EFP now submits for them.
+reset role;
+set local role service_role;
+set local request.jwt.claim.role to 'service_role';
+insert into _tap_log(line) select is(
+  (select status from public.fn_enrol_from_form('ef000000-0000-0000-0000-000000000001',
+     'efp@test.local', 'Enrol Parent', 'id',
+     (select full_name from public.students where user_id = '50000000-0000-0000-0000-000000000001'),
+     (select date_of_birth from public.students where user_id = '50000000-0000-0000-0000-000000000001'),
+     'wali', 's16@test.local')),
+  'updated', 'RLS-107: a submission carrying the child''s login e-mail links the guardian to that student'
+);
+reset role;
+insert into _tap_log(line) select ok(
+  exists (select 1 from public.student_guardians g
+    join public.students s on s.id = g.student_id
+    where s.user_id = '50000000-0000-0000-0000-000000000001'
+      and g.user_id = 'ef000000-0000-0000-0000-000000000001' and g.unlinked_at is null),
+  'RLS-107: …EFP is now an active guardian of the existing student'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.students where user_id = '50000000-0000-0000-0000-000000000001'),
+  1::bigint, 'RLS-107: …and no duplicate student row was created'
+);
+
+-- RLS-108: name+DOB match, but the submitter neither guards the student
+-- nor supplied a matching e-mail → status=needs_attention, nothing
+-- created (an admin links the guardian from Beheer). EFT submits for
+-- "Enrol Child" (created by EFP in RLS-101).
+set local role service_role;
+set local request.jwt.claim.role to 'service_role';
+insert into _tap_log(line) select is(
+  (select status from public.fn_enrol_from_form('ef000000-0000-0000-0000-000000000002',
+     'eft@test.local', 'Enrol Form Tutor', 'id', 'Enrol Child', date '2016-05-05', 'ayah')),
+  'needs_attention', 'RLS-108: an unrelated submitter matching only name+DOB gets needs_attention'
+);
+reset role;
+insert into _tap_log(line) select ok(
+  not exists (select 1 from public.student_guardians g
+    join public.students s on s.id = g.student_id
+    where lower(btrim(s.full_name)) = 'enrol child'
+      and g.user_id = 'ef000000-0000-0000-0000-000000000002'),
+  'RLS-108: …and no guardian link was created for them'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.students where lower(btrim(full_name)) = 'enrol child'),
+  1::bigint, 'RLS-108: …and no duplicate student row'
+);
+
 reset role;
 
 -- ---------- done ----------

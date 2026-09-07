@@ -738,18 +738,22 @@ migration 021's `trg_student_has_guardian` is `DEFERRABLE` and
 `fn_admin_save_student` gates on `fn_is_admin()`, false for the callerless
 service role; the new RPC is `SECURITY DEFINER` guarded by
 `auth.role() = 'service_role'` and `REVOKE`d from `authenticated`.
-Idempotent on verified e-mail + `lower(trim(student name))` +
-`date_of_birth` (a repeat → `status = 'updated'`, no duplicate, no second
-invite). The branded invitation e-mail (ADR-018) goes out only for a
-brand-new account. `class_id` is left null for an admin to assign; the
-payment answer and the optional student e-mail are stored on the new
-`public.enrolment_submissions` log row only (admin-read,
+A submission is matched to a student by (1) the optional student e-mail
+against an existing student's login, (2) this guardian + `lower(trim(name))`
++ `date_of_birth`, then (3) name + DOB alone → `status = 'needs_attention'`
+(nothing created; an admin links the guardian — a second guardian or a
+corrected name), else (4) a new student. A repeat → `updated`, no
+duplicate, no second invite. The branded invitation e-mail (ADR-018) goes
+out only for a brand-new account. `class_id` is left null for an admin to
+assign; the payment answer and the optional student e-mail are also
+stored on the new `public.enrolment_submissions` log row (admin-read,
 service-role-write, kept indefinitely). Verified: `typecheck` +
-`typecheck:functions` + `test` (585, +16 in `enrolFromForm.test.ts`, +3
+`typecheck:functions` + `test` (587, +18 in `enrolFromForm.test.ts`, +3
 in `functionAuth.test.ts`) + `build` green; `fn_enrol_from_form`
 exercised directly via psql on a real local stack (new family / re-submit
-/ second child / tutor-as-parent / bad locale / non-service caller); the
-RLS suite gains RLS-98…106 and `supabase test db` reports `1..393` all
+/ second child / tutor-as-parent / student-e-mail match / name+DOB
+needs_attention / bad locale / non-service caller); the
+RLS suite gains RLS-98…108 and `supabase test db` reports `1..399` all
 green on a clean `supabase db reset`. Docs: ADR-043 in the TAD, PRD
 FR-010 + a user story, openapi (`/enrol-from-form`), DPIA (data
 categories, processors, retention, R16, a §6 `[IT TEAM]` item), both

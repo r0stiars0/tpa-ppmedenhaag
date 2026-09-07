@@ -161,51 +161,32 @@ begin
   end if;
   -- v_role in ('tutor','admin'): reuse as guardian, profile untouched.
 
-  -- ── find the existing student (requirements FE-7) ─────────────
-  -- same verified parent + case-insensitive trimmed name + same DOB.
-  select count(*), min(s.id) into v_match_count, v_student
-  from public.students s
-  where lower(btrim(s.full_name)) = lower(btrim(p_student_name))
-    and s.date_of_birth = p_dob
-    and exists (
-      select 1 from public.student_guardians g
-      where g.student_id = s.id and g.user_id = p_parent_id
-        and g.unlinked_at is null
-    );
-
-  if v_match_count > 1 then
-    v_status := 'needs_attention';   -- ambiguous; updates the earliest
-  end if;
-
-  if v_student is null then
-    insert into public.students (full_name, date_of_birth)
-    values (p_student_name, p_dob)
-    returning id into v_student;
-    insert into public.student_guardians (student_id, user_id, relation)
-    values (v_student, p_parent_id, p_relation);
-    v_student_new := true;
-    v_status := coalesce(v_status, 'enrolled');
-  else
-    update public.students set full_name = p_student_name where id = v_student;
-    update public.student_guardians
-      set relation = p_relation
-      where student_id = v_student and user_id = p_parent_id
-        and unlinked_at is null
-        and relation is distinct from p_relation;
-    v_status := coalesce(v_status, 'updated');
-  end if;
+  -- ── match a submission to a student (requirements FE-7) ───────
+  -- The function signature also takes `p_student_email text default null`.
+  --
+  -- Step 1: exact student-email match against students.user_id → users.email
+  --   → link this parent as a guardian of that student; status=updated.
+  -- Step 2: this parent already actively guards a student with the same
+  --   lower(btrim(name)) + DOB → update in place; status=updated.
+  -- Step 3: a student with that name + DOB exists but neither (1) nor (2)
+  --   holds → create NOTHING, status=needs_attention (student_id null);
+  --   an admin links the guardian from Beheer.
+  -- Step 4: no match → insert the student, then its guardian (same txn,
+  --   the DEFERRABLE trigger order); status=enrolled.
+  --
+  -- See supabase/migrations/024_enrol_from_form.sql for the full body.
 
   return query select p_parent_id, v_student, v_parent_new, v_student_new, v_status;
 end $$;
 
-revoke all on function public.fn_enrol_from_form(uuid,text,text,text,text,date,text) from public, anon, authenticated;
-grant execute on function public.fn_enrol_from_form(uuid,text,text,text,text,date,text) to service_role;
+revoke all on function public.fn_enrol_from_form(uuid,text,text,text,text,date,text,text) from public, anon, authenticated;
+grant execute on function public.fn_enrol_from_form(uuid,text,text,text,text,date,text,text) to service_role;
 ```
 
 Notes:
 - New students get `class_id = null` (R2) and `enrollment_date = current_date`
-  (column default). No `user_id` — the optional student email is not acted on
-  (requirements §2, R9).
+  (column default). `user_id` stays null — the optional student email is a
+  **match key** (step 1), never written as a self-login link (requirements R9).
 - The insert order (student, then its guardian, same txn) is exactly what the
   `DEFERRABLE` trigger is built to allow.
 - `parent_created` in the result is what tells the Function whether to send the
@@ -255,7 +236,7 @@ Responsibilities:
    `locale` (`'Bahasa Indonesia' | 'Nederlands' | 'id' | 'nl'` → `'id' | 'nl'`,
    default `'id'`),
    `relation` (optional, ≤40, else null),
-   `student_email` (optional, stored only),
+   `student_email` (optional; passed to the RPC as a match key, and stored),
    `payment_answer` (optional, stored only),
    `consent` (accepts the checkbox's option text or boolean; **required truthy**
    — a missing/false consent is `400`, it is a form-level required question).
@@ -410,6 +391,12 @@ hand-add the two entries (`Tables.enrolment_submissions`,
 - **RLS-106** cross-family isolation re-proven: the parent from RLS-101 cannot
   read another family's `students` / `attendance` rows (the ADR-040 negative,
   with a form-created family).
+- **RLS-107** a submission carrying an existing student's login email
+  (`p_student_email`) links the submitting parent as a guardian of that student —
+  `status = updated`, no duplicate `students` row.
+- **RLS-108** a submitter matching only name + DOB (not a guardian, no email
+  match) → `status = needs_attention`, no guardian link and no student row
+  created.
 
 ### 8.2 Vitest — `tests/unit/enrolFromForm.test.ts` (mocked Supabase client)
 
@@ -461,8 +448,12 @@ Properties, add the installable trigger, submit one test row, delete it.
 
 ## 10. Risks / accepted limitations
 
-- **A typo in the student's name on re-submission** makes a second student
-  record (FE-7). Accepted; admin merges. Not auto-detected.
+- **A second guardian submitting, or a corrected student name** — where the
+  submitter neither supplied the child's login email nor already guards a
+  name+DOB match — is **not** auto-linked; it returns `needs_attention` and an
+  admin links the guardian (or creates the student) from Beheer. Deliberate:
+  auto-linking on name+DOB alone could attach a stranger to another family's
+  identically-named child. Visible only on the sheet's Status/Error columns (R4).
 - **`email_exists` with no profile** is not auto-resolved (§4.2 step 2).
   Accepted for v1 (rare under R1); admin finishes via Registrations.
 - **Apps Script fragility on question rename** — mitigated by the title

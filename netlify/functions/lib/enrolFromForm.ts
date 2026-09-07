@@ -141,7 +141,7 @@ export function parseEnrolPayload(body: unknown): ParseOutcome {
   const locale = normaliseLocale(raw.locale)
   const relationRaw = str(raw.relation).trim()
   const relation = relationRaw && relationRaw.length <= 40 ? relationRaw : null
-  const student_email = str(raw.student_email).trim() || null
+  const student_email = str(raw.student_email).trim().toLowerCase() || null
   const payment_answer = str(raw.payment_answer).trim() || null
   const consent = truthyConsent(raw.consent)
 
@@ -308,6 +308,7 @@ export async function enrolFromForm(client: ServiceClient, body: unknown): Promi
     p_student_name: p.student_name,
     p_dob: p.date_of_birth,
     p_relation: p.relation ?? undefined,
+    p_student_email: p.student_email ?? undefined,
   })
   if (rpcError) {
     await writeLog(client, { ...logBase, parent_user_id: parentId, student_id: null, status: 'error', error: rpcError.message })

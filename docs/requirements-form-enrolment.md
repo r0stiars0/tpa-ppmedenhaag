@@ -35,9 +35,9 @@ this is a first-time bulk load, then a trickle.
   existing admin UI.
 - Payment. The form's payment question is **ignored** by the automation; the
   treasurer reconciles €40/student against the ING account separately.
-- The 16+ student self-login link. The optional "Email siswa" answer is stored
-  with the submission only; an admin links it later via the ADR-040 student
-  screen.
+- The 16+ student self-login link. The optional "Email siswa" answer is used
+  **only as a match key** (see FE-7) — it is never written to `students.user_id`;
+  an admin creates the self-login link later via the ADR-040 student screen.
 - Any change to the sign-in / OAuth flow itself.
 - A CSV bulk-import screen (possible future; not this feature).
 
@@ -61,7 +61,7 @@ this is a first-time bulk load, then a trickle.
 | Email Address | — (verified collection) | auto | — | **parent identity**; becomes `users.email` |
 | Nama siswa | `Nama siswa` | Short answer | Yes | `students.full_name` |
 | Tanggal lahir | `Tanggal lahir` | Date | Yes | `students.date_of_birth` |
-| Email siswa (jika ada) | `Email siswa (jika ada)` | Short answer | No | stored in log only |
+| Email siswa (jika ada) | `Email siswa (jika ada)` | Short answer | No | match key (FE-7 step 1) + stored in log |
 | Nama Orang Tua | `Nama Orang Tua` | Short answer | Yes | parent `users.full_name` |
 | *(payment)* | short, stable title — e.g. `Sudah melakukan pembayaran?` | Multiple choice `Ya` / `Tidak` | Yes | stored in log only |
 | *(new)* language | e.g. `Bahasa / Taal` | Multiple choice `Bahasa Indonesia` / `Nederlands` | Yes | `users.locale` = `id` / `nl` |
@@ -115,13 +115,26 @@ this is a first-time bulk load, then a trickle.
 - **FE-6** The Apps Script SHALL write the outcome back to the sheet row (a
   `Status` column and, on failure, an `Error` column), so the admin can see
   progress in the sheet itself.
-- **FE-7 (idempotency / re-submission)** Two submissions with the **same verified
-  parent email AND the same trimmed case-insensitive student name AND the same
-  date of birth** refer to the same student. The second SHALL update the existing
-  `users.full_name` / `users.locale` and `students` row **in place, keeping the
-  ids**, and SHALL NOT create duplicates or resend the invite. Any other
-  difference (e.g. a corrected student name) is treated as a new student — known
-  limitation, admin merges manually.
+- **FE-7 (matching a submission to a student)** The automation SHALL resolve the
+  student in this order:
+  1. **Student-email match** — if "Email siswa" is filled and equals an existing
+     student's own login email (`students.user_id → users.email`), that student
+     is the one; the submitting parent SHALL be added as an active guardian if
+     not already one. `status = updated`.
+  2. **Guardian + name + DOB** — the submitting parent already actively guards a
+     student with the same trimmed case-insensitive name and the same date of
+     birth: update that student `in place, keeping the ids`. `status = updated`.
+  3. **Name + DOB only** — a student with that name and DOB exists but neither
+     (1) nor (2) holds (typically a second guardian, or a child linked to the
+     other parent). The automation SHALL create **nothing** and set
+     `status = needs_attention`; a TPA admin links the guardian from Beheer, or
+     confirms it is a different child. The outcome shows only on the sheet's
+     Status/Error columns (R4).
+  4. **No match** — create the student and the guardian link. `status = enrolled`.
+  A repeat SHALL NOT create duplicates or resend the invite. Auto-linking on
+  name + DOB alone is deliberately not done. `users.full_name` / `users.locale`
+  are still refreshed from the latest submission when the parent account already
+  exists.
 - **FE-8** A parent whose verified email already belongs to a `tutor` or `admin`
   account SHALL be reused as the guardian (ADR-024); the automation SHALL NOT
   change that account's role.
@@ -197,7 +210,7 @@ this is a first-time bulk load, then a trickle.
 | R6 | Payment is **ignored** by the automation; treasurer reconciles separately. The Ya/Tidak answer is stored in the log for reference only. |
 | R7 | Deploy path: a new Netlify Function on a branch off `main`, shipped by merge (Netlify auto-deploys from `main`). |
 | R8 | Transport: Google Apps Script `onFormSubmit`, authenticated to the Function with a shared secret. |
-| R9 | The optional student email is stored only; 16+ self-login is linked later by an admin (ADR-032). |
+| R9 | The optional student email is used only as a match key (FE-7 step 1) and stored in the log; it is never written as a self-login link — an admin does that later (ADR-032). |
 | R10 | Consent question: keep the checkbox, **plain text, no hyperlink** (the privacy policy is not published publicly yet). |
 | R11 | Relationship question: **optional**, options `Ayah` / `Ibu` / `Wali` / `Lainnya`, maps to `student_guardians.relation` (nullable). |
 | R12 | On a failed submission the sheet `Status`/`Error` column is sufficient — **no admin email**. |
