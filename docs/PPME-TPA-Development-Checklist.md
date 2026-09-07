@@ -766,8 +766,10 @@ exercised directly via psql on a real local stack for every branch
 needs_attention / fresh + unregistered + unlinked + name-mismatch +
 non-student student-e-mail / student-e-mail == parent / bad locale /
 non-service caller); the RLS suite gains RLS-98…114 and `supabase test db`
-reports `1..408` all green on a clean `supabase db reset`. Docs: ADR-043
-in the TAD, PRD FR-010 + #10 + a user story + a Scope-Boundaries note,
+reports `1..408` all green on a clean `supabase db reset`. Requirements
+and design were signed off in draft, then **folded into the PRD and the
+TAD** — no standalone `docs/requirements-*`/`docs/design-*` files. Docs:
+ADR-043 in the TAD, PRD FR-010 + #10 + a user story + a Scope-Boundaries note,
 openapi (`/enrol-from-form`), DPIA (data categories, processors,
 retention, R16 rewritten, §3 lawful-basis, §6 items incl. the closed
 under-16 consent item), both privacy-policy halves (§4 + the form

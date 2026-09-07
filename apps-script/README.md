@@ -24,7 +24,7 @@ by hand** — nothing in CI or the Netlify build touches it.
 The form **and** its response spreadsheet must be owned by an
 organisation-controlled Google account, not a volunteer's personal one — the
 script, its trigger and the stored secret all live on the spreadsheet and must
-survive someone leaving (requirements §4.2.8).
+survive someone leaving (PRD FR-010).
 
 ## Install
 
@@ -62,11 +62,11 @@ guardian, `enrolment_submissions` row and the auth account afterwards.
   then update the `ENROL_FORM_SECRET` script property. A mismatch returns
   `HTTP 401` on every row until both sides agree.
 - **`class_id` is deliberately left empty.** An admin assigns the Grup in Beheer
-  after enrolment (requirements R2).
+  after enrolment (PRD FR-010).
 - **Payment is out of scope.** The `Sudah melakukan pembayaran?` answer is **not
   forwarded** by this script and nothing is stored — the form asks families to
   pay via the ING link and the treasurer reconciles it separately (PRD Scope
-  Boundaries, requirements R6). The `Q` map above intentionally has no payment
+  Boundaries). The `Q` map above intentionally has no payment
   entry.
 - **Student self-login.** If a row's `Email siswa (jika ada)` is filled, the
   Function links the student's existing `role=student` account (adding this

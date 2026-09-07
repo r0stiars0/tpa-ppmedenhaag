@@ -24,9 +24,9 @@
 -- One row per processed submission: the raw answers, the ids it
 -- created/updated, and the outcome. The admin's audit + troubleshooting
 -- view (the sheet's Status column is the at-a-glance one). Kept
--- indefinitely (requirements R13). Every column but `id`/`created_at`/
+-- indefinitely by design. Every column but `id`/`created_at`/
 -- `status` is nullable on purpose — a submission that fails validation
--- must still be recordable with whatever partial data arrived (FE-5).
+-- must still be recordable with whatever partial data arrived.
 -- Admin reads it; only the service role writes it — the year_end_reports
 -- (migration 005) split.
 --
@@ -66,7 +66,7 @@ create index idx_enrolment_submissions_student on public.enrolment_submissions (
 comment on table public.enrolment_submissions is
   'One row per processed Google re-registration submission (ADR-043, FR-010): '
   'the raw answers, the accounts it created/updated, and the outcome. Admin '
-  'audit + troubleshooting view; kept indefinitely (requirements R13). Can '
+  'audit + troubleshooting view; kept indefinitely by design. Can '
   'hold a child''s name + date of birth and a guardian email — DPIA. Written '
   'only by the enrol-from-form Function on the service role.';
 
@@ -99,13 +99,14 @@ create policy enrolment_submissions_service_update on public.enrolment_submissio
 -- the Function does that half). Everything below is one transaction, so
 -- the DEFERRABLE guardian invariant is satisfied by insert order.
 --
--- Matching a submission to a student RECORD (requirements FE-7):
+-- Matching a submission to a student RECORD:
 --   A. this parent already actively guards a student with lower(trim(name))
 --      + DOB → update in place. status=updated.
 --   B. a student with that name + DOB exists but this parent does not
 --      guard them — usually a second guardian submitting for a child the
 --      first already enrolled. Create nothing; status=needs_attention for
---      an admin (the sheet's Status/Error columns are the surface — R4).
+--      an admin (the sheet's Status/Error columns are the surface — no
+--      in-app queue, no admin e-mail).
 --   C. no match → create the student + guardian link. status=enrolled.
 --
 -- STUDENT SELF-LOGIN (ADR-043, PRD #10). When "Email siswa" is given the

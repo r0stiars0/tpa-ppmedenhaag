@@ -4092,7 +4092,7 @@ insert into _tap_log(line) select ok(
   'RLS-101: …and the student (class_id null, enrolled today) has one active guardian link'
 );
 
--- RLS-102: an identical re-submission is idempotent (FE-7).
+-- RLS-102: an identical re-submission is idempotent.
 set local role service_role;
 set local request.jwt.claim.role to 'service_role';
 insert into _tap_log(line) select is(

@@ -33,10 +33,10 @@ type EnrolSubmissionInsert = Database['public']['Tables']['enrolment_submissions
  *      student their invitation.
  *
  * Every submission is logged to `enrolment_submissions` — success,
- * `needs_attention`, or a validation/processing failure (requirements
- * FE-5). The branded invitation e-mail (ADR-018) goes out only when a
- * brand-new account was created (FE-4); a mail failure never fails the
- * enrolment, the `sendEmail` contract.
+ * `needs_attention`, or a validation/processing failure. The branded
+ * invitation e-mail (ADR-018) goes out only when a brand-new account was
+ * created; a mail failure never fails the enrolment, the `sendEmail`
+ * contract.
  *
  * The form's payment question is deliberately neither sent nor stored —
  * payment/fee management is out of scope (PRD Scope Boundaries).
@@ -281,7 +281,8 @@ export async function enrolFromForm(client: ServiceClient, body: unknown): Promi
       // An auth.users row exists for this e-mail but has no profile — a
       // prior Google sign-in, or a past partial failure. supabase-js
       // cannot look an auth user up by e-mail, so this is left for an
-      // admin to finish from Registrations (FE-10). Rare under R1.
+      // admin to finish from Registrations. Rare — the families are new
+      // to the app.
       if (createError?.code === 'email_exists') {
         await writeLog(client, {
           ...logBase,
@@ -367,7 +368,7 @@ export async function enrolFromForm(client: ServiceClient, body: unknown): Promi
   }
   const status: EnrolStatus = row.status ?? (row.student_created ? 'enrolled' : 'updated')
 
-  // ── 4. invitation e-mail — only for a brand-new account (FE-4) ─
+  // ── 4. invitation e-mail — only for a brand-new account ──────
   let invitationEmailStatus: string | null = null
   if (row.parent_created && parentAuthCreated) {
     const invitation = invitationEmail({

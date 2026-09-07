@@ -18,7 +18,8 @@
  * ── Question titles ──────────────────────────────────────────────────────
  * The payload is built from `e.namedValues`, which is keyed by the exact
  * question title. RENAMING A FORM QUESTION BREAKS THIS FILE — keep the
- * constants below in step with the form (requirements §4.2.9).
+ * constants below in step with the form (PRD FR-010: a question must not
+ * be renamed after go-live).
  */
 
 var Q = {
@@ -49,7 +50,7 @@ function onFormSubmitInstallable(e) {
   writeBack_(e && e.range ? e.range.getRow() : null, outcome)
 }
 
-/** Menu for re-processing rows after a fix or a transient outage (FE-11). */
+/** Menu for re-processing rows after a fix or a transient outage. */
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Enrolment')
