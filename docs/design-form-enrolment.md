@@ -34,7 +34,8 @@ POST /.netlify/functions/enrol-from-form           ← new
         │  5. on a newly created parent: send branded invitation email (ADR-018),
         │     non-fatal
         │  6. insert enrolment_submissions row (status, ids, error)
-        │  7. return { status, parent_user_id, student_id, invitation_email? }
+        │  7. student self-login: if the RPC set student_account_created, e-mail the student
+        │  8. return { status, parent_user_id, student_id, invitation_email?, student_invitation_email? }
         ▼
 Apps Script writes Status / Error back into the sheet row
 ```
@@ -72,7 +73,6 @@ create table public.enrolment_submissions (
   locale            text not null check (locale in ('id','nl')),
   relation          text,
   student_email     text,                          -- "Email siswa (jika ada)"
-  payment_answer    text,                          -- "Ya" / "Tidak", stored only
   consent           boolean not null,
   parent_user_id    uuid references public.users (id) on delete set null,
   student_id        uuid references public.students (id) on delete set null,
@@ -161,25 +161,36 @@ begin
   end if;
   -- v_role in ('tutor','admin'): reuse as guardian, profile untouched.
 
-  -- ── match a submission to a student (requirements FE-7) ───────
-  -- The function signature also takes `p_student_email text default null`.
+  -- ── match a submission to a student RECORD (requirements FE-7) ─
+  --   A. this parent already actively guards a student with the same
+  --      lower(btrim(name)) + DOB → update in place; status=updated.
+  --   B. a student with that name + DOB exists but this parent does not
+  --      guard them → create NOTHING, status=needs_attention (student_id
+  --      null); an admin links the guardian from Beheer.
+  --   C. no match → insert the student, then its guardian (same txn, the
+  --      DEFERRABLE trigger order); status=enrolled.
   --
-  -- Step 1: exact student-email match against students.user_id → users.email
-  --   → link this parent as a guardian of that student; status=updated.
-  -- Step 2: this parent already actively guards a student with the same
-  --   lower(btrim(name)) + DOB → update in place; status=updated.
-  -- Step 3: a student with that name + DOB exists but neither (1) nor (2)
-  --   holds → create NOTHING, status=needs_attention (student_id null);
-  --   an admin links the guardian from Beheer.
-  -- Step 4: no match → insert the student, then its guardian (same txn,
-  --   the DEFERRABLE trigger order); status=enrolled.
+  -- STUDENT SELF-LOGIN (FE-7a, PRD #10). The signature also takes
+  -- `p_student_email` and `p_student_auth_id`. When an e-mail is given
+  -- (and is not the parent's own), the RPC classifies it — a registered
+  -- non-student address → needs_attention; a linked role=student account
+  -- whose name matches → add this parent as guardian; name mismatch →
+  -- needs_attention; an unlinked/unregistered account → provision a
+  -- role=student profile + students.user_id and return
+  -- student_account_created so the Function e-mails the student. No age
+  -- gate (ADR-021). The RPC reads auth.users directly (SECURITY DEFINER)
+  -- to resolve an unregistered address.
   --
-  -- See supabase/migrations/024_enrol_from_form.sql for the full body.
+  -- See supabase/migrations/024_enrol_from_form.sql for the full body,
+  -- and ADR-043(d) for the rationale.
 
-  return query select p_parent_id, v_student, v_parent_new, v_student_new, v_status;
+  return query select p_parent_id, v_student, v_parent_new, v_student_new,
+                      v_stu_created, v_status;
 end $$;
 
-revoke all on function public.fn_enrol_from_form(uuid,text,text,text,text,date,text,text) from public, anon, authenticated;
+revoke all on function
+  public.fn_enrol_from_form(uuid,text,text,text,text,date,text,text,uuid)
+  from public, anon, authenticated;
 grant execute on function public.fn_enrol_from_form(uuid,text,text,text,text,date,text,text) to service_role;
 ```
 
@@ -236,8 +247,7 @@ Responsibilities:
    `locale` (`'Bahasa Indonesia' | 'Nederlands' | 'id' | 'nl'` → `'id' | 'nl'`,
    default `'id'`),
    `relation` (optional, ≤40, else null),
-   `student_email` (optional; passed to the RPC as a match key, and stored),
-   `payment_answer` (optional, stored only),
+   `student_email` (optional; passed to the RPC + stored — links/provisions the student self-login, see below),
    `consent` (accepts the checkbox's option text or boolean; **required truthy**
    — a missing/false consent is `400`, it is a form-level required question).
    A validation failure still writes an `enrolment_submissions` row with
@@ -273,7 +283,7 @@ Responsibilities:
    (`enrolled` / `updated` / `needs_attention`), the two ids, `error = null`.
 
 6. Return `{ ok:true, data: { status, parent_user_id, student_id,
-   invitation_email } }`.
+   invitation_email, student_invitation_email } }`.
 
 `RESULT` type: `{ ok:true; status:number; data:{…} } | { ok:false; status:number;
 error:string }`.
@@ -320,7 +330,7 @@ onFormSubmit(e):
     locale:         pick('Bahasa / Taal'),
     relation:       pick('Hubungan dengan siswa'),
     student_email:  pick('Email siswa (jika ada)'),
-    payment_answer: pick(PAYMENT_Q_TITLE),
+    // the payment question is deliberately NOT forwarded (out of scope)
     consent:        pick(CONSENT_Q_TITLE),
   }
   res = UrlFetchApp.fetch(ENROL_ENDPOINT_URL, {
@@ -354,7 +364,7 @@ hand-add the two entries (`Tables.enrolment_submissions`,
 
 | File | Change |
 |---|---|
-| `docs/TAD-PPME-TPA.md` | **ADR-043** — full entry in the house style: the Form→Sheet→Apps Script→Function→RPC chain; (a) new RPC vs `fn_admin_save_student` and the `service_role` guard; (b) `enrolment_submissions` + its RLS; (c) idempotency key = verified email + name + DOB; (d) dedicated `ENROL_FORM_SECRET`; (e) email on first creation only; (f) class left null, payment ignored, student-email stored only; alternatives column (Zapier/Make rejected — new US processor; direct PostgREST writes rejected — the `DEFERRABLE` trigger; reusing `NOTIFY_WEBHOOK_SECRET` rejected). DPIA pointer. |
+| `docs/TAD-PPME-TPA.md` | **ADR-043** — full entry in the house style: the Form→Sheet→Apps Script→Function→RPC chain; (a) new RPC vs `fn_admin_save_student` and the `service_role` guard; (b) `enrolment_submissions` + its RLS; (c) idempotency key = verified email + name + DOB; (d) dedicated `ENROL_FORM_SECRET`; (e) email on first creation only; (f) class left null, payment NOT stored (out of scope), student-email links/provisions the self-login; alternatives column (Zapier/Make rejected — new US processor; direct PostgREST writes rejected — the `DEFERRABLE` trigger; reusing `NOTIFY_WEBHOOK_SECRET` rejected). DPIA pointer. |
 | `docs/PRD-PPME-TPA.md` | **FR-010: Form-Driven Enrolment** in §1.3 (the admin/attendance domain, after FR-009). |
 | `docs/openapi.yaml` | `/enrol-from-form` path (POST, `X-Webhook-Secret`, request/response schema, `201` / `400` / `401` / `500`). `fn_enrol_from_form` noted as service-role-only, not a PostgREST route families use. |
 | `docs/test-plan.md` | RLS-98… (see §8); a Function-level section for `enrol-from-form` mirroring the `invite-user` / `reject-registration` cases; E2E row as specified-but-pending (no auth Playwright harness). |
@@ -391,24 +401,44 @@ hand-add the two entries (`Tables.enrolment_submissions`,
 - **RLS-106** cross-family isolation re-proven: the parent from RLS-101 cannot
   read another family's `students` / `attendance` rows (the ADR-040 negative,
   with a form-created family).
-- **RLS-107** a submission carrying an existing student's login email
-  (`p_student_email`) links the submitting parent as a guardian of that student —
+- **RLS-107** a submission carrying an existing linked student's login email,
+  name matches → the submitting parent is added as a guardian of that student —
   `status = updated`, no duplicate `students` row.
 - **RLS-108** a submitter matching only name + DOB (not a guardian, no email
   match) → `status = needs_attention`, no guardian link and no student row
   created.
+- **RLS-109** student email on a linked account, **name mismatch** →
+  `needs_attention`.
+- **RLS-110** student email is a **non-student** (parent) account's address →
+  `needs_attention`, and that account keeps `role = parent`.
+- **RLS-111** a **fresh** student email with `p_student_auth_id` → new student,
+  a `role = student` profile, `students.user_id` set, `student_account_created`.
+- **RLS-112** an **unregistered `auth.users` row** (no `p_student_auth_id`)
+  resolved by the RPC via `auth.users` and provisioned the same way.
+- **RLS-113** a registered `role = student` account **not yet linked**, name
+  matches → linked to the record; `student_account_created` false.
+- **RLS-114** student email **== the parent's** verified email → the student
+  block is skipped, parent-only enrolment.
 
 ### 8.2 Vitest — `tests/unit/enrolFromForm.test.ts` (mocked Supabase client)
 
 - payload parser: locale mapping (`'Nederlands'` → `'nl'`, missing → `'id'`);
   DOB rejects non-dates and future dates; names trimmed + length-capped;
-  consent falsy → `400`; email normalised to lower-case.
-- new family → `createUser` called, `rpc` called with mapped args, invitation
-  email sent, `enrolment_submissions` row `status = 'enrolled'`.
+  consent falsy → `400`; email + student email normalised to lower-case; a
+  payment answer is ignored entirely.
+- new family → `createUser` called, `rpc` called with mapped args (incl.
+  `p_student_email` / `p_student_auth_id`), invitation email sent,
+  `enrolment_submissions` row `status = 'enrolled'`.
 - existing `public.users` by email → `createUser` **not** called, no invite
   email, `status` from the RPC.
 - `createUser` returns `email_exists`, no profile → `status = 'needs_attention'`,
   `{ ok:true }`, no throw.
+- **student self-login:** a fresh student email → student `createUser`, id passed
+  as `p_student_auth_id`; an existing student profile → no student `createUser`;
+  student email == verified email → no student lookup/createUser;
+  `email_exists` → `p_student_auth_id` undefined (RPC resolves it); a hard
+  student `createUser` failure → `502`; `student_account_created` from the RPC →
+  the student gets a `role: 'student'` invitation, else none.
 - RPC error → `status = 'error'` row written, `{ ok:false, status:500 }`.
 - `sendEmail` failure → still `{ ok:true }`, `invitation_email` reflects it.
 
@@ -454,8 +484,16 @@ Properties, add the installable trigger, submit one test row, delete it.
   admin links the guardian (or creates the student) from Beheer. Deliberate:
   auto-linking on name+DOB alone could attach a stranger to another family's
   identically-named child. Visible only on the sheet's Status/Error columns (R4).
-- **`email_exists` with no profile** is not auto-resolved (§4.2 step 2).
-  Accepted for v1 (rare under R1); admin finishes via Registrations.
+- **Parent `email_exists` with no profile** is not auto-resolved (§4.2 step 2).
+  Accepted for v1 (rare under R1); admin finishes via Registrations. (The
+  *student* equivalent is auto-resolved — the RPC reads `auth.users` — because
+  the student e-mail is a fresh path where the ADR-032 gap is worth closing.)
+- **Student self-login provisioning** (FE-7a) creates a `role=student` account +
+  invitation from a guardian's form submission, with **no age gate** (ADR-021).
+  A mistyped student address leaves an unregistered `auth.users` row for an
+  admin to clean up (the `invite-user` partial-failure shape). The guardian's
+  required consent tick is the basis (PRD #10); the privacy policy §4 wording
+  was updated and DPIA R16 rewritten.
 - **Apps Script fragility on question rename** — mitigated by the title
   constants + comment + the README, not by code.
 - **Self-reported consent** — the checkbox is required at the form level; the

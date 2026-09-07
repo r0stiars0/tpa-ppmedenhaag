@@ -4226,6 +4226,103 @@ insert into _tap_log(line) select is(
   1::bigint, 'RLS-108: …and no duplicate student row'
 );
 
+-- RLS-109…114: student self-login from the form (ADR-043, PRD #10).
+-- No age gate (ADR-021); the guardian's form consent is the basis.
+reset role;
+insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous, created_at, updated_at)
+values
+  ('ef000000-0000-0000-0000-000000000003', 'authenticated', 'authenticated', 'efstu-fresh@test.local', '', now(), '{}', '{}', false, false, now(), now()),
+  ('ef000000-0000-0000-0000-000000000004', 'authenticated', 'authenticated', 'efstu-lookup@test.local', '', now(), '{}', '{}', false, false, now(), now()),
+  ('ef000000-0000-0000-0000-000000000005', 'authenticated', 'authenticated', 'efstu-unlinked@test.local', '', now(), '{}', '{}', false, false, now(), now());
+insert into public.users (id, email, full_name, role, locale)
+values ('ef000000-0000-0000-0000-000000000005', 'efstu-unlinked@test.local', 'Unlinked Santri', 'student', 'id');
+
+set local role service_role;
+set local request.jwt.claim.role to 'service_role';
+
+-- RLS-109: student e-mail points at a registered role=student account
+-- already linked to a student whose name DIFFERS → needs_attention.
+insert into _tap_log(line) select is(
+  (select status from public.fn_enrol_from_form('ef000000-0000-0000-0000-000000000001',
+     'efp@test.local', 'Enrol Parent', 'id', 'A Different Name', date '2009-09-09', 'wali', 's16@test.local')),
+  'needs_attention', 'RLS-109: student e-mail on a linked account, name mismatch → needs_attention'
+);
+
+-- RLS-110: student e-mail is a *parent* account's address → needs_attention,
+-- and that account is not repurposed.
+insert into _tap_log(line) select is(
+  (select status from public.fn_enrol_from_form('ef000000-0000-0000-0000-000000000001',
+     'efp@test.local', 'Enrol Parent', 'id', 'Some Kid', date '2014-01-01', 'ayah', 'p1@test.local')),
+  'needs_attention', 'RLS-110: student e-mail belonging to a non-student account → needs_attention'
+);
+reset role;
+insert into _tap_log(line) select is(
+  (select role::text from public.users where id = '90000000-0000-0000-0000-000000000001'),
+  'parent', 'RLS-110: …P1''s account keeps role=parent, untouched'
+);
+
+-- RLS-111: a fresh student e-mail with p_student_auth_id (the Function
+-- just createUser'd it) → new student record, a role=student profile,
+-- students.user_id set, student_account_created true.
+set local role service_role;
+set local request.jwt.claim.role to 'service_role';
+insert into _tap_log(line) select is(
+  (select status || '/' || student_account_created::text
+     from public.fn_enrol_from_form('ef000000-0000-0000-0000-000000000001',
+       'efp@test.local', 'Enrol Parent', 'id', 'Fresh Santri', date '2007-07-07', 'ayah',
+       'efstu-fresh@test.local', 'ef000000-0000-0000-0000-000000000003')),
+  'enrolled/true', 'RLS-111: a fresh student e-mail provisions a role=student self-login'
+);
+reset role;
+insert into _tap_log(line) select ok(
+  exists (select 1 from public.students s
+    join public.users u on u.id = s.user_id
+    where s.full_name = 'Fresh Santri' and u.id = 'ef000000-0000-0000-0000-000000000003'
+      and u.role = 'student' and s.class_id is null),
+  'RLS-111: …the student record is linked to the new role=student account'
+);
+
+-- RLS-112: an unregistered auth row (no p_student_auth_id) is resolved by
+-- the RPC via auth.users and provisioned the same way (the ADR-032 gap,
+-- closed from the form).
+set local role service_role;
+set local request.jwt.claim.role to 'service_role';
+insert into _tap_log(line) select is(
+  (select student_account_created::text
+     from public.fn_enrol_from_form('ef000000-0000-0000-0000-000000000001',
+       'efp@test.local', 'Enrol Parent', 'id', 'Lookup Santri', date '2007-06-06', 'ayah',
+       'efstu-lookup@test.local')),
+  'true', 'RLS-112: an unregistered auth row is resolved via auth.users and provisioned'
+);
+
+-- RLS-113: a registered role=student account NOT yet linked, whose
+-- profile name matches → linked to the record; no new account.
+insert into _tap_log(line) select is(
+  (select status || '/' || student_account_created::text
+     from public.fn_enrol_from_form('ef000000-0000-0000-0000-000000000001',
+       'efp@test.local', 'Enrol Parent', 'id', 'Unlinked Santri', date '2005-05-05', 'wali',
+       'efstu-unlinked@test.local')),
+  'enrolled/false', 'RLS-113: an unlinked registered self-login (name matches) is linked, no new account'
+);
+reset role;
+insert into _tap_log(line) select is(
+  (select s.user_id from public.students s where s.full_name = 'Unlinked Santri'),
+  'ef000000-0000-0000-0000-000000000005'::uuid,
+  'RLS-113: …students.user_id now points at that account'
+);
+
+-- RLS-114: student e-mail equal to the parent's verified e-mail → the
+-- student block is skipped, parent-only enrolment.
+set local role service_role;
+set local request.jwt.claim.role to 'service_role';
+insert into _tap_log(line) select is(
+  (select student_account_created::text
+     from public.fn_enrol_from_form('ef000000-0000-0000-0000-000000000001',
+       'efp@test.local', 'Enrol Parent', 'id', 'Enrol Child', date '2016-05-05', 'ayah',
+       'EFP@test.local')),
+  'false', 'RLS-114: student e-mail == parent e-mail → no self-login, parent-only'
+);
+
 reset role;
 
 -- ---------- done ----------

@@ -1771,16 +1771,25 @@ paths:
         first guardian in the same transaction; `fn_admin_save_student`
         cannot be reused — it gates on `fn_is_admin()`).
 
-        Idempotent on the **verified** e-mail + `lower(trim(student
-        name))` + `date_of_birth`: a repeat refreshes names/locale in
-        place, keeps ids, returns `status: updated`, and sends no second
+        Matches the student record by this guardian + `lower(trim(name))`
+        + `date_of_birth` (→ `updated`), else name + DOB alone
+        (→ `needs_attention`, nothing created — a second guardian, or a
+        corrected name), else a new student (→ `enrolled`). A repeat
+        refreshes names/locale in place, keeps ids, and sends no second
         invitation. A brand-new account gets the branded invitation
         e-mail (ADR-018); a mail failure never fails the enrolment.
 
+        When `student_email` is given it also links or provisions the
+        student's own `role=student` self-login and e-mails the student
+        (PRD #10, no age gate — ADR-021; the form's required consent tick
+        is the guardian's basis). A non-student address or a name
+        mismatch → `needs_attention`.
+
         Every submission — including a validation failure — writes one
         `public.enrolment_submissions` row (admin-read, service-role-write).
-        `class_id` is left null (an admin assigns the Grup); the payment
-        answer and the optional student e-mail are stored only.
+        `class_id` is left null (an admin assigns the Grup). The form's
+        payment question is neither forwarded nor stored (payment is out
+        of Phase 1 scope).
 
         `fn_enrol_from_form` itself is `service_role`-only (REVOKEd from
         `authenticated`, plus an `auth.role()` guard) and is not a
@@ -1800,8 +1809,7 @@ paths:
                 date_of_birth: { type: string, format: date, description: A real, non-future date; YYYY-MM-DD or a locale string }
                 locale: { type: string, description: "'Bahasa Indonesia' / 'Nederlands' / 'id' / 'nl'; defaults to id", enum: [id, nl, 'Bahasa Indonesia', 'Nederlands'] }
                 relation: { type: string, maxLength: 40, description: Ayah / Ibu / Wali / Lainnya — stored on the guardian link }
-                student_email: { type: string, description: "Optional; used as a match key against an existing student's login (students.user_id -> users.email) and stored on the log row. Never written as a self-login link." }
-                payment_answer: { type: string, description: Ya / Tidak — stored on the log row only }
+                student_email: { type: string, description: "Optional. If given: links the student's existing role=student login (adding this guardian) or, for a new/unregistered address, creates the account and invites the student (PRD #10, no age gate). A non-student address or a name mismatch -> needs_attention. Also stored on the log row." }
                 consent: { description: The consent checkbox — required truthy; accepts the option text or a boolean }
       responses:
         '201':
@@ -1820,7 +1828,8 @@ paths:
                   status: { type: string, enum: [enrolled, updated, needs_attention] }
                   parent_user_id: { type: string, format: uuid, nullable: true }
                   student_id: { type: string, format: uuid, nullable: true, description: null when status is needs_attention }
-                  invitation_email: { type: string, nullable: true, description: sendEmail result status, or null when no invitation was due }
+                  invitation_email: { type: string, nullable: true, description: parent sendEmail result status, or null when no invitation was due }
+                  student_invitation_email: { type: string, nullable: true, description: student sendEmail result status, or null when no self-login was provisioned }
         '200': { description: "Processed but a human is needed (status needs_attention) — the verified e-mail already belongs to an auth account that has no profile; supabase-js cannot resolve it, so an admin finishes it from Registrations" }
         '400': { description: Invalid JSON, or a payload that fails validation (bad e-mail, missing name, non-date DOB, consent not given) — still logged as an error row }
         '401': { description: Missing or wrong X-Webhook-Secret }

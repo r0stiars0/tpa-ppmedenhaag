@@ -200,7 +200,6 @@ export type Database = {
           locale: Database["public"]["Enums"]["locale"] | null
           parent_name: string | null
           parent_user_id: string | null
-          payment_answer: string | null
           relation: string | null
           status: string
           student_email: string | null
@@ -218,7 +217,6 @@ export type Database = {
           locale?: Database["public"]["Enums"]["locale"] | null
           parent_name?: string | null
           parent_user_id?: string | null
-          payment_answer?: string | null
           relation?: string | null
           status: string
           student_email?: string | null
@@ -236,7 +234,6 @@ export type Database = {
           locale?: Database["public"]["Enums"]["locale"] | null
           parent_name?: string | null
           parent_user_id?: string | null
-          payment_answer?: string | null
           relation?: string | null
           status?: string
           student_email?: string | null
@@ -996,6 +993,7 @@ export type Database = {
           p_parent_id: string
           p_parent_name: string
           p_relation?: string
+          p_student_auth_id?: string
           p_student_email?: string
           p_student_name: string
         }
@@ -1003,6 +1001,7 @@ export type Database = {
           parent_created: boolean
           parent_user_id: string
           status: string
+          student_account_created: boolean
           student_created: boolean
           student_id: string
         }[]

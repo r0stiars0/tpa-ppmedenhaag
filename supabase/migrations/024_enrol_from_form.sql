@@ -47,7 +47,6 @@ create table public.enrolment_submissions (
   locale          locale,
   relation        text,
   student_email   text,                            -- "Email siswa (jika ada)"
-  payment_answer  text,                            -- "Ya" / "Tidak", stored only
   consent         boolean,
   parent_user_id  uuid references public.users (id)    on delete set null,
   student_id      uuid references public.students (id) on delete set null,
@@ -100,43 +99,71 @@ create policy enrolment_submissions_service_update on public.enrolment_submissio
 -- the Function does that half). Everything below is one transaction, so
 -- the DEFERRABLE guardian invariant is satisfied by insert order.
 --
--- How a submission is matched to a student (requirements FE-7):
---   1. p_student_email matches an existing student's own login e-mail
---      (students.user_id → users.email) — a strong, self-supplied key:
---      link this parent as a guardian of that student. status=updated.
---   2. this parent already actively guards a student with this
---      name + DOB: update in place. status=updated.
---   3. a student with this name + DOB exists but neither (1) nor (2)
---      holds — most often a second guardian submitting for a child the
---      first already enrolled. Create nothing; return status=needs_
---      attention for an admin to link the guardian in Beheer (or confirm
---      it is a different child). The sheet's Status/Error columns are the
---      surface (requirements R4 — no in-app queue, no admin e-mail).
---   4. no match at all: create the student + guardian link. status=enrolled.
+-- Matching a submission to a student RECORD (requirements FE-7):
+--   A. this parent already actively guards a student with lower(trim(name))
+--      + DOB → update in place. status=updated.
+--   B. a student with that name + DOB exists but this parent does not
+--      guard them — usually a second guardian submitting for a child the
+--      first already enrolled. Create nothing; status=needs_attention for
+--      an admin (the sheet's Status/Error columns are the surface — R4).
+--   C. no match → create the student + guardian link. status=enrolled.
+--
+-- STUDENT SELF-LOGIN (ADR-043, PRD #10). When "Email siswa" is given the
+-- form can also create/link the student's own account. No age gate
+-- (ADR-021 — the app never gates on DOB; Google's own sign-in age check
+-- is the only threshold). The guardian's form-consent tick is the basis
+-- (PRD #10 — parental consent is retained regardless of student age). The
+-- address resolves to one of:
+--   * a registered role<>student account (a parent/tutor/admin address) →
+--     never repurpose it. status=needs_attention.
+--   * a registered role=student account already linked to a student whose
+--     name matches → add this parent as a guardian of that student
+--     (status=updated); name differs → status=needs_attention.
+--   * a registered role=student account not yet linked (the ADR-032
+--     window) whose profile name matches → link it to the record resolved
+--     by A/C; name differs → status=needs_attention.
+--   * an auth.users row with no profile (a prior sign-in) OR a row the
+--     Function just created → provision a role=student profile, link it,
+--     and the Function e-mails the student. `student_account_created` says
+--     a profile was written so the Function knows to send that invite.
+--   * the parent's own verified e-mail (same inbox typed twice) → ignore
+--     the field, enrol parent-only.
 create or replace function public.fn_enrol_from_form(
-  p_parent_id     uuid,     -- auth.users id, already created by the Function
-  p_parent_email  text,
-  p_parent_name   text,
-  p_locale        text,     -- 'id' | 'nl'
-  p_student_name  text,
-  p_dob           date,
-  p_relation      text default null,
-  p_student_email text default null   -- optional; a strong match key (step 1)
+  p_parent_id      uuid,     -- auth.users id, already created by the Function
+  p_parent_email   text,
+  p_parent_name    text,
+  p_locale         text,     -- 'id' | 'nl'
+  p_student_name   text,
+  p_dob            date,
+  p_relation       text default null,
+  p_student_email  text default null,   -- optional; match key + self-login provisioning
+  p_student_auth_id uuid default null   -- set by the Function when it just createUser'd the student
 ) returns table (
-  parent_user_id  uuid,
-  student_id      uuid,
-  parent_created  boolean,
-  student_created boolean,
-  status          text
+  parent_user_id          uuid,
+  student_id              uuid,
+  parent_created          boolean,
+  student_created         boolean,
+  student_account_created boolean,
+  status                  text
 )
 language plpgsql security definer set search_path = public as $$
 declare
-  v_role        user_role;
-  v_student     uuid;
-  v_match_count int;
-  v_status      text := null;
-  v_parent_new  boolean := false;
-  v_has_link    boolean;
+  v_role         user_role;
+  v_student      uuid;
+  v_match_count  int;
+  v_status       text := null;
+  v_parent_new   boolean := false;
+  v_student_new  boolean := false;
+  -- student self-login
+  v_stu_email        text := nullif(lower(btrim(coalesce(p_student_email, ''))), '');
+  v_stu_auth         uuid;
+  v_stu_role         user_role;
+  v_stu_pname        text;
+  v_stu_linked_id    uuid;
+  v_stu_linked_name  text;
+  v_link_stu_auth    uuid;
+  v_make_stu_profile boolean := false;
+  v_stu_created      boolean := false;
 begin
   -- Callerless channel: only the service role may enrol (ADR-043).
   if auth.role() <> 'service_role' then
@@ -158,48 +185,79 @@ begin
     values (p_parent_id, lower(p_parent_email), btrim(p_parent_name), 'parent', p_locale::locale);
     v_parent_new := true;
   elsif v_role = 'parent' then
-    -- refresh name/locale from the latest submission
     update public.users
       set full_name = btrim(p_parent_name), locale = p_locale::locale
       where id = p_parent_id;
   elsif v_role = 'student' then
-    -- a student-role account being used as another child's guardian is
-    -- odd but not forbidden — link it, flag the row for an admin.
+    -- a student-role account used as another child's guardian is odd but
+    -- not forbidden — link it, flag the row for an admin.
     v_status := 'needs_attention';
   end if;
   -- v_role in ('tutor','admin'): reuse as guardian, profile untouched (ADR-024).
 
-  -- ── Step 1: exact student-e-mail match → link this guardian ──
-  if p_student_email is not null and btrim(p_student_email) <> '' then
-    select s.id into v_student
-    from public.students s
-    join public.users u on u.id = s.user_id
-    where lower(u.email) = lower(btrim(p_student_email))
-    order by s.created_at, s.id
-    limit 1;
+  -- ── student self-login resolution (may return early) ─────────
+  if v_stu_email is not null and v_stu_email <> lower(p_parent_email) then
+    select id into v_stu_auth from auth.users where lower(email) = v_stu_email limit 1;
+    if v_stu_auth is null then
+      v_stu_auth := p_student_auth_id;
+    end if;
 
-    if v_student is not null then
-      select exists (
-        select 1 from public.student_guardians g
-        where g.student_id = v_student and g.user_id = p_parent_id
-          and g.unlinked_at is null
-      ) into v_has_link;
-      if v_has_link then
-        update public.student_guardians g set relation = p_relation
-          where g.student_id = v_student and g.user_id = p_parent_id
-            and g.unlinked_at is null and g.relation is distinct from p_relation;
-      else
-        insert into public.student_guardians (student_id, user_id, relation)
-        values (v_student, p_parent_id, p_relation);
-      end if;
-      update public.students set full_name = btrim(p_student_name) where id = v_student;
-      return query select p_parent_id, v_student, v_parent_new, false, coalesce(v_status, 'updated');
+    if v_stu_auth is not null then
+      select role, full_name into v_stu_role, v_stu_pname
+        from public.users where id = v_stu_auth;
+      select s.id, s.full_name into v_stu_linked_id, v_stu_linked_name
+        from public.students s where s.user_id = v_stu_auth;
+    end if;
+
+    if v_stu_auth is null then
+      return query select p_parent_id, null::uuid, v_parent_new, false, false, 'needs_attention'::text;
       return;
+
+    elsif v_stu_role is not null and v_stu_role <> 'student' then
+      -- a parent/tutor/admin address — never repurpose it.
+      return query select p_parent_id, null::uuid, v_parent_new, false, false, 'needs_attention'::text;
+      return;
+
+    elsif v_stu_role = 'student' and v_stu_linked_id is not null then
+      if lower(btrim(v_stu_linked_name)) = lower(btrim(p_student_name)) then
+        if not exists (
+          select 1 from public.student_guardians g
+          where g.student_id = v_stu_linked_id and g.user_id = p_parent_id
+            and g.unlinked_at is null
+        ) then
+          insert into public.student_guardians (student_id, user_id, relation)
+          values (v_stu_linked_id, p_parent_id, p_relation);
+        else
+          update public.student_guardians g set relation = p_relation
+            where g.student_id = v_stu_linked_id and g.user_id = p_parent_id
+              and g.unlinked_at is null and g.relation is distinct from p_relation;
+        end if;
+        return query select p_parent_id, v_stu_linked_id, v_parent_new, false, false,
+                            coalesce(v_status, 'updated');
+        return;
+      else
+        return query select p_parent_id, null::uuid, v_parent_new, false, false, 'needs_attention'::text;
+        return;
+      end if;
+
+    elsif v_stu_role = 'student' and v_stu_linked_id is null then
+      -- a registered self-login not yet attached to a record (ADR-032 window)
+      if lower(btrim(v_stu_pname)) = lower(btrim(p_student_name)) then
+        v_link_stu_auth := v_stu_auth;
+      else
+        return query select p_parent_id, null::uuid, v_parent_new, false, false, 'needs_attention'::text;
+        return;
+      end if;
+
+    else
+      -- v_stu_role is null: an unregistered auth row, or one the Function
+      -- just created — provision the profile below and send the invite.
+      v_link_stu_auth := v_stu_auth;
+      v_make_stu_profile := true;
     end if;
   end if;
 
-  -- ── Step 2: this parent already guards a student with this name+DOB ──
-  -- The earliest match is the one updated; more than one is flagged.
+  -- ── match the student record (A / B / C) ────────────────────
   with matches as (
     select s.id, s.created_at
     from public.students s
@@ -221,54 +279,75 @@ begin
   end if;
 
   if v_student is not null then
+    -- A: update in place.
     update public.students set full_name = btrim(p_student_name) where id = v_student;
-    -- table aliased: `student_id` also names an OUT column of this function.
-    update public.student_guardians g
-      set relation = p_relation
+    update public.student_guardians g set relation = p_relation
       where g.student_id = v_student and g.user_id = p_parent_id
-        and g.unlinked_at is null
-        and g.relation is distinct from p_relation;
-    return query select p_parent_id, v_student, v_parent_new, false, coalesce(v_status, 'updated');
-    return;
-  end if;
+        and g.unlinked_at is null and g.relation is distinct from p_relation;
 
-  -- ── Step 3: a name+DOB match exists but this parent does not guard
-  --    them and no e-mail matched — needs a human. Create nothing.
-  if exists (
+  elsif exists (
     select 1 from public.students s
     where lower(btrim(s.full_name)) = lower(btrim(p_student_name))
       and s.date_of_birth = p_dob
   ) then
-    return query select p_parent_id, null::uuid, v_parent_new, false, 'needs_attention'::text;
+    -- B: name+DOB exists, this parent does not guard them — needs a human.
+    -- Any student auth row the Function pre-created is left unregistered
+    -- for an admin to finish (the invite-user partial-failure shape).
+    return query select p_parent_id, null::uuid, v_parent_new, false, false, 'needs_attention'::text;
     return;
+
+  else
+    -- C: genuinely new. class_id null (admin assigns — R2); enrollment_date
+    -- defaults to today. Guardian inserted straight after, same txn.
+    insert into public.students (full_name, date_of_birth)
+    values (btrim(p_student_name), p_dob)
+    returning id into v_student;
+    insert into public.student_guardians (student_id, user_id, relation)
+    values (v_student, p_parent_id, p_relation);
+    v_student_new := true;
+    v_status := coalesce(v_status, 'enrolled');
   end if;
 
-  -- ── Step 4: genuinely new — create the student + guardian link ──
-  -- class_id left null (admin assigns — R2); enrollment_date defaults to
-  -- today; user_id null (the optional student e-mail is a match key, not
-  -- a self-login link — R9). Guardian inserted straight after, same txn.
-  insert into public.students (full_name, date_of_birth)
-  values (btrim(p_student_name), p_dob)
-  returning id into v_student;
+  -- ── attach the student self-login to the record ─────────────
+  if v_link_stu_auth is not null then
+    if exists (
+      select 1 from public.students
+      where id = v_student and user_id is not null and user_id <> v_link_stu_auth
+    ) then
+      -- the record already has a different self-login — an admin decides.
+      return query select p_parent_id, v_student, v_parent_new, v_student_new, false,
+                          'needs_attention'::text;
+      return;
+    end if;
+    -- profile first: students.user_id FKs public.users (id).
+    if v_make_stu_profile then
+      insert into public.users (id, email, full_name, role, locale)
+      values (v_link_stu_auth, v_stu_email, btrim(p_student_name), 'student', p_locale::locale)
+      on conflict (id) do nothing;
+      v_stu_created := true;
+    end if;
+    update public.students set user_id = v_link_stu_auth
+      where id = v_student and user_id is distinct from v_link_stu_auth;
+  end if;
 
-  insert into public.student_guardians (student_id, user_id, relation)
-  values (v_student, p_parent_id, p_relation);
-
-  return query select p_parent_id, v_student, v_parent_new, true, coalesce(v_status, 'enrolled');
+  return query select p_parent_id, v_student, v_parent_new, v_student_new, v_stu_created,
+                      coalesce(v_status, 'updated');
 end $$;
 
 revoke all on function
-  public.fn_enrol_from_form(uuid, text, text, text, text, date, text, text)
+  public.fn_enrol_from_form(uuid, text, text, text, text, date, text, text, uuid)
   from public, anon, authenticated;
 grant execute on function
-  public.fn_enrol_from_form(uuid, text, text, text, text, date, text, text)
+  public.fn_enrol_from_form(uuid, text, text, text, text, date, text, text, uuid)
   to service_role;
 
-comment on function public.fn_enrol_from_form(uuid, text, text, text, text, date, text, text) is
+comment on function public.fn_enrol_from_form(uuid, text, text, text, text, date, text, text, uuid) is
   'Upserts a parent profile + a student + its guardian link in one '
   'transaction for the enrol-from-form Function (ADR-043, FR-010). '
-  'service_role only (auth.role() guard). Matches a submission to a '
-  'student by (1) the optional student e-mail against students.user_id, '
-  '(2) this parent + lower(trim(name)) + DOB, then (3) name + DOB alone '
-  '-> needs_attention for an admin, else (4) creates it. A tutor/admin '
-  'parent is reused as guardian with their profile untouched (ADR-024).';
+  'service_role only (auth.role() guard). Matches the student record by '
+  '(A) this parent + lower(trim(name)) + DOB, then (B) name + DOB alone '
+  '-> needs_attention, else (C) creates it. When p_student_email is given '
+  'it also links or provisions the student self-login (PRD #10); '
+  'student_account_created signals the Function to e-mail the student. A '
+  'tutor/admin parent is reused as guardian with their profile untouched '
+  '(ADR-024).';

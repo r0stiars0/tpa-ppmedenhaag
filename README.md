@@ -507,12 +507,18 @@ name as a parameter) — but a **separate** secret, so the form channel and
 the database-webhook channel can be rotated independently. With it unset
 the Function rejects every request.
 
-A submission is matched to a student by (1) the optional student e-mail
-against an existing student's login, (2) this guardian already having a
-student at that name + DOB, then (3) name + DOB alone → `needs_attention`
-for an admin (a second guardian, or a corrected name), else (4) a new
-student is created. `class_id` is left null for an admin to assign; the
-payment answer is stored on the log row only.
+The student **record** is matched by (A) this guardian already having a
+student at that name + DOB → update, (B) name + DOB alone →
+`needs_attention` for an admin (a second guardian, or a corrected name),
+else (C) a new student. When **"Email siswa"** is given, the form also
+links or provisions the student's own `role=student` **self-login**
+(PRD #10): a linked account whose name matches → add this guardian; a
+non-student address or a name mismatch → `needs_attention`; an
+unlinked/unregistered address → create the account, set
+`students.user_id`, and e-mail the student. No age gate (ADR-021); the
+form's required consent tick is the guardian's basis. `class_id` is left
+null for an admin to assign. The form's payment question is **not
+forwarded or stored** — payment is out of Phase 1 scope (PRD).
 
 The Apps Script itself is version-controlled at
 `apps-script/enrol-from-form.gs` and installed by hand on the response

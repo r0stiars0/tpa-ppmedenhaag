@@ -18,19 +18,28 @@ type EnrolSubmissionInsert = Database['public']['Tables']['enrolment_submissions
  *
  * Two halves, because GoTrue has no SQL API:
  *
- *   1. resolve or create the parent's `auth.users` row — by e-mail
+ *   1. resolve or create the **parent's** `auth.users` row — by e-mail
  *      lookup on `public.users` first (the re-submission path, no GoTrue
- *      call), else `auth.admin.createUser` exactly as `invite-user` does;
- *   2. `fn_enrol_from_form` (migration 024) writes the profile, the
+ *      call), else `auth.admin.createUser` exactly as `invite-user` does.
+ *      When "Email siswa" is given, the same two-step is done for the
+ *      **student** (PRD #10 self-login): look it up, else createUser; a
+ *      brand-new id is passed to the RPC as `p_student_auth_id`.
+ *   2. `fn_enrol_from_form` (migration 024) writes the profile(s), the
  *      student and the guardian link in one transaction — one call,
  *      because migration 021's `DEFERRABLE` guardian invariant needs the
- *      student and its first guardian in the same transaction.
+ *      student and its first guardian in the same transaction. It also
+ *      decides what the student e-mail resolves to and returns
+ *      `student_account_created` so this half knows whether to send the
+ *      student their invitation.
  *
  * Every submission is logged to `enrolment_submissions` — success,
  * `needs_attention`, or a validation/processing failure (requirements
  * FE-5). The branded invitation e-mail (ADR-018) goes out only when a
  * brand-new account was created (FE-4); a mail failure never fails the
  * enrolment, the `sendEmail` contract.
+ *
+ * The form's payment question is deliberately neither sent nor stored —
+ * payment/fee management is out of scope (PRD Scope Boundaries).
  */
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -42,8 +51,10 @@ export interface EnrolResponseData {
   status: EnrolStatus
   parent_user_id: string | null
   student_id: string | null
-  /** `EmailResult['status']`, or null when no invitation was due. */
+  /** parent `EmailResult['status']`, or null when no invitation was due. */
   invitation_email: string | null
+  /** student `EmailResult['status']`, or null when no self-login was provisioned. */
+  student_invitation_email: string | null
 }
 
 export type EnrolResult =
@@ -60,7 +71,6 @@ interface RawPayload {
   locale?: unknown
   relation?: unknown
   student_email?: unknown
-  payment_answer?: unknown
   consent?: unknown
 }
 
@@ -73,7 +83,6 @@ interface Parsed {
   locale: 'id' | 'nl'
   relation: string | null
   student_email: string | null
-  payment_answer: string | null
   consent: boolean
 }
 
@@ -142,7 +151,6 @@ export function parseEnrolPayload(body: unknown): ParseOutcome {
   const relationRaw = str(raw.relation).trim()
   const relation = relationRaw && relationRaw.length <= 40 ? relationRaw : null
   const student_email = str(raw.student_email).trim().toLowerCase() || null
-  const payment_answer = str(raw.payment_answer).trim() || null
   const consent = truthyConsent(raw.consent)
 
   const partial: Partial<Parsed> = {
@@ -154,7 +162,6 @@ export function parseEnrolPayload(body: unknown): ParseOutcome {
     locale,
     relation,
     student_email,
-    payment_answer,
     consent,
   }
 
@@ -185,7 +192,6 @@ export function parseEnrolPayload(body: unknown): ParseOutcome {
       locale,
       relation,
       student_email,
-      payment_answer,
       consent,
     },
   }
@@ -209,7 +215,6 @@ type LogFields = Pick<
   | 'locale'
   | 'relation'
   | 'student_email'
-  | 'payment_answer'
   | 'consent'
 >
 
@@ -223,7 +228,6 @@ function logFieldsFrom(p: Partial<Parsed>): LogFields {
     locale: p.locale ?? null,
     relation: p.relation ?? null,
     student_email: p.student_email ?? null,
-    payment_answer: p.payment_answer ?? null,
     consent: p.consent ?? null,
   }
 }
@@ -233,6 +237,7 @@ interface EnrolRpcRow {
   student_id: string
   parent_created: boolean
   student_created: boolean
+  student_account_created: boolean
   status: EnrolStatus | null
 }
 
@@ -288,7 +293,13 @@ export async function enrolFromForm(client: ServiceClient, body: unknown): Promi
         return {
           ok: true,
           status: 200,
-          data: { status: 'needs_attention', parent_user_id: null, student_id: null, invitation_email: null },
+          data: {
+            status: 'needs_attention',
+            parent_user_id: null,
+            student_id: null,
+            invitation_email: null,
+            student_invitation_email: null,
+          },
         }
       }
       const message = createError?.message ?? 'Could not create the parent account'
@@ -297,6 +308,39 @@ export async function enrolFromForm(client: ServiceClient, body: unknown): Promi
     }
     parentId = created.user.id
     parentAuthCreated = true
+  }
+
+  // ── 2b. resolve the student auth.users id, if an e-mail was given ──
+  // Only when it differs from the parent's own address. A miss on
+  // `public.users` → createUser (the `invite-user` shape); an
+  // `email_exists` there means an auth row exists with no profile, which
+  // the RPC resolves itself via `auth.users`. PRD #10: the guardian's
+  // form consent is the basis; there is no age gate (ADR-021).
+  let studentAuthId: string | undefined
+  if (p.student_email && p.student_email !== p.verified_email) {
+    const { data: stuProfile, error: stuLookupError } = await client
+      .from('users')
+      .select('id')
+      .eq('email', p.student_email)
+      .maybeSingle()
+    if (stuLookupError) {
+      await writeLog(client, { ...logBase, parent_user_id: parentId, student_id: null, status: 'error', error: stuLookupError.message })
+      return { ok: false, status: 500, error: stuLookupError.message }
+    }
+    if (!stuProfile) {
+      const { data: stuCreated, error: stuCreateError } = await client.auth.admin.createUser({
+        email: p.student_email,
+        email_confirm: true,
+      })
+      if (stuCreateError && stuCreateError.code !== 'email_exists') {
+        const message = stuCreateError.message ?? 'Could not create the student account'
+        await writeLog(client, { ...logBase, parent_user_id: parentId, student_id: null, status: 'error', error: message })
+        return { ok: false, status: 502, error: message }
+      }
+      if (stuCreated?.user) studentAuthId = stuCreated.user.id
+      // email_exists → leave undefined; the RPC looks it up in auth.users.
+    }
+    // an existing public.users row → leave undefined; the RPC reads its role/link.
   }
 
   // ── 3. the one-transaction upsert ─────────────────────────────
@@ -309,6 +353,7 @@ export async function enrolFromForm(client: ServiceClient, body: unknown): Promi
     p_dob: p.date_of_birth,
     p_relation: p.relation ?? undefined,
     p_student_email: p.student_email ?? undefined,
+    p_student_auth_id: studentAuthId,
   })
   if (rpcError) {
     await writeLog(client, { ...logBase, parent_user_id: parentId, student_id: null, status: 'error', error: rpcError.message })
@@ -339,7 +384,29 @@ export async function enrolFromForm(client: ServiceClient, body: unknown): Promi
     })
     invitationEmailStatus = emailResult.status
     if (emailResult.status !== 'sent') {
-      console.warn(`enrol-from-form: invitation e-mail not sent (${emailResult.status})`)
+      console.warn(`enrol-from-form: parent invitation e-mail not sent (${emailResult.status})`)
+    }
+  }
+
+  // ── 4b. the student's own invitation — only when the RPC just wrote
+  //        a new role=student profile (PRD #10 self-login). ────────────
+  let studentInvitationEmailStatus: string | null = null
+  if (row.student_account_created && p.student_email) {
+    const invitation = invitationEmail({
+      role: 'student',
+      locale: p.locale,
+      fullName: p.student_name,
+      email: p.student_email,
+    })
+    const emailResult = await sendEmail({
+      to: p.student_email,
+      subject: invitation.subject,
+      html: invitation.html,
+      text: invitation.text,
+    })
+    studentInvitationEmailStatus = emailResult.status
+    if (emailResult.status !== 'sent') {
+      console.warn(`enrol-from-form: student invitation e-mail not sent (${emailResult.status})`)
     }
   }
 
@@ -360,6 +427,7 @@ export async function enrolFromForm(client: ServiceClient, body: unknown): Promi
       parent_user_id: row.parent_user_id,
       student_id: row.student_id,
       invitation_email: invitationEmailStatus,
+      student_invitation_email: studentInvitationEmailStatus,
     },
   }
 }

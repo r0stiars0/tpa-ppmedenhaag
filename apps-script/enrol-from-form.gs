@@ -30,8 +30,9 @@ var Q = {
   PARENT_NAME: 'Nama Orang Tua',
   LOCALE: 'Bahasa / Taal',
   RELATION: 'Hubungan dengan siswa',
-  PAYMENT: 'Sudah melakukan pembayaran?',
   CONSENT: 'Saya telah membaca kebijakan privasi',
+  // The form's payment question is deliberately NOT forwarded — payment/fee
+  // management is out of scope (PRD Scope Boundaries). ING handles the money.
 }
 
 var STATUS_HEADER = 'Enrolment status'
@@ -106,7 +107,6 @@ function buildPayload(named) {
     locale: first_(named[Q.LOCALE]).trim(),
     relation: first_(named[Q.RELATION]).trim(),
     student_email: first_(named[Q.STUDENT_EMAIL]).trim(),
-    payment_answer: first_(named[Q.PAYMENT]).trim(),
     consent: first_(named[Q.CONSENT]).trim(),
   }
 }

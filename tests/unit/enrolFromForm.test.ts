@@ -4,10 +4,10 @@ import { enrolFromForm, parseEnrolPayload } from '../../netlify/functions/lib/en
 
 /**
  * Form-driven enrolment (TAD ADR-043, PRD FR-010). The handler is a thin
- * shell; the parsing, the parent-resolution branch (e-mail lookup first,
- * GoTrue only on a miss), the one invitation-e-mail-only-on-first-create
- * rule, and the "every submission is logged" guarantee are all asserted
- * here.
+ * shell; the parsing, the parent- and student-resolution branches
+ * (e-mail lookup first, GoTrue only on a miss), the invitation-only-on-
+ * first-create rule, and the "every submission is logged" guarantee are
+ * all asserted here.
  */
 
 const { sendEmailMock, invitationEmailMock } = vi.hoisted(() => ({
@@ -17,28 +17,47 @@ const { sendEmailMock, invitationEmailMock } = vi.hoisted(() => ({
 vi.mock('../../netlify/functions/lib/email', () => ({ sendEmail: sendEmailMock }))
 vi.mock('../../netlify/functions/lib/emailTemplates', () => ({ invitationEmail: invitationEmailMock }))
 
+const PARENT_ID = 'p0000000-0000-0000-0000-000000000001'
+const STUDENT_ID = 's0000000-0000-0000-0000-000000000001'
+const STU_AUTH_ID = 'a0000000-0000-0000-0000-0000000000c1'
+
 const RPC_ROW = {
-  parent_user_id: 'p0000000-0000-0000-0000-000000000001',
-  student_id: 's0000000-0000-0000-0000-000000000001',
+  parent_user_id: PARENT_ID,
+  student_id: STUDENT_ID,
   parent_created: true,
   student_created: true,
+  student_account_created: false,
   status: 'enrolled' as const,
 }
 
 interface FakeOpts {
-  /** row returned by `from('users').select().eq('email').maybeSingle()` */
+  /** default row for `from('users').eq('email', …).maybeSingle()` */
   existingUser?: { id: string; role: string } | null
+  /** per-e-mail override of the above (parent + student lookups share the path) */
+  usersByEmail?: Record<string, { id: string; role?: string } | null>
   userLookupError?: { message: string } | null
+  /** default createUser result */
   createUser?: { data: { user: { id: string } | null }; error: { code?: string; message: string } | null }
+  /** per-e-mail createUser override */
+  createUserByEmail?: Record<
+    string,
+    { data: { user: { id: string } | null }; error: { code?: string; message: string } | null }
+  >
   rpc?: { data: unknown; error: { message: string } | null }
   insertError?: { message: string } | null
 }
 
 function fakeClient(opts: FakeOpts = {}) {
   const inserted: Array<Record<string, unknown>> = []
-  const createUser = vi.fn(
-    async () => opts.createUser ?? { data: { user: { id: RPC_ROW.parent_user_id } }, error: null },
-  )
+  const createUserEmails: string[] = []
+
+  const createUser = vi.fn(async ({ email }: { email: string }) => {
+    createUserEmails.push(email)
+    return (
+      opts.createUserByEmail?.[email] ??
+      opts.createUser ?? { data: { user: { id: PARENT_ID } }, error: null }
+    )
+  })
   const rpc = vi.fn(async () => opts.rpc ?? { data: [RPC_ROW], error: null })
 
   const client = {
@@ -46,9 +65,12 @@ function fakeClient(opts: FakeOpts = {}) {
       if (table === 'users') {
         return {
           select: () => ({
-            eq: () => ({
+            eq: (_col: string, value: string) => ({
               maybeSingle: async () => ({
-                data: opts.existingUser ?? null,
+                data:
+                  opts.usersByEmail && value in opts.usersByEmail
+                    ? opts.usersByEmail[value]
+                    : (opts.existingUser ?? null),
                 error: opts.userLookupError ?? null,
               }),
             }),
@@ -67,7 +89,7 @@ function fakeClient(opts: FakeOpts = {}) {
     rpc,
   } as unknown as ServiceClient
 
-  return { client, inserted, createUser, rpc }
+  return { client, inserted, createUser, createUserEmails, rpc }
 }
 
 const GOOD = {
@@ -79,7 +101,6 @@ const GOOD = {
   locale: 'Nederlands',
   relation: 'ayah',
   student_email: '',
-  payment_answer: 'Ya',
   consent: 'Saya telah membaca kebijakan privasi',
 }
 
@@ -132,6 +153,20 @@ describe('parseEnrolPayload', () => {
     expect(r.value.student_email).toBeNull()
   })
 
+  it('lower-cases the student e-mail', () => {
+    const r = parseEnrolPayload({ ...GOOD, student_email: '  Kid16@Example.com ' })
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    expect(r.value.student_email).toBe('kid16@example.com')
+  })
+
+  it('ignores a payment answer entirely (out of scope)', () => {
+    const r = parseEnrolPayload({ ...GOOD, payment_answer: 'Tidak' })
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    expect(r.value).not.toHaveProperty('payment_answer')
+  })
+
   it('flattens a one-element array value (Apps Script namedValues shape)', () => {
     const r = parseEnrolPayload({ ...GOOD, parent_name: ['Budi Santoso'], consent: ['Ya, setuju'] })
     expect(r.ok).toBe(true)
@@ -161,13 +196,19 @@ describe('enrolFromForm', () => {
     expect(res).toMatchObject({
       ok: true,
       status: 201,
-      data: { status: 'enrolled', parent_user_id: RPC_ROW.parent_user_id, student_id: RPC_ROW.student_id, invitation_email: 'sent' },
+      data: {
+        status: 'enrolled',
+        parent_user_id: PARENT_ID,
+        student_id: STUDENT_ID,
+        invitation_email: 'sent',
+        student_invitation_email: null,
+      },
     })
     expect(createUser).toHaveBeenCalledWith({ email: 'wali@example.com', email_confirm: true })
     expect(rpc).toHaveBeenCalledWith(
       'fn_enrol_from_form',
       expect.objectContaining({
-        p_parent_id: RPC_ROW.parent_user_id,
+        p_parent_id: PARENT_ID,
         p_parent_email: 'wali@example.com',
         p_parent_name: 'Budi Santoso',
         p_locale: 'nl',
@@ -175,6 +216,7 @@ describe('enrolFromForm', () => {
         p_dob: '2016-03-04',
         p_relation: 'ayah',
         p_student_email: undefined,
+        p_student_auth_id: undefined,
       }),
     )
     expect(invitationEmailMock).toHaveBeenCalledWith(
@@ -185,7 +227,7 @@ describe('enrolFromForm', () => {
 
   it('an existing public.users row by e-mail: no GoTrue call, no invite e-mail', async () => {
     const { client, createUser, rpc } = fakeClient({
-      existingUser: { id: RPC_ROW.parent_user_id, role: 'parent' },
+      existingUser: { id: PARENT_ID, role: 'parent' },
       rpc: { data: [{ ...RPC_ROW, parent_created: false, student_created: false, status: 'updated' }], error: null },
     })
     const res = await enrolFromForm(client, GOOD)
@@ -229,10 +271,8 @@ describe('enrolFromForm', () => {
   })
 
   it('does not send an invite when the RPC created the student but reused an existing account', async () => {
-    // parent_created false → the account already existed even though this
-    // is the child's first enrolment. No welcome e-mail (FE-4).
     const { client } = fakeClient({
-      existingUser: { id: RPC_ROW.parent_user_id, role: 'tutor' },
+      existingUser: { id: PARENT_ID, role: 'tutor' },
       rpc: { data: [{ ...RPC_ROW, parent_created: false, student_created: true, status: 'enrolled' }], error: null },
     })
     const res = await enrolFromForm(client, GOOD)
@@ -240,20 +280,20 @@ describe('enrolFromForm', () => {
     expect(sendEmailMock).not.toHaveBeenCalled()
   })
 
-  it('passes a filled student e-mail to the RPC as p_student_email', async () => {
-    const { client, rpc } = fakeClient()
-    await enrolFromForm(client, { ...GOOD, student_email: '  Kid16@Example.com ' })
-    expect(rpc).toHaveBeenCalledWith(
-      'fn_enrol_from_form',
-      expect.objectContaining({ p_student_email: 'kid16@example.com' }),
-    )
-  })
-
   it('propagates a needs_attention from the RPC (name+DOB match, not a guardian)', async () => {
     const { client, inserted } = fakeClient({
-      existingUser: { id: RPC_ROW.parent_user_id, role: 'parent' },
+      existingUser: { id: PARENT_ID, role: 'parent' },
       rpc: {
-        data: [{ parent_user_id: RPC_ROW.parent_user_id, student_id: null, parent_created: false, student_created: false, status: 'needs_attention' }],
+        data: [
+          {
+            parent_user_id: PARENT_ID,
+            student_id: null,
+            parent_created: false,
+            student_created: false,
+            student_account_created: false,
+            status: 'needs_attention',
+          },
+        ],
         error: null,
       },
     })
@@ -261,5 +301,106 @@ describe('enrolFromForm', () => {
     expect(res).toMatchObject({ ok: true, status: 201, data: { status: 'needs_attention', student_id: null } })
     expect(sendEmailMock).not.toHaveBeenCalled()
     expect(inserted.at(-1)).toMatchObject({ status: 'needs_attention', error: null })
+  })
+
+  // ── student self-login (PRD #10) ─────────────────────────────────────
+
+  const WITH_STUDENT_EMAIL = { ...GOOD, student_email: 'ali16@example.com' }
+
+  it('a fresh student e-mail: createUser for the student, id passed as p_student_auth_id', async () => {
+    const { client, createUserEmails, rpc } = fakeClient({
+      existingUser: { id: PARENT_ID, role: 'parent' }, // parent already exists → only the student is createUser'd
+      createUserByEmail: { 'ali16@example.com': { data: { user: { id: STU_AUTH_ID } }, error: null } },
+      usersByEmail: { 'ali16@example.com': null },
+    })
+    await enrolFromForm(client, WITH_STUDENT_EMAIL)
+    expect(createUserEmails).toEqual(['ali16@example.com'])
+    expect(rpc).toHaveBeenCalledWith(
+      'fn_enrol_from_form',
+      expect.objectContaining({ p_student_email: 'ali16@example.com', p_student_auth_id: STU_AUTH_ID }),
+    )
+  })
+
+  it('an existing student profile by e-mail: no student createUser, RPC still gets the e-mail', async () => {
+    const { client, createUserEmails, rpc } = fakeClient({
+      usersByEmail: {
+        'wali@example.com': null, // parent still created
+        'ali16@example.com': { id: STU_AUTH_ID, role: 'student' },
+      },
+    })
+    await enrolFromForm(client, WITH_STUDENT_EMAIL)
+    expect(createUserEmails).toEqual(['wali@example.com']) // parent only
+    expect(rpc).toHaveBeenCalledWith(
+      'fn_enrol_from_form',
+      expect.objectContaining({ p_student_email: 'ali16@example.com', p_student_auth_id: undefined }),
+    )
+  })
+
+  it('student e-mail == verified e-mail: no student lookup or createUser for it', async () => {
+    const { client, createUserEmails } = fakeClient({
+      existingUser: { id: PARENT_ID, role: 'parent' },
+    })
+    await enrolFromForm(client, { ...GOOD, student_email: GOOD.verified_email })
+    expect(createUserEmails).toEqual([]) // parent exists, student e-mail is the parent's own
+  })
+
+  it('student createUser email_exists: leaves p_student_auth_id undefined for the RPC to resolve', async () => {
+    const { client, rpc } = fakeClient({
+      existingUser: { id: PARENT_ID, role: 'parent' },
+      createUserByEmail: {
+        'ali16@example.com': { data: { user: null }, error: { code: 'email_exists', message: 'exists' } },
+      },
+      usersByEmail: { 'ali16@example.com': null },
+    })
+    const res = await enrolFromForm(client, WITH_STUDENT_EMAIL)
+    expect(res.ok).toBe(true)
+    expect(rpc).toHaveBeenCalledWith(
+      'fn_enrol_from_form',
+      expect.objectContaining({ p_student_email: 'ali16@example.com', p_student_auth_id: undefined }),
+    )
+  })
+
+  it('student createUser hard failure → 502 error row', async () => {
+    const { client, inserted } = fakeClient({
+      existingUser: { id: PARENT_ID, role: 'parent' },
+      createUserByEmail: {
+        'ali16@example.com': { data: { user: null }, error: { message: 'GoTrue exploded' } },
+      },
+      usersByEmail: { 'ali16@example.com': null },
+    })
+    const res = await enrolFromForm(client, WITH_STUDENT_EMAIL)
+    expect(res).toMatchObject({ ok: false, status: 502 })
+    expect(inserted.at(-1)).toMatchObject({ status: 'error', error: 'GoTrue exploded' })
+  })
+
+  it('student_account_created from the RPC → the student gets their own invitation', async () => {
+    const { client } = fakeClient({
+      existingUser: { id: PARENT_ID, role: 'parent' },
+      createUserByEmail: { 'ali16@example.com': { data: { user: { id: STU_AUTH_ID } }, error: null } },
+      usersByEmail: { 'ali16@example.com': null },
+      rpc: {
+        data: [{ ...RPC_ROW, parent_created: false, student_account_created: true, status: 'enrolled' }],
+        error: null,
+      },
+    })
+    const res = await enrolFromForm(client, WITH_STUDENT_EMAIL)
+    expect(res).toMatchObject({ ok: true, data: { student_invitation_email: 'sent' } })
+    expect(invitationEmailMock).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 'student', email: 'ali16@example.com', fullName: 'Ali Santoso' }),
+    )
+  })
+
+  it('no student invitation when the RPC did not create a student profile', async () => {
+    const { client } = fakeClient({
+      existingUser: { id: PARENT_ID, role: 'parent' },
+      usersByEmail: { 'ali16@example.com': { id: STU_AUTH_ID, role: 'student' } },
+      rpc: {
+        data: [{ ...RPC_ROW, parent_created: false, student_account_created: false, status: 'updated' }],
+        error: null,
+      },
+    })
+    const res = await enrolFromForm(client, WITH_STUDENT_EMAIL)
+    expect(res).toMatchObject({ ok: true, data: { student_invitation_email: null } })
+    expect(invitationEmailMock).not.toHaveBeenCalledWith(expect.objectContaining({ role: 'student' }))
   })
 })

@@ -389,12 +389,15 @@ shared personas, whose role and guardian state earlier blocks mutate.
 - [ ] RLS-96 — **The two hard blocks.** With other admins present, an admin's `fn_admin_user_role_impact(self, 'tutor')` → `would_block = 'self'` and the write → `P0001`. After demoting the suite's spare admins (AP, AT, TAP) to isolate one, `fn_admin_user_role_impact(sole_admin, 'tutor')` → `would_block = 'last_admin'` and the write → `P0001`.
 - [ ] RLS-97 — **Read scope of the log.** Admin SELECT `user_role_changes` → ≥ 4 rows (everything written above); the just-demoted UDT (now a parent) → **0**.
 
-### 3.8 Form-driven enrolment (RLS-98…108, ADR-043)
+### 3.8 Form-driven enrolment (RLS-98…114, ADR-043)
 
 New table `public.enrolment_submissions` and function `fn_enrol_from_form`
 (migration 024). An isolated `ef…` fixture island — EFP (an `auth.users`
-row with no profile, the "new family" parent) and EFT (an existing
-tutor, for the ADR-024 reuse path).
+row with no profile, the "new family" parent), EFT (an existing tutor,
+for the ADR-024 reuse path), and for the student self-login cases three
+more `auth.users` rows: `…003` (fresh, passed as `p_student_auth_id`),
+`…004` (unregistered, resolved by the RPC), and `…005` (a registered but
+unlinked `role = student` account named "Unlinked Santri").
 
 - [ ] RLS-98 — **`fn_enrol_from_form` is service-role-only.** An `authenticated` caller (even the suite admin) → `42501` (the `REVOKE` from `authenticated`, and the in-body `auth.role()` guard behind it).
 - [ ] RLS-99 — **`enrolment_submissions` is admin-read-only.** Seeded row (as owner): admin reads ≥ 1; a tutor, a guardian, a 16+ student and anon each read **0**.
@@ -405,10 +408,16 @@ tutor, for the ADR-024 reuse path).
 - [ ] RLS-104 — **A tutor account reused as parent (ADR-024).** `fn_enrol_from_form(EFT, …, 'WRONG NAME', …)` → the child is enrolled; EFT's `users` row keeps `tutor` / `id` / its original name; the guardian link to the new student is made.
 - [ ] RLS-105 — **The guardian invariant holds.** No form-created student (`Enrol Child`, `Enrol Child Two`, `Tutor Kid`) is left without an active guardian (migration 021's `trg_student_has_guardian`).
 - [ ] RLS-106 — **Cross-family isolation for a form-created family.** As EFP: reads their own child (1), and **0** for another family's `students` row and **0** for its `attendance` rows (the ADR-040 negative, re-proven).
-- [ ] RLS-107 — **A submission carrying the child's login e-mail links the guardian.** EFP submits `p_student_email = 's16@test.local'` (the suite's 16+ santri's own login e-mail, `students.user_id → users.email`) → `status = updated`; EFP becomes an active guardian of that existing student; **no** duplicate `students` row.
-- [ ] RLS-108 — **An unrelated submitter matching only name + DOB gets `needs_attention`.** EFT submits for `Enrol Child` (EFP's child from RLS-101) — not a guardian, no e-mail match → `status = needs_attention`; **no** guardian link and **no** second `students` row are created (an admin links it from Beheer).
+- [ ] RLS-107 — **Student e-mail on a linked account, name matches → the guardian is added.** EFP submits `p_student_email = 's16@test.local'` (the suite's 16+ santri's own login) with S16's real name → `status = updated`; EFP becomes an active guardian; **no** duplicate `students` row.
+- [ ] RLS-108 — **An unrelated submitter matching only name + DOB gets `needs_attention`.** EFT submits for `Enrol Child` — not a guardian, no e-mail match → `status = needs_attention`; **no** guardian link and **no** second `students` row (an admin links it from Beheer).
+- [ ] RLS-109 — **Student e-mail on a linked account, name mismatch → `needs_attention`.** EFP submits `s16@test.local` with a different student name.
+- [ ] RLS-110 — **Student e-mail belonging to a non-student account → `needs_attention`.** EFP submits `p1@test.local`; P1's account keeps `role = parent`, untouched.
+- [ ] RLS-111 — **A fresh student e-mail provisions a self-login.** EFP submits `efstu-fresh@test.local` + `p_student_auth_id` → `status = enrolled`, `student_account_created = true`; a `role = student` profile, `students.user_id` set, `class_id` null.
+- [ ] RLS-112 — **An unregistered `auth.users` row is resolved and provisioned.** Same as RLS-111 but no `p_student_auth_id` — the RPC resolves it via `auth.users` (the ADR-032 gap, closed from the form).
+- [ ] RLS-113 — **An unlinked registered self-login (name matches) is linked, no new account.** EFP submits `efstu-unlinked@test.local` (a `role = student` account with no `students.user_id`) whose profile name matches → `status = enrolled`, `student_account_created = false`, `students.user_id` now points at that account.
+- [ ] RLS-114 — **Student e-mail == parent e-mail → no self-login.** EFP submits `EFP@test.local` → `student_account_created = false`; parent-only enrolment.
 
-*Total after these: 399 pgTAP assertions (verified: `supabase test db` reports `1..399` on a clean `supabase db reset`).*
+*Total after these: 408 pgTAP assertions (verified: `supabase test db` reports `1..408` on a clean `supabase db reset`).*
 
 ## 4. Unit tests (Vitest)
 
@@ -641,11 +650,11 @@ orchestration branches. The `service_role` guard, the one-transaction
 upsert and the idempotency are proven in the pgTAP suite (§3.8); this
 layer pins what the Function decides before and after the RPC.
 
-- [x] `parseEnrolPayload`: lower-cases the e-mail; trims and length-caps (120) the names; maps `Nederlands`/`nl` → `nl` and anything else → `id`; accepts `YYYY-MM-DD` and a locale date string; rejects a non-date and a future date; treats a blank / `Tidak` / `Nee` / `false` consent as not given (→ `400`); drops an over-long `relation` and a blank `student_email` to null; flattens a one-element array value (the Apps Script `namedValues` shape)
+- [x] `parseEnrolPayload`: lower-cases the e-mail **and the student e-mail**; trims and length-caps (120) the names; maps `Nederlands`/`nl` → `nl` and anything else → `id`; accepts `YYYY-MM-DD` and a locale date string; rejects a non-date and a future date; treats a blank / `Tidak` / `Nee` / `false` consent as not given (→ `400`); drops an over-long `relation` and a blank `student_email` to null; **ignores a payment answer entirely**; flattens a one-element array value (the Apps Script `namedValues` shape)
 - [x] a new family → `auth.admin.createUser({ email, email_confirm: true })` is called, `rpc('fn_enrol_from_form', …)` gets the mapped args, the invitation e-mail is sent, the `enrolment_submissions` row is `enrolled`
 - [x] an existing `public.users` row by e-mail → `createUser` is **not** called and no invitation e-mail is sent
-- [x] a filled student e-mail is lower-cased and passed to the RPC as `p_student_email`
 - [x] the RPC returns `needs_attention` (name+DOB match, not a guardian) → `{ ok: true, status: 201 }` with `student_id` null, no invitation e-mail, an `error`-free `needs_attention` log row
+- [x] **student self-login:** a fresh student e-mail → a student `createUser`, id passed as `p_student_auth_id`; an existing student profile by e-mail → no student `createUser`, `p_student_auth_id` undefined; student e-mail == verified e-mail → no student lookup or `createUser`; student `createUser` `email_exists` → `p_student_auth_id` undefined (the RPC resolves it); a hard student `createUser` failure → `502` error row; the RPC's `student_account_created` → the student gets a `role: 'student'` invitation, else none
 - [x] `createUser` returns `email_exists` with no profile → `status = 'needs_attention'`, `{ ok: true }`, no throw, the RPC is not called
 - [x] a `createUser` failure other than `email_exists` → `502` and an `error` log row; an RPC error → `500` and an `error` log row
 - [x] a failed invitation e-mail still returns `{ ok: true }` with `invitation_email` reflecting the failure
@@ -741,14 +750,14 @@ Run against Preview deploys with fixture data; auth mocked via Supabase test JWT
 | E2E-20 | Tutor opens Attendance → below the student roster a tutor section ("Kehadiran guru" / "Aanwezigheid docenten") lists the class's tutors → tutor marks a co-tutor absent with a reason and marks themselves present → submits → the confirm dialog names the student count and the tutor count on separate lines → an admin opens the same session and sees those tutor statuses; the affected tutor's own family view (if they are also a parent) shows nothing new, and a parent of a child in the class sees no tutor attendance anywhere (TAD ADR-041) | Tutor → Admin → Parent |
 | E2E-21 | Admin opens Beheer → the "Kehadiran Guru" pill → picks a tutor → sees a present-rate, present/late/absent counts, and a dated list (date · group · status) spanning every group that tutor teaches, with a group filter once more than one group appears; narrowing the date range recomputes the rate; the picker lists only tutors with recorded rows (no student-assistant); a non-admin visiting `/admin/tutor-attendance` directly is redirected home by `RequireAdmin` (TAD ADR-041(g)) | Admin, Tutor |
 | E2E-22 | Admin opens Beheer → the "Pengguna" / "Gebruikers" pill → the directory lists every account; typing in the search box filters by name/email and the role dropdown filters by role → **own row**: the role `<select>` is disabled with the "you cannot change your own role" hint, the name stays editable → renames a parent (role unchanged) → saves with no dialog, the list shows the new name → changes a tutor still assigned to groups to Orang Tua → a confirm dialog names those groups → confirms → the row shows the new role and that tutor is gone from the groups' tutor lists on the Grup screen; a `user_role_changes` row now exists → attempting to demote the last remaining admin is refused with an explanatory message (TAD ADR-042) | Admin |
-| E2E-23 | A parent (signed into Google, so the form records a verified e-mail) submits the Daftar Ulang form for one child → within seconds the response-sheet row shows `Enrolment status = enrolled` and an invitation e-mail arrives → an admin opens Beheer and sees the new parent account and the student (no Grup yet), linked guardian-to-child, and an `enrolment_submissions` row with `status = enrolled` → the parent signs in with that Google account and sees only their own child → the parent submits the form again for the same child with a corrected spelling → the sheet row shows `updated`, no second student or e-mail, the name is fixed in Beheer (TAD ADR-043) | Parent → Admin → Parent |
+| E2E-23 | A guardian (signed into Google, so the form records a verified e-mail) submits the Daftar Ulang form for one child → within seconds the response-sheet row shows `Enrolment status = enrolled` and an invitation e-mail arrives → an admin opens Beheer and sees the new guardian account and the student (no Grup yet), linked guardian-to-child, and an `enrolment_submissions` row with `status = enrolled`, and **no** payment data anywhere → the guardian signs in with that Google account and sees only their own child → the guardian submits again for the same child with a corrected spelling → the sheet row shows `updated`, no second student or e-mail, the name is fixed in Beheer. **Student self-login:** a submission that fills "Email siswa" with a fresh address → the sheet shows `enrolled`, the student receives their own `role = student` invitation, and after they sign in they see only their own record; a submission whose "Email siswa" is a differently-named existing student, or a non-student account's address → the sheet shows `needs_attention` and nothing is created (TAD ADR-043) | Guardian → Admin → Student |
 
 *E2E-15…E2E-23 are specified but not implemented — this project has no
 authenticated Playwright harness yet (`e2e/sign-in.spec.ts` documents
 why the E2E-01…E2E-14 suite is also still unbuilt). The flows are
 covered at the unit layer (§4.5d, §4.5e, §4.5g, §4.5i, §4.5j) and the
 database layer (§3.3 MD-01…MD-08, §3.4 RLS-60…64, §3.6 RLS-78…86, §3.7
-RLS-88…97, §3.8 RLS-98…108).*
+RLS-88…97, §3.8 RLS-98…114).*
 
 ## 6. Notification & PWA test matrix (manual, real devices)
 
