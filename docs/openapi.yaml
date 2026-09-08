@@ -1809,7 +1809,7 @@ paths:
                 date_of_birth: { type: string, format: date, description: A real, non-future date; YYYY-MM-DD or a locale string }
                 locale: { type: string, description: "'Bahasa Indonesia' / 'Nederlands' / 'id' / 'nl'; defaults to id", enum: [id, nl, 'Bahasa Indonesia', 'Nederlands'] }
                 relation: { type: string, maxLength: 40, description: Ayah / Ibu / Wali / Lainnya — stored on the guardian link }
-                student_email: { type: string, description: "Optional. If given: links the student's existing role=student login (adding this guardian) or, for a new/unregistered address, creates the account and invites the student (PRD #10, no age gate). A non-student address or a name mismatch -> needs_attention. Also stored on the log row." }
+                student_email: { type: string, description: "Optional, free text. A non-e-mail-shaped value is treated as absent. If a valid address is given: links the student's existing role=student login (adding this guardian) or, for a new/unregistered address, creates the account and invites the student (PRD #10, no age gate). A non-student address or a name mismatch -> needs_attention. Also stored on the log row." }
                 consent: { description: The consent checkbox — required truthy; accepts the option text or a boolean }
       responses:
         '201':

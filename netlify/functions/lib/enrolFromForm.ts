@@ -150,7 +150,12 @@ export function parseEnrolPayload(body: unknown): ParseOutcome {
   const locale = normaliseLocale(raw.locale)
   const relationRaw = str(raw.relation).trim()
   const relation = relationRaw && relationRaw.length <= 40 ? relationRaw : null
-  const student_email = str(raw.student_email).trim().toLowerCase() || null
+  // "Email siswa" is optional and free text — a guardian may type "-" /
+  // "tidak ada" there. A non-empty value that is not e-mail-shaped is
+  // treated as absent (enrol guardian-only) rather than failing the whole
+  // enrolment when `createUser` later rejects it.
+  const studentEmailRaw = str(raw.student_email).trim().toLowerCase()
+  const student_email = studentEmailRaw && EMAIL_RE.test(studentEmailRaw) ? studentEmailRaw : null
   const consent = truthyConsent(raw.consent)
 
   const partial: Partial<Parsed> = {

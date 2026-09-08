@@ -160,6 +160,15 @@ describe('parseEnrolPayload', () => {
     expect(r.value.student_email).toBe('kid16@example.com')
   })
 
+  it('treats a non-empty but invalid student e-mail as absent (enrol guardian-only)', () => {
+    for (const bad of ['-', 'tidak ada', 'n/a', 'kid16', 'kid16@']) {
+      const r = parseEnrolPayload({ ...GOOD, student_email: bad })
+      expect(r.ok).toBe(true)
+      if (!r.ok) return
+      expect(r.value.student_email).toBeNull()
+    }
+  })
+
   it('ignores a payment answer entirely (out of scope)', () => {
     const r = parseEnrolPayload({ ...GOOD, payment_answer: 'Tidak' })
     expect(r.ok).toBe(true)
