@@ -510,6 +510,7 @@ Formulir Grup (sama untuk buat baru maupun ubah):
 | **+ Santri Baru** | Membuka formulir santri baru. |
 | Kartu tiap santri | Nama, lencana **"Akun sendiri"** (jika santri punya login Google sendiri, misalnya santri 16+), grup, dan nama orang tua/wali yang tertaut. |
 | **Ubah** | Membuka formulir edit. |
+| **Hapus** | Menghapus data santri **secara permanen**, beserta seluruh kehadiran, progres, dan rapornya (muncul pertanyaan konfirmasi lebih dulu). Gunakan hanya untuk membersihkan data ganda — misalnya jika orang tua mengirim ulang formulir pendaftaran dengan ejaan nama yang diperbaiki, sehingga muncul dua data untuk satu anak. |
 
 Formulir Santri:
 

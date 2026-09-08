@@ -4,6 +4,7 @@ import { AdminSectionNav } from '../../components/AdminSectionNav'
 import { getErrorMessage } from '../../lib/errors'
 import { PARENT_LINK_ROLES, selfLoginAccountsToOffer } from '../../lib/enrolmentLinks'
 import {
+  deleteStudent,
   fetchAllClasses,
   fetchAllStudents,
   fetchUnlinkedStudentAccounts,
@@ -26,6 +27,7 @@ export function StudentsPage() {
   const [saving, setSaving] = useState(false)
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   function load() {
     setLoading(true)
@@ -77,6 +79,20 @@ export function StudentsPage() {
       setError(getErrorMessage(err))
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleDelete(student: AdminStudent) {
+    if (!window.confirm(t('admin.confirmDeleteStudent', { name: student.full_name }))) return
+    setDeletingId(student.id)
+    setError(null)
+    try {
+      await deleteStudent(student.id)
+      load()
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -173,16 +189,26 @@ export function StudentsPage() {
                         : '—'}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingId(s.id)
-                      setCreating(false)
-                    }}
-                    className="min-h-11 shrink-0 rounded-md px-3 text-sm font-medium text-ppme-primary hover:bg-ppme-bg-alt"
-                  >
-                    {t('common.edit')}
-                  </button>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingId(s.id)
+                        setCreating(false)
+                      }}
+                      className="min-h-11 rounded-md px-3 text-sm font-medium text-ppme-primary hover:bg-ppme-bg-alt"
+                    >
+                      {t('common.edit')}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={deletingId === s.id}
+                      onClick={() => void handleDelete(s)}
+                      className="min-h-11 rounded-md px-3 text-sm font-medium text-ppme-danger hover:bg-ppme-danger/10 disabled:opacity-50"
+                    >
+                      {deletingId === s.id ? t('common.loading') : t('admin.deleteStudent')}
+                    </button>
+                  </div>
                 </div>
               )}
             </li>

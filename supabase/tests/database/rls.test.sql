@@ -4325,6 +4325,40 @@ insert into _tap_log(line) select is(
 
 reset role;
 
+-- RLS-115: an admin can delete a student record (the `deleteStudent`
+-- action added with ADR-043 for cleaning up a name-typo duplicate); a
+-- tutor cannot, and the delete cascades student_guardians.
+insert into public.students (id, full_name, date_of_birth)
+values ('df000000-0000-0000-0000-0000000d1501', 'Dup Santoso', date '2016-05-05');
+insert into public.student_guardians (student_id, user_id)
+values ('df000000-0000-0000-0000-0000000d1501', 'ef000000-0000-0000-0000-000000000001');
+
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';  -- T1, a tutor
+delete from public.students where id = 'df000000-0000-0000-0000-0000000d1501';
+reset role;   -- check the real state, not T1's RLS-filtered view
+insert into _tap_log(line) select is(
+  (select count(*) from public.students where id = 'df000000-0000-0000-0000-0000000d1501'),
+  1::bigint, 'RLS-115: a tutor''s DELETE on students matches nothing (no delete policy)'
+);
+
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+delete from public.students where id = 'df000000-0000-0000-0000-0000000d1501';
+reset role;
+insert into _tap_log(line) select is(
+  (select count(*) from public.students where id = 'df000000-0000-0000-0000-0000000d1501'),
+  0::bigint, 'RLS-115: an admin deletes the student row'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.student_guardians where student_id = 'df000000-0000-0000-0000-0000000d1501'),
+  0::bigint, 'RLS-115: …and its student_guardians link cascades away'
+);
+
+reset role;
+
 -- ---------- done ----------
 reset role;
 insert into _tap_log(line) select * from finish();

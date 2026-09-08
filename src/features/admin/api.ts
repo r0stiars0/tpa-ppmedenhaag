@@ -332,3 +332,26 @@ export async function saveStudent(input: SaveStudentInput): Promise<string> {
   if (error) throw error
   return data as string
 }
+
+/**
+ * Permanently delete a student record. Admin-only — `students_admin_all`
+ * (migration 003) is `for all`, so it covers DELETE. Every child table
+ * FKs `students` with `on delete cascade` (attendance, the four progress
+ * tables, year-end reports, notifications, `student_guardians`), so the
+ * record and its whole history go together; `enrolment_submissions`
+ * (ADR-043) is `on delete set null`, so that audit row survives with the
+ * id cleared.
+ *
+ * The one place this is needed: cleaning up a **duplicate** created when a
+ * guardian re-submits the enrolment form with a *corrected* student name
+ * that no longer matches the record they already have. `fn_enrol_from_form`
+ * (ADR-043) does not flag that — a guardian may legitimately have
+ * same-day twins with different names, so a "same guardian + same DOB +
+ * different name" rule would block real siblings — so the corrected
+ * re-submission creates a second `students` row, and this is the admin's
+ * path to remove it.
+ */
+export async function deleteStudent(id: string): Promise<void> {
+  const { error } = await supabase.from('students').delete().eq('id', id)
+  if (error) throw error
+}

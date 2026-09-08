@@ -510,6 +510,7 @@ Groepsformulier (hetzelfde voor nieuw aanmaken of bewerken):
 | **+ Nieuwe leerling** | Opent het formulier voor een nieuwe leerling. |
 | Kaart per leerling | Naam, label **"Eigen account"** (als de leerling een eigen Google-login heeft, bijvoorbeeld een leerling van 16+), groep, en de namen van de gekoppelde ouders/verzorgers. |
 | **Bewerken** | Opent het bewerkingsformulier. |
+| **Verwijderen** | Verwijdert de leerlinggegevens **permanent**, inclusief alle aanwezigheid, voortgang en rapporten (met een bevestigingsvraag vooraf). Alleen gebruiken om een dubbele registratie op te ruimen — bijvoorbeeld wanneer een ouder het inschrijfformulier opnieuw instuurt met een gecorrigeerde spelling van de naam, waardoor er twee records voor één kind ontstaan. |
 
 Leerlingformulier:
 

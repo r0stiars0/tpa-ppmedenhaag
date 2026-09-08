@@ -366,6 +366,8 @@
     "noClasses": "Nog geen groepen",
     "studentsTitle": "Leerlingenbeheer",
     "newStudent": "Nieuwe leerling",
+    "deleteStudent": "Verwijderen",
+    "confirmDeleteStudent": "Leerlinggegevens van {{name}} verwijderen? Alle aanwezigheids-, voortgangs- en rapportgegevens worden permanent mee verwijderd. Gebruik dit alleen om een dubbele registratie op te ruimen.",
     "studentClass": "Groep",
     "studentParent": "Ouder",
     "studentGuardians": "Ouders / verzorgers",

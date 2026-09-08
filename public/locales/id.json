@@ -366,6 +366,8 @@
     "noClasses": "Belum ada grup",
     "studentsTitle": "Manajemen Santri",
     "newStudent": "Santri Baru",
+    "deleteStudent": "Hapus",
+    "confirmDeleteStudent": "Hapus data santri {{name}}? Semua data kehadiran, progres, dan rapornya ikut terhapus permanen. Gunakan ini hanya untuk membersihkan data ganda.",
     "studentClass": "Grup",
     "studentParent": "Orang Tua",
     "studentGuardians": "Orang tua / wali",

@@ -108,6 +108,9 @@ create policy enrolment_submissions_service_update on public.enrolment_submissio
 --      an admin (the sheet's Status/Error columns are the surface — no
 --      in-app queue, no admin e-mail).
 --   C. no match → create the student + guardian link. status=enrolled.
+--      Same-day twins with different names are allowed here; a name
+--      correction re-submitted through the form therefore makes a
+--      duplicate, cleaned up with Beheer → Santri → Hapus.
 --
 -- STUDENT SELF-LOGIN (ADR-043, PRD #10). When "Email siswa" is given the
 -- form can also create/link the student's own account. No age gate
@@ -298,8 +301,13 @@ begin
     return;
 
   else
-    -- C: genuinely new. class_id null (admin assigns — R2); enrollment_date
-    -- defaults to today. Guardian inserted straight after, same txn.
+    -- C: genuinely new. class_id left null (an admin assigns the Grup);
+    -- enrollment_date defaults to today. Guardian inserted straight after,
+    -- same txn. A guardian may legitimately have same-day twins with
+    -- different names, so this deliberately does NOT flag "same guardian +
+    -- same DOB + different name" — a name correction re-submitted through
+    -- the form therefore creates a duplicate, which an admin removes with
+    -- Beheer → Santri → Hapus.
     insert into public.students (full_name, date_of_birth)
     values (btrim(p_student_name), p_dob)
     returning id into v_student;
