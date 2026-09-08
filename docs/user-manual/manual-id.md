@@ -51,7 +51,9 @@ Layar pertama yang tampil sebelum masuk.
 | Tagline | "TPA Progress Tracker" |
 | **Tombol "Masuk dengan Google"** | Memulai proses masuk melalui akun Google (Google OAuth). Ini satu-satunya cara masuk untuk pengguna sungguhan. |
 
-Jika akun Google Anda belum terdaftar oleh admin TPA, setelah masuk Anda akan melihat layar **"Akun Anda belum terdaftar. Hubungi admin TPA."** dengan sebuah formulir singkat di bawahnya dan tombol **Keluar**.
+> **Keluarga baru** didaftarkan lewat Google Formulir pendaftaran ulang tahunan ("Daftar Ulang"). Di sana Anda mengisi nama dan tanggal lahir setiap anak, nama dan alamat email Anda sendiri (Anda harus login ke Google), lalu mencentang kebijakan privasi. Tidak lama kemudian Anda menerima **email undangan**; jika Anda kemudian masuk dengan akun Google yang sama, akun Anda sudah siap dan Anda langsung masuk ke aplikasi. Jika Anda tidak sengaja mengirim formulir lagi untuk anak yang sama, tidak ada yang berubah — data yang ada hanya diperbarui. Admin kemudian menempatkan anak Anda ke sebuah grup. Jika pada formulir Anda juga mengisi **alamat email anak Anda**, anak akan menerima undangan sendiri untuk masuk dan melihat datanya sendiri saja (berhasil atau tidak tergantung batas usia Google).
+
+Jika akun Google Anda belum terdaftar oleh admin TPA (misalnya karena Anda login tanpa mengisi formulir pendaftaran), setelah masuk Anda akan melihat layar **"Akun Anda belum terdaftar. Hubungi admin TPA."** dengan sebuah formulir singkat di bawahnya dan tombol **Keluar**.
 
 **Formulir "Minta akses"** — isi agar admin dapat mendaftarkan Anda lebih cepat dan dengan peran yang tepat:
 
@@ -508,6 +510,7 @@ Formulir Grup (sama untuk buat baru maupun ubah):
 | **+ Santri Baru** | Membuka formulir santri baru. |
 | Kartu tiap santri | Nama, lencana **"Akun sendiri"** (jika santri punya login Google sendiri, misalnya santri 16+), grup, dan nama orang tua/wali yang tertaut. |
 | **Ubah** | Membuka formulir edit. |
+| **Hapus** | Menghapus data santri **secara permanen**, beserta seluruh kehadiran, progres, dan rapornya (muncul pertanyaan konfirmasi lebih dulu). Gunakan hanya untuk membersihkan data ganda — misalnya jika orang tua mengirim ulang formulir pendaftaran dengan ejaan nama yang diperbaiki, sehingga muncul dua data untuk satu anak. |
 
 Formulir Santri:
 
@@ -540,13 +543,14 @@ Layar ini **hanya untuk melihat** — koreksi kehadiran dilakukan di layar Kehad
 
 ### 12.5 Pengguna
 
-Daftar semua akun yang sudah terdaftar, untuk memperbaiki **nama** atau **peran** seseorang. Pembuatan dan penolakan akun tetap dilakukan di [§12.1 Pendaftaran](#121-pendaftaran); di sini tidak ada tombol hapus.
+Daftar semua akun yang sudah terdaftar, untuk memperbaiki **nama** atau **peran** seseorang. Pembuatan akun tetap dilakukan di [§12.1 Pendaftaran](#121-pendaftaran).
 
 | Elemen | Fungsi |
 |---|---|
 | **Cari nama atau email** | Menyaring daftar berdasarkan potongan nama atau alamat email. |
 | Penyaring peran | **Semua peran** / Admin / Guru / Orang Tua / Santri. |
 | **Ubah** | Membuka formulir baris: kolom **Nama Lengkap** dan pilihan **Peran**. Tekan **Simpan** atau **Batal**. |
+| **Hapus** | Hanya muncul pada baris akun **Orang Tua** atau **Santri** (bukan Guru/Admin, dan bukan akun Anda sendiri). Menghapus akun **secara permanen** beserta data terkaitnya, setelah pertanyaan konfirmasi. Dipakai untuk membersihkan akun palsu dari pengiriman formulir pendaftaran yang tidak sah. Jika akun masih tertaut sebagai wali santri, hapus dulu data santrinya di [§12.3 Santri](#123-santri); selama masih tertaut, penghapusan ditolak dengan pesan yang menjelaskan hal itu. |
 
 Beberapa aturan pengaman:
 

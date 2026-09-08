@@ -16,7 +16,7 @@
 | Domain | Subdomain — `tpa.ppmedenhaag.nl` |
 | Language | Bahasa Indonesia (primary) + Dutch (secondary), toggle in nav |
 | Brand palette | Primary `#0D50A0`, dark variant `#0A3E7A`, gold accent `#C8A415`, success `#4CAF50`, danger `#D32F2F` |
-| Student accounts | Hybrid — always linked to a Parent; a student may additionally self-login (`Student.user_id`, nullable). **Who is old enough for that is Google's rule, not ours** (ADR-021): auth is Google OAuth only, so the account either exists or it does not, and this project stores `date_of_birth` without ever gating on it |
+| Student accounts | Hybrid — always linked to one or more guardians (`student_guardians`, ADR-040); a student may additionally self-login (`Student.user_id`, nullable). **Who is old enough for that is Google's rule, not ours** (ADR-021): auth is Google OAuth only, so the account either exists or it does not, and this project stores `date_of_birth` without ever gating on it. The self-login is set up by an admin (ADR-032) **or** provisioned from the enrolment form when a guardian supplies the student's e-mail (ADR-043) |
 | Board approval | Not required |
 | Tutor compensation | Not tracked — tutors are volunteers |
 | GDPR/DPIA ownership | PPME Den Haag IT team (operational); PPME Den Haag remains legal controller |
@@ -116,7 +116,7 @@ Still open (non-blocking, can resolve in parallel): WhatsApp integration + budge
 - [ ] DPIA completed for children's data (PPME IT team ownership)
 - [~] Right-to-erasure flow: cascade delete of student + all related records is in place at the DB layer, and the **manual** procedure is now written down step by step (README "Right to erasure"), including deleting the year-end report PDF from Storage first — `on delete cascade` never reaches Storage. Still no admin-facing UI or automated flow
 - [ ] GDPR Article 20 data export (CSV) implemented for parents
-- [ ] Consent flow for under-16 students confirmed against the hybrid account model
+- [x] Consent flow for under-16 students confirmed against the hybrid account model — since ADR-043 the enrolment form's **required** privacy-policy consent checkbox is the guardian's basis for both processing the child's data and (when the student e-mail is given) the app creating the student's own `role=student` login; there is no age gate (ADR-021 — Google's sign-in age check governs whether it works). DPIA R16 + §6 carry it; **[IT TEAM]** to countersign the privacy-policy §4 wording
 - [ ] **[IT TEAM] Confirm Google's current minimum age for a self-managed account in the Netherlands, and decide whether a Family Link supervised account may be linked to a student record (ADR-021).** The app deliberately enforces no age rule of its own — auth is Google OAuth only, so the threshold is applied upstream, and `date_of_birth` is recorded but never gates anything. Two things follow that IT should settle rather than inherit: the privacy policy tells families that under-16s get no account of their own, which is true because *Google* declines them and not because the app refuses, and a supervised child account can complete an OAuth sign-in, so the boundary is a strong default rather than an enforced one. Related: PPME has decided an under-16 santri **may** assist with a younger class (ADR-020/ADR-021), and an assistant who does hold a login can record that class's data — assigning a student to `classes.tutor_ids` is an enrolment decision with an access consequence
 - [~] Basic OWASP Top 10 check on public Netlify Functions (input validation, rate limiting on endpoints like `push-subscribe`) — done for the two Functions added with notifications, not yet as a sweep across all of them. `push-subscribe` validates the subscription shape (HTTPS endpoint, both keys present, length bounds) before anything reaches the untyped `jsonb` column, stores only the three fields it uses, and rate-limits per caller. `notify-absence` authenticates its channel in constant time and fails closed. **The rate limiter's honest scope**: it counts per warm function instance, in memory, so it stops a looping client or a retry storm but not an attacker spreading requests across cold starts. Anything stronger needs shared state (Postgres or a KV store) this project has no place for yet — recorded in TAD ADR-015 rather than left implied
 - [ ] **PPME IT sign-off on the super-admin role (ADR-014) before real student data is entered.** The `admin` role now reads *and* writes every child's operational data across the whole TPA. Nothing about that is new at the database layer (RLS has always granted admin `ALL`), but it is new in practice, and it changes the blast radius of a compromised or offboarded admin account from "enrollment records" to "everything". Three things IT should decide and record: (1) how many admin accounts exist and who holds them — keep the number small and named, not shared; (2) 2FA required on the Google accounts behind them (the app has no password of its own — DPIA R2); (3) admin offboarding must be as prompt as tutor offboarding, and is more urgent (DPIA R8 vs R11). Also worth noting for the record: the app keeps no audit log, so an admin edit to a report or an attendance row is not attributable after the fact beyond the `tutor_id` on rows it creates
@@ -721,3 +721,65 @@ ADR-042 in the TAD + RLS policy table, PRD FR-009 + a user story, openapi
 `/rpc/fn_admin_user_role_impact` + `UserRoleChange` schema), DPIA R15
 `[IT TEAM]` note, both privacy-policy halves, the user manual (both
 languages), test-plan §3.7 + §4.5i + E2E-22.
+
+**Post-milestone change (TAD ADR-043, migration 024):** **automatic
+enrolment from the annual "Daftar Ulang" Google Form.** A container-bound
+Apps Script on the form's response sheet
+(`apps-script/enrol-from-form.gs`, installed by hand — nothing in CI or
+the Netlify build deploys it) POSTs each submission, authenticated with a
+dedicated `ENROL_FORM_SECRET` (`X-Webhook-Secret`, the `notify-*` webhook
+shape — `verifyWebhookSecret` gained an env-var-name parameter), to the
+new `enrol-from-form` Netlify Function. The Function resolves the
+parent's `auth.users` id (e-mail lookup on `public.users` first, then
+`auth.admin.createUser` — the ADR-026 shape) and calls
+`public.fn_enrol_from_form`, which writes the parent profile, the student
+and the guardian link **in one transaction** — required because
+migration 021's `trg_student_has_guardian` is `DEFERRABLE` and
+`fn_admin_save_student` gates on `fn_is_admin()`, false for the callerless
+service role; the new RPC is `SECURITY DEFINER` guarded by
+`auth.role() = 'service_role'` and `REVOKE`d from `authenticated`.
+The student record is matched by (A) this guardian + `lower(trim(name))` +
+`date_of_birth`, then (B) name + DOB alone → `status = 'needs_attention'`
+(nothing created; an admin links the guardian — a second guardian or a
+corrected name), else (C) a new student. A repeat → `updated`, no
+duplicate, no second invite. The guardian who submits the form is the one
+place a guardian link is made automatically — an admin manages every
+other guardian and all removals (privacy policy §4 reworded to match).
+When **"Email siswa"** is given, the form also links or provisions the
+**student self-login** (PRD #10): a registered non-student address →
+`needs_attention`; a linked `role=student` account whose name matches →
+add this guardian; name mismatch → `needs_attention`; an unlinked or
+unregistered account whose name matches → link/provision it (a fresh id
+comes from a Function `createUser`, an unregistered `auth.users` row is
+resolved by the RPC itself via `auth.users`), write a `role=student`
+profile + `students.user_id`, and the Function e-mails the student. **No
+age gate** (ADR-021); the form's required consent tick is the guardian's
+basis (PRD #10). This closes the ADR-032 gap from the form. The branded
+invitation e-mail (ADR-018) goes out only for a brand-new account.
+`class_id` is left null for an admin to assign. **Payment is out of scope
+(PRD)** — the form asks it via a bank link but the Apps Script does not
+forward it and nothing is stored. Verified: `typecheck` +
+`typecheck:functions` + `test` (595, +26 in `enrolFromForm.test.ts`, +3
+in `functionAuth.test.ts`) + `build` green; `fn_enrol_from_form`
+exercised directly via psql on a real local stack for every branch
+(new family / re-submit / second child / tutor-as-parent / second-guardian
+needs_attention / fresh + unregistered + unlinked + name-mismatch +
+non-student student-e-mail / student-e-mail == parent / bad locale /
+non-service caller); the RLS suite gains RLS-98…116 and `supabase test db`
+reports `1..413` all green on a clean `supabase db reset`. Beheer → Santri
+gains a **Hapus** (delete student) action — the only admin path to remove
+a duplicate record a name-typo re-submission can create (same-day twins
+with different names are not blocked); RLS-115 covers it. And a
+**`delete-user`** Netlify Function + a guarded **Hapus** on `/admin/users`
+deletes a registered `parent`/`student` account, for cleaning up a bogus
+account a malicious form submission creates — refusing the caller's own,
+any `tutor`/`admin`, and any account still holding a `student_guardians`
+link (RLS-116; `tests/unit/deleteUser.test.ts`). Requirements
+and design were signed off in draft, then **folded into the PRD and the
+TAD** — no standalone `docs/requirements-*`/`docs/design-*` files. Docs:
+ADR-043 in the TAD, PRD FR-010 + #10 + a user story + a Scope-Boundaries note,
+openapi (`/enrol-from-form`), DPIA (data categories, processors,
+retention, R16 rewritten, §3 lawful-basis, §6 items incl. the closed
+under-16 consent item), both privacy-policy halves (§4 + the form
+paragraph), checklist §0, test-plan §3.8 + §4.5j + §4.6 + E2E-23,
+`apps-script/README.md` for the manual install.

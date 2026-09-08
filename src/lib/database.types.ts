@@ -190,6 +190,75 @@ export type Database = {
         }
         Relationships: []
       }
+      enrolment_submissions: {
+        Row: {
+          consent: boolean | null
+          created_at: string
+          date_of_birth: string | null
+          error: string | null
+          id: string
+          locale: Database["public"]["Enums"]["locale"] | null
+          parent_name: string | null
+          parent_user_id: string | null
+          relation: string | null
+          status: string
+          student_email: string | null
+          student_id: string | null
+          student_name: string | null
+          submitted_at: string | null
+          verified_email: string | null
+        }
+        Insert: {
+          consent?: boolean | null
+          created_at?: string
+          date_of_birth?: string | null
+          error?: string | null
+          id?: string
+          locale?: Database["public"]["Enums"]["locale"] | null
+          parent_name?: string | null
+          parent_user_id?: string | null
+          relation?: string | null
+          status: string
+          student_email?: string | null
+          student_id?: string | null
+          student_name?: string | null
+          submitted_at?: string | null
+          verified_email?: string | null
+        }
+        Update: {
+          consent?: boolean | null
+          created_at?: string
+          date_of_birth?: string | null
+          error?: string | null
+          id?: string
+          locale?: Database["public"]["Enums"]["locale"] | null
+          parent_name?: string | null
+          parent_user_id?: string | null
+          relation?: string | null
+          status?: string
+          student_email?: string | null
+          student_id?: string | null
+          student_name?: string | null
+          submitted_at?: string | null
+          verified_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrolment_submissions_parent_user_id_fkey"
+            columns: ["parent_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrolment_submissions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       murajaah_assignments: {
         Row: {
           active: boolean
@@ -915,6 +984,27 @@ export type Database = {
       fn_current_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      fn_enrol_from_form: {
+        Args: {
+          p_dob: string
+          p_locale: string
+          p_parent_email: string
+          p_parent_id: string
+          p_parent_name: string
+          p_relation?: string
+          p_student_auth_id?: string
+          p_student_email?: string
+          p_student_name: string
+        }
+        Returns: {
+          parent_created: boolean
+          parent_user_id: string
+          status: string
+          student_account_created: boolean
+          student_created: boolean
+          student_id: string
+        }[]
       }
       fn_is_admin: { Args: never; Returns: boolean }
       fn_my_children: { Args: never; Returns: string[] }

@@ -40,6 +40,22 @@ gebeurt, wordt uw aanvraag (inclusief de toelichting) automatisch verwijderd; oo
 als een beheerder de aanvraag afwijst, wordt hij verwijderd. De toelichting is
 optioneel: vult u niets in, dan bewaren wij niets extra's.
 
+**Over de herinschrijving via Google Formulieren.** De jaarlijkse herinschrijving
+verloopt via een Google Formulier. U vult daarin de naam en geboortedatum van uw
+kind in, uw eigen naam, en u vinkt aan dat u dit privacybeleid heeft gelezen; uw
+e-mailadres wordt door Google zelf bevestigd doordat u ingelogd moet zijn. Met
+die gegevens maken wij automatisch het account van de ouder/verzorger, het
+leerlingdossier en de koppeling tussen beide aan, en sturen wij u een
+uitnodigingsmail. Stuurt u het formulier voor hetzelfde kind nogmaals in, dan
+werken wij de bestaande gegevens bij in plaats van een tweede dossier aan te
+maken. De antwoorden blijven ook staan in het Google-spreadsheet achter het
+formulier, dat alleen toegankelijk is voor de beheerders. Geeft u het
+e-mailadres van uw kind op, dan koppelen wij daarmee het bestaande
+leerlingaccount, of — bij een nieuw adres — maken wij dat account aan en sturen
+wij de leerling een uitnodiging (zie §4). Het antwoord op de betaalvraag
+bewaren wij **niet**: het formulier vraagt u de betaling via een bank-link te
+doen, en de penningmeester controleert die buiten de app om.
+
 **Over meldingen.** Meldingen zijn optioneel en staan standaard uit: u zet ze
 zelf aan onder "Meldingsinstellingen" en kunt ze daar op elk moment weer
 uitzetten, waarna uw abonnementsgegevens direct worden verwijderd. Een melding
@@ -101,21 +117,23 @@ besluitvorming, en verkopen ze nooit aan derden.
 ### 4. Kinderen en toestemming
 
 De meeste leerlingen zijn jonger dan 16 jaar. Voor hen geldt:
-- Er wordt **geen** eigen account aangemaakt; alle toegang loopt via het account van een ouder/verzorger.
+- In de regel wordt **geen** eigen account aangemaakt; alle toegang loopt via het account van een ouder/verzorger. Een uitzondering: als een ouder/verzorger bij de (her)inschrijving het e-mailadres van de leerling opgeeft, maakt de app een leerlingaccount aan en stuurt de leerling een uitnodiging (zie hieronder). Of dat account daadwerkelijk werkt, hangt nog altijd af van de leeftijdsgrens die Google zelf bij het inloggen hanteert.
 - Een kind kan aan **meerdere** ouders/verzorgers gekoppeld zijn — bijvoorbeeld beide ouders. Zij hebben allemaal dezelfde toegang: zij zien de voortgang, ontvangen de meldingen en kunnen thuisoefening bevestigen. Er is geen "hoofd"-ouder.
-- Het koppelen en ontkoppelen van een ouder/verzorger gebeurt door een beheerder bij de inschrijving; er is geen manier voor de ene ouder om de andere zelf uit te nodigen. Wordt een ouder/verzorger ontkoppeld, dan vervalt de toegang direct. Dat de koppeling ooit heeft bestaan, blijft geregistreerd (voor controle).
-- Elke gekoppelde ouder/verzorger geeft bij de inschrijving toestemming voor de verwerking van de gegevens van het kind.
+- Bij de inschrijving via het inschrijfformulier wordt de ouder/verzorger die het formulier invult **automatisch** gekoppeld. Alle overige koppelingen — en elke **ontkoppeling** — doet een beheerder; er is geen manier voor de ene ouder om de andere zelf uit te nodigen. Wordt een ouder/verzorger ontkoppeld, dan vervalt de toegang direct. Dat de koppeling ooit heeft bestaan, blijft geregistreerd (voor controle).
+- Elke gekoppelde ouder/verzorger geeft bij de inschrijving toestemming voor de verwerking van de gegevens van het kind — en, als het e-mailadres van de leerling wordt opgegeven, voor het aanmaken van het eigen account van de leerling.
 
 Inloggen gaat uitsluitend met een Google-account. **Wij hanteren daarbij geen eigen
 leeftijdsgrens**: welke minimumleeftijd geldt voor een eigen Google-account bepaalt
 Google, volgens de wettelijke leeftijd voor digitale toestemming in het land van de
 gebruiker. Voor Nederland ligt die grens bovenaan de Europese bandbreedte, en in de
-praktijk betekent dit dat jongere leerlingen geen eigen account hebben. De
+praktijk betekent dit dat jongere leerlingen niet zelfstandig kunnen inloggen. De
 geboortedatum die wij van een leerling bewaren, gebruiken wij hiervoor niet.
 
-Leerlingen die wél een eigen account hebben, kunnen dat — met medeweten van de ouder
-— aan hun leerlingdossier laten koppelen. Zij zien dan hun eigen gegevens en kunnen
-die niet zelf wijzigen. De koppeling met het ouderaccount blijft altijd bestaan.
+Een leerling die een eigen account heeft, ziet daarmee alleen zijn of haar eigen
+gegevens en kan die niet zelf wijzigen. De koppeling met het ouderaccount blijft
+altijd bestaan. Zo'n account ontstaat op twee manieren: een ouder/verzorger geeft
+het e-mailadres van de leerling op bij de (her)inschrijving, óf een beheerder
+koppelt een bestaand account later aan het leerlingdossier.
 
 Helpt een oudere leerling mee met een jongere klas, dan gelden voor díe klas dezelfde
 rechten als voor elke andere begeleider: hij of zij kan aanwezigheid en voortgang van
@@ -266,6 +284,20 @@ memberi akses — admin yang membuat akun Anda. Begitu itu terjadi, permintaan A
 dihapus. Keterangan bersifat opsional: jika Anda tidak mengisinya, kami tidak
 menyimpan data tambahan.
 
+**Tentang pendaftaran ulang lewat Google Formulir.** Pendaftaran ulang tahunan
+dilakukan melalui Google Formulir. Di sana Anda mengisi nama dan tanggal lahir
+anak, nama Anda sendiri, dan Anda mencentang bahwa Anda telah membaca kebijakan
+privasi ini; alamat email Anda dikonfirmasi sendiri oleh Google karena Anda harus
+login. Dengan data itu kami otomatis membuat akun orang tua/wali, data santri,
+dan tautan di antara keduanya, lalu mengirimi Anda email undangan. Jika Anda
+mengirim formulir untuk anak yang sama lagi, kami memperbarui data yang ada
+alih-alih membuat data kedua. Jawaban juga tetap tersimpan di spreadsheet Google
+di balik formulir, yang hanya dapat diakses oleh admin. Jika Anda mengisi alamat
+email santri, kami menautkan akun santri yang sudah ada, atau — untuk alamat baru
+— membuat akun tersebut dan mengirim santri sebuah undangan (lihat §4). Jawaban
+atas pertanyaan pembayaran **tidak** kami simpan: formulir meminta Anda membayar
+lewat tautan bank, dan bendahara memeriksanya di luar aplikasi.
+
 **Tentang notifikasi.** Notifikasi bersifat opsional dan awalnya nonaktif: Anda
 mengaktifkannya sendiri di "Pengaturan notifikasi" dan dapat menonaktifkannya
 kapan saja, yang langsung menghapus data langganan Anda. Sebuah notifikasi hanya
@@ -324,20 +356,22 @@ keputusan otomatis, dan tidak pernah menjualnya kepada pihak ketiga.
 ### 4. Anak-anak dan persetujuan
 
 Sebagian besar santri berusia di bawah 16 tahun. Bagi mereka:
-- **Tidak** dibuatkan akun sendiri; semua akses melalui akun orang tua/wali.
+- Umumnya **tidak** dibuatkan akun sendiri; semua akses melalui akun orang tua/wali. Pengecualian: jika orang tua/wali mengisi alamat email santri saat (pen)daftaran ulang, aplikasi membuat akun santri dan mengirim santri sebuah undangan (lihat di bawah). Apakah akun itu benar-benar berfungsi tetap bergantung pada batas usia yang diterapkan Google sendiri saat login.
 - Seorang anak dapat ditautkan ke **lebih dari satu** orang tua/wali — misalnya kedua orang tua. Mereka semua memiliki akses yang sama: melihat perkembangan, menerima notifikasi, dan mengonfirmasi latihan di rumah. Tidak ada orang tua "utama".
-- Menautkan dan melepas tautan orang tua/wali dilakukan oleh admin saat pendaftaran; tidak ada cara bagi satu orang tua untuk mengundang yang lain sendiri. Jika tautan orang tua/wali dilepas, aksesnya langsung berakhir. Catatan bahwa tautan itu pernah ada tetap disimpan (untuk audit).
-- Setiap orang tua/wali yang ditautkan memberikan persetujuan saat pendaftaran untuk pemrosesan data anak.
+- Saat pendaftaran melalui formulir, orang tua/wali yang mengisi formulir **otomatis** ditautkan. Semua penautan lain — dan setiap **pelepasan tautan** — dilakukan oleh admin; tidak ada cara bagi satu orang tua untuk mengundang yang lain sendiri. Jika tautan orang tua/wali dilepas, aksesnya langsung berakhir. Catatan bahwa tautan itu pernah ada tetap disimpan (untuk audit).
+- Setiap orang tua/wali yang ditautkan memberikan persetujuan saat pendaftaran untuk pemrosesan data anak — dan, jika alamat email santri diisi, untuk pembuatan akun sendiri milik santri.
 
-Santri berusia 16 tahun ke atas dapat — dengan sepengetahuan orang tua — menautkan
-akun sendiri untuk melihat data mereka sendiri, tanpa dapat mengubahnya.
+Seorang santri yang memiliki akun sendiri hanya melihat datanya sendiri dan tidak
+dapat mengubahnya. Tautan dengan akun orang tua selalu tetap ada. Akun seperti itu
+muncul lewat dua cara: orang tua/wali mengisi alamat email santri saat (pen)daftaran
+ulang, atau admin menautkan akun yang sudah ada ke data santri di kemudian hari.
 
 Login hanya dapat dilakukan dengan akun Google. **Kami tidak menetapkan batas usia
 sendiri**: batas usia minimum untuk memiliki akun Google ditentukan oleh Google,
 mengikuti usia persetujuan digital di negara masing-masing pengguna. Untuk Belanda
 batas itu berada di ujung atas rentang Eropa, sehingga dalam praktiknya santri yang
-lebih muda tidak memiliki akun sendiri. Tanggal lahir yang kami simpan tidak kami
-gunakan untuk keperluan ini.
+lebih muda tidak dapat login secara mandiri. Tanggal lahir yang kami simpan tidak
+kami gunakan untuk keperluan ini.
 
 Bila santri yang lebih besar ikut membantu kelas yang lebih kecil, untuk kelas itu
 berlaku hak yang sama seperti pengajar lain: ia dapat mencatat kehadiran dan progres

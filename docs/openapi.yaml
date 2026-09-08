@@ -1749,6 +1749,142 @@ paths:
         '409': { description: That id already has a public.users profile and cannot be rejected }
         '500': { description: Server misconfigured, or the profile-existence lookup failed }
 
+  /delete-user:
+    post:
+      tags: [functions, admin]
+      summary: Permanently delete a registered parent / student account (Admin only)
+      description: |
+        The opposite end of `/reject-registration` (TAD ADR-043): that
+        one deletes a *pending* `auth.users` row and refuses one with a
+        profile; this deletes a **registered** `parent` or `student`
+        account — for cleaning up a bogus account a malicious enrolment
+        form submission created (the form pre-creates a `parent` before
+        any human sees the row).
+
+        `auth.admin.deleteUser` under `SUPABASE_SERVICE_ROLE_KEY`;
+        `public.users.id references auth.users (id) on delete cascade`
+        takes the profile, `notifications` with it,
+        `enrolment_submissions.parent_user_id` → `set null` (the audit
+        row survives).
+
+        Guards, all in code (no RLS layer on `auth.users`): an id is
+        required and is never the caller's own; the id must have a
+        `public.users` profile; the role must be `parent` or `student`
+        (a `tutor`/`admin` account is offboarded by a role change, not
+        deleted); and no `student_guardians` link — active or historical
+        — may reference the account (`ON DELETE RESTRICT`, ADR-040), so
+        the admin deletes the linked students first.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string, format: uuid, description: The public.users / auth.users id }
+      responses:
+        '200':
+          description: Deleted — the auth.users row and its cascade are gone
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+        '400': { description: Missing id, invalid JSON, or a GoTrue error }
+        '401': { description: Missing/invalid Authorization header or session }
+        '403': { description: Caller is not an admin, is deleting their own account, or the target is a tutor/admin account }
+        '409': { description: No registered account with that id, or it still holds a student_guardians link (delete its students first) }
+        '500': { description: Server misconfigured, or a lookup failed }
+
+  /enrol-from-form:
+    post:
+      tags: [functions, admin]
+      summary: Enrol a family from the Daftar Ulang Google Form (shared-secret channel)
+      description: |
+        Called by the container-bound Apps Script on the re-registration
+        form's response sheet (TAD ADR-043, PRD FR-010). No caller — the
+        channel is authenticated with the `ENROL_FORM_SECRET` shared
+        secret in the `X-Webhook-Secret` header, the `notify-*` webhook
+        shape (`verifyWebhookSecret`, fail-closed, timing-safe). A
+        dedicated secret, not `NOTIFY_WEBHOOK_SECRET`.
+
+        Resolves the parent's `auth.users` id — an e-mail lookup on
+        `public.users` first (the re-submission path), else
+        `auth.admin.createUser({ email, email_confirm: true })` under
+        `SUPABASE_SERVICE_ROLE_KEY` — then calls
+        `public.fn_enrol_from_form`, which writes the parent profile, the
+        student and the guardian link in one transaction (the DEFERRABLE
+        guardian invariant from migration 021 needs the student and its
+        first guardian in the same transaction; `fn_admin_save_student`
+        cannot be reused — it gates on `fn_is_admin()`).
+
+        Matches the student record by this guardian + `lower(trim(name))`
+        + `date_of_birth` (→ `updated`), else name + DOB alone
+        (→ `needs_attention`, nothing created — a second guardian, or a
+        corrected name), else a new student (→ `enrolled`). A repeat
+        refreshes names/locale in place, keeps ids, and sends no second
+        invitation. A brand-new account gets the branded invitation
+        e-mail (ADR-018); a mail failure never fails the enrolment.
+
+        When `student_email` is given it also links or provisions the
+        student's own `role=student` self-login and e-mails the student
+        (PRD #10, no age gate — ADR-021; the form's required consent tick
+        is the guardian's basis). A non-student address or a name
+        mismatch → `needs_attention`.
+
+        Every submission — including a validation failure — writes one
+        `public.enrolment_submissions` row (admin-read, service-role-write).
+        `class_id` is left null (an admin assigns the Grup). The form's
+        payment question is neither forwarded nor stored (payment is out
+        of Phase 1 scope).
+
+        `fn_enrol_from_form` itself is `service_role`-only (REVOKEd from
+        `authenticated`, plus an `auth.role()` guard) and is not a
+        PostgREST route the app calls.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [verified_email, parent_name, student_name, date_of_birth, consent]
+              properties:
+                submitted_at: { type: string, format: date-time, description: The form Timestamp; defaults to now if absent }
+                verified_email: { type: string, format: email, description: The Google-verified respondent address — the parent identity }
+                parent_name: { type: string, maxLength: 120 }
+                student_name: { type: string, maxLength: 120 }
+                date_of_birth: { type: string, format: date, description: A real, non-future date; YYYY-MM-DD or a locale string }
+                locale: { type: string, description: "'Bahasa Indonesia' / 'Nederlands' / 'id' / 'nl'; defaults to id", enum: [id, nl, 'Bahasa Indonesia', 'Nederlands'] }
+                relation: { type: string, maxLength: 40, description: Ayah / Ibu / Wali / Lainnya — stored on the guardian link }
+                student_email: { type: string, description: "Optional, free text. A non-e-mail-shaped value is treated as absent. If a valid address is given: links the student's existing role=student login (adding this guardian) or, for a new/unregistered address, creates the account and invites the student (PRD #10, no age gate). A non-student address or a name mismatch -> needs_attention. Also stored on the log row." }
+                consent: { description: The consent checkbox — required truthy; accepts the option text or a boolean }
+      responses:
+        '201':
+          description: >
+            Processed. `status` is `enrolled` (new student created), `updated`
+            (an existing student matched — by the child's login e-mail or by
+            this guardian + name + DOB — and was refreshed), or `needs_attention`
+            (a student with the same name + DOB exists that this submitter
+            neither guards nor matched by e-mail; nothing was created, an admin
+            links the guardian from Beheer).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [enrolled, updated, needs_attention] }
+                  parent_user_id: { type: string, format: uuid, nullable: true }
+                  student_id: { type: string, format: uuid, nullable: true, description: null when status is needs_attention }
+                  invitation_email: { type: string, nullable: true, description: parent sendEmail result status, or null when no invitation was due }
+                  student_invitation_email: { type: string, nullable: true, description: student sendEmail result status, or null when no self-login was provisioned }
+        '200': { description: "Processed but a human is needed (status needs_attention) — the verified e-mail already belongs to an auth account that has no profile; supabase-js cannot resolve it, so an admin finishes it from Registrations" }
+        '400': { description: Invalid JSON, or a payload that fails validation (bad e-mail, missing name, non-date DOB, consent not given) — still logged as an error row }
+        '401': { description: Missing or wrong X-Webhook-Secret }
+        '500': { description: ENROL_FORM_SECRET unset, a Supabase env var missing, or the RPC failed }
+        '502': { description: Creating the parent auth account failed for a reason other than "already exists" }
+
 components:
   securitySchemes:
     bearerAuth:

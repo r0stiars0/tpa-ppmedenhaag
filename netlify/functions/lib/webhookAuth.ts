@@ -22,9 +22,16 @@ import { jsonError, type ServiceClient } from './callerAuth'
  *   - Postgres holds it in Supabase Vault (`notify_webhook_secret`) and
  *     sends it as `x-webhook-secret` from the trigger (migration 009).
  *
+ * `enrol-from-form` (ADR-043) is a third caller of the same shape — a
+ * Google Apps Script, not Postgres — so `verifyWebhookSecret` takes the
+ * env-var name as a parameter. It uses its own `ENROL_FORM_SECRET`, not
+ * a reuse of `NOTIFY_WEBHOOK_SECRET`: the Apps Script's key can then be
+ * rotated without touching the DB-webhook channel, and a leak of one is
+ * not a leak of both.
+ *
  * Two properties this deliberately has:
  *
- *   1. **It fails closed.** If `NOTIFY_WEBHOOK_SECRET` is missing the
+ *   1. **It fails closed.** If the secret env var is missing the
  *      Function refuses every request rather than serving them
  *      unauthenticated. A misconfigured deploy sends no notifications,
  *      which is a visible bug; the opposite is a silent open endpoint
@@ -39,10 +46,15 @@ import { jsonError, type ServiceClient } from './callerAuth'
  * child's active `student_guardians` links and never from anything the
  * request supplied.
  */
-export function verifyWebhookSecret(req: Request): { error: Response } | null {
-  const expected = process.env.NOTIFY_WEBHOOK_SECRET
+export type WebhookSecretEnv = 'NOTIFY_WEBHOOK_SECRET' | 'ENROL_FORM_SECRET'
+
+export function verifyWebhookSecret(
+  req: Request,
+  envVar: WebhookSecretEnv = 'NOTIFY_WEBHOOK_SECRET',
+): { error: Response } | null {
+  const expected = process.env[envVar]
   if (!expected) {
-    return { error: jsonError('Server misconfigured: NOTIFY_WEBHOOK_SECRET is not set', 500) }
+    return { error: jsonError(`Server misconfigured: ${envVar} is not set`, 500) }
   }
 
   const provided = req.headers.get('x-webhook-secret') ?? ''

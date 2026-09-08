@@ -486,6 +486,45 @@ a notification did not arrive:
 select id, status_code, content from net._http_response order by id desc limit 5;
 ```
 
+### Enrolment from the Google re-registration form
+
+The annual "Daftar Ulang" runs on a Google Form. A container-bound Apps
+Script on the form's response sheet POSTs each submission to
+`enrol-from-form` (TAD ADR-043), which creates the parent account, the
+student and the guardian link (via `fn_enrol_from_form`, migration 024)
+and sends the invitation e-mail. Every submission is recorded in
+`public.enrolment_submissions` (admin-read, service-role-write).
+
+Set in Netlify:
+
+```
+ENROL_FORM_SECRET   # secret; the Apps Script sends it as X-Webhook-Secret
+```
+
+It authenticates the *channel*, the same fail-closed, timing-safe check
+as `NOTIFY_WEBHOOK_SECRET` (`verifyWebhookSecret` now takes the env-var
+name as a parameter) — but a **separate** secret, so the form channel and
+the database-webhook channel can be rotated independently. With it unset
+the Function rejects every request.
+
+The student **record** is matched by (A) this guardian already having a
+student at that name + DOB → update, (B) name + DOB alone →
+`needs_attention` for an admin (a second guardian, or a corrected name),
+else (C) a new student. When **"Email siswa"** is given, the form also
+links or provisions the student's own `role=student` **self-login**
+(PRD #10): a linked account whose name matches → add this guardian; a
+non-student address or a name mismatch → `needs_attention`; an
+unlinked/unregistered address → create the account, set
+`students.user_id`, and e-mail the student. No age gate (ADR-021); the
+form's required consent tick is the guardian's basis. `class_id` is left
+null for an admin to assign. The form's payment question is **not
+forwarded or stored** — payment is out of Phase 1 scope (PRD).
+
+The Apps Script itself is version-controlled at
+`apps-script/enrol-from-form.gs` and installed by hand on the response
+sheet — see `apps-script/README.md`. Nothing in CI or the Netlify build
+deploys it.
+
 ### Verifying it end to end
 
 `scripts/verify-push.mjs` drives the whole pipeline with nothing stubbed

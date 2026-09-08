@@ -222,6 +222,36 @@ export async function updateUser(input: {
   if (error) throw error
 }
 
+/**
+ * Permanently delete a registered `parent` or `student` account via the
+ * `delete-user` Netlify Function (TAD ADR-043) — for cleaning up a bogus
+ * account a malicious enrolment-form submission created. Service-role
+ * only: `auth.users` is not PostgREST-reachable. The Function refuses to
+ * delete the caller's own account, a `tutor`/`admin` account, or one
+ * that still guards student records (`student_guardians.user_id` is
+ * `ON DELETE RESTRICT`) — delete those students first.
+ */
+export async function deleteUser(id: string): Promise<void> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  if (!session) throw new Error('Not signed in')
+
+  const res = await fetch('/.netlify/functions/delete-user', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ id }),
+  })
+
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: string } | null
+    throw new Error(body?.error ?? `Delete failed (${res.status})`)
+  }
+}
+
 /** One active guardian of a student, for the admin enrolment screens. */
 export interface AdminStudentGuardian {
   user_id: string
@@ -331,4 +361,27 @@ export async function saveStudent(input: SaveStudentInput): Promise<string> {
   })
   if (error) throw error
   return data as string
+}
+
+/**
+ * Permanently delete a student record. Admin-only — `students_admin_all`
+ * (migration 003) is `for all`, so it covers DELETE. Every child table
+ * FKs `students` with `on delete cascade` (attendance, the four progress
+ * tables, year-end reports, notifications, `student_guardians`), so the
+ * record and its whole history go together; `enrolment_submissions`
+ * (ADR-043) is `on delete set null`, so that audit row survives with the
+ * id cleared.
+ *
+ * The one place this is needed: cleaning up a **duplicate** created when a
+ * guardian re-submits the enrolment form with a *corrected* student name
+ * that no longer matches the record they already have. `fn_enrol_from_form`
+ * (ADR-043) does not flag that — a guardian may legitimately have
+ * same-day twins with different names, so a "same guardian + same DOB +
+ * different name" rule would block real siblings — so the corrected
+ * re-submission creates a second `students` row, and this is the admin's
+ * path to remove it.
+ */
+export async function deleteStudent(id: string): Promise<void> {
+  const { error } = await supabase.from('students').delete().eq('id', id)
+  if (error) throw error
 }

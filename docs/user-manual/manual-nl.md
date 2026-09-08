@@ -51,7 +51,9 @@ Het eerste scherm dat verschijnt voordat u bent ingelogd.
 | Tagline | "TPA Voortgangstracker" |
 | **Knop "Inloggen met Google"** | Start het inlogproces via een Google-account (Google OAuth). Dit is de enige inlogmethode voor echte gebruikers. |
 
-Als uw Google-account nog niet door de TPA-beheerder is geregistreerd, ziet u na het inloggen het scherm **"Uw account is nog niet geregistreerd. Neem contact op met de TPA-beheerder."** met daaronder een klein formulier en een knop **Uitloggen**.
+> **Nieuwe gezinnen** worden ingeschreven via het jaarlijkse Google-inschrijfformulier ("Daftar Ulang"). U vult daarin per kind de naam en geboortedatum in, uw eigen naam en e-mailadres (u moet bij Google ingelogd zijn), en u vinkt het privacybeleid aan. Kort daarna ontvangt u een **uitnodigingsmail**; als u daarna met datzelfde Google-account inlogt, staat uw account al klaar en komt u meteen in de app. Stuurt u het formulier per ongeluk nog een keer in voor hetzelfde kind, dan verandert er niets — de bestaande gegevens worden bijgewerkt. De beheerder deelt uw kind daarna nog in bij een groep. Vult u op het formulier ook het **e-mailadres van uw kind** in, dan krijgt uw kind een eigen uitnodiging om zelf in te loggen en alleen de eigen gegevens te bekijken (of dat lukt, hangt af van de leeftijdsgrens van Google).
+
+Als uw Google-account nog niet door de TPA-beheerder is geregistreerd (bijvoorbeeld omdat u zonder het inschrijfformulier hebt ingelogd), ziet u na het inloggen het scherm **"Uw account is nog niet geregistreerd. Neem contact op met de TPA-beheerder."** met daaronder een klein formulier en een knop **Uitloggen**.
 
 **Formulier "Toegang aanvragen"** — vul dit in zodat de beheerder u sneller en met de juiste rol kan registreren:
 
@@ -508,6 +510,7 @@ Groepsformulier (hetzelfde voor nieuw aanmaken of bewerken):
 | **+ Nieuwe leerling** | Opent het formulier voor een nieuwe leerling. |
 | Kaart per leerling | Naam, label **"Eigen account"** (als de leerling een eigen Google-login heeft, bijvoorbeeld een leerling van 16+), groep, en de namen van de gekoppelde ouders/verzorgers. |
 | **Bewerken** | Opent het bewerkingsformulier. |
+| **Verwijderen** | Verwijdert de leerlinggegevens **permanent**, inclusief alle aanwezigheid, voortgang en rapporten (met een bevestigingsvraag vooraf). Alleen gebruiken om een dubbele registratie op te ruimen — bijvoorbeeld wanneer een ouder het inschrijfformulier opnieuw instuurt met een gecorrigeerde spelling van de naam, waardoor er twee records voor één kind ontstaan. |
 
 Leerlingformulier:
 
@@ -540,13 +543,14 @@ Dit scherm is **alleen om te bekijken** — corrigeren gebeurt op het Aanwezighe
 
 ### 12.5 Gebruikers
 
-Een lijst van alle bestaande accounts, om iemands **naam** of **rol** te corrigeren. Accounts aanmaken en afwijzen blijft op [§12.1 Registraties](#121-registraties); hier is geen verwijderknop.
+Een lijst van alle bestaande accounts, om iemands **naam** of **rol** te corrigeren. Accounts aanmaken blijft op [§12.1 Registraties](#121-registraties).
 
 | Element | Functie |
 |---|---|
 | **Zoek op naam of e-mail** | Filtert de lijst op een deel van de naam of het e-mailadres. |
 | Rolfilter | **Alle rollen** / Beheerder / Docent / Ouder / Leerling. |
 | **Bewerken** | Opent het regelformulier: veld **Volledige naam** en keuzelijst **Rol**. Tik **Opslaan** of **Annuleren**. |
+| **Verwijderen** | Verschijnt alleen op regels van een **Ouder**- of **Leerling**-account (niet Docent/Beheerder, en niet uw eigen account). Verwijdert het account **permanent**, met de bijbehorende gegevens, na een bevestigingsvraag. Bedoeld om een nepaccount van een kwaadaardige inschrijfformulier-inzending op te ruimen. Is het account nog als verzorger aan leerlingen gekoppeld, verwijder dan eerst die leerlinggegevens in [§12.3 Leerlingen](#123-leerlingen); zolang de koppeling bestaat wordt verwijderen geweigerd met een uitleg. |
 
 Enkele beveiligingen:
 

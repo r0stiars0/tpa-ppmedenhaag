@@ -6,6 +6,7 @@ import type { Database } from '../../lib/database.types'
 import { getErrorMessage } from '../../lib/errors'
 import { ROLE_I18N_KEY } from '../../lib/roleLabels'
 import {
+  deleteUser,
   fetchAllUsers,
   fetchUserRoleImpact,
   updateUser,
@@ -16,6 +17,11 @@ import { UserForm, type UserFormValue } from './UserForm'
 type UserRole = Database['public']['Enums']['user_role']
 
 const ROLE_FILTERS: UserRole[] = ['admin', 'tutor', 'parent', 'student']
+
+/** The two roles the enrolment form can create, and the only ones this
+ * screen offers to delete — staff accounts are offboarded by a role
+ * change (ADR-042), not a delete. */
+const DELETABLE_ROLES: readonly UserRole[] = ['parent', 'student']
 
 const ROLE_BADGE: Record<UserRole, string> = {
   admin: 'bg-ppme-primary/10 text-ppme-primary',
@@ -44,6 +50,7 @@ export function UsersPage() {
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<UserRole | ''>('')
 
@@ -119,6 +126,27 @@ export function UsersPage() {
     }
   }
 
+  /**
+   * Delete a bogus `parent` / `student` account (ADR-043). The Function
+   * refuses a `tutor`/`admin` account, the caller's own, and one that
+   * still guards students — this button is only offered for the two
+   * deletable roles and not the signed-in admin's own row.
+   */
+  async function handleDelete(user: DirectoryUser) {
+    if (!window.confirm(t('admin.confirmDeleteUser', { name: user.full_name, email: user.email })))
+      return
+    setDeletingId(user.id)
+    setError(null)
+    try {
+      await deleteUser(user.id)
+      load()
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <AdminSectionNav />
@@ -179,13 +207,25 @@ export function UsersPage() {
                     </div>
                     <p className="mt-0.5 text-sm text-ppme-text/60">{u.email}</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setEditingId(u.id)}
-                    className="min-h-11 shrink-0 rounded-md px-3 text-sm font-medium text-ppme-primary hover:bg-ppme-bg-alt"
-                  >
-                    {t('common.edit')}
-                  </button>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(u.id)}
+                      className="min-h-11 rounded-md px-3 text-sm font-medium text-ppme-primary hover:bg-ppme-bg-alt"
+                    >
+                      {t('common.edit')}
+                    </button>
+                    {DELETABLE_ROLES.includes(u.role) && u.id !== profile?.id && (
+                      <button
+                        type="button"
+                        disabled={deletingId === u.id}
+                        onClick={() => void handleDelete(u)}
+                        className="min-h-11 rounded-md px-3 text-sm font-medium text-ppme-danger hover:bg-ppme-danger/10 disabled:opacity-50"
+                      >
+                        {deletingId === u.id ? t('common.loading') : t('admin.deleteUser')}
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </li>
