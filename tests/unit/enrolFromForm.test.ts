@@ -139,9 +139,15 @@ describe('parseEnrolPayload', () => {
     expect(parseEnrolPayload({ ...GOOD, parent_name: 'x'.repeat(121) }).ok).toBe(false)
   })
 
-  it('treats a blank / "Tidak" / "false" consent as not given', () => {
-    for (const consent of ['', '   ', 'false', 'Tidak', 'Nee', false]) {
-      expect(parseEnrolPayload({ ...GOOD, consent }).ok).toBe(false)
+  it('records consent when given, and enrols anyway when it is blank / falsy (ADR-044)', () => {
+    const given = parseEnrolPayload({ ...GOOD, consent: 'Saya setuju' })
+    expect(given.ok).toBe(true)
+    if (given.ok) expect(given.value.consent).toBe(true)
+
+    for (const consent of ['', '   ', 'false', 'Tidak', 'Nee', false, undefined]) {
+      const r = parseEnrolPayload({ ...GOOD, consent })
+      expect(r.ok).toBe(true) // no longer a 400 — consent is recorded, not required
+      if (r.ok) expect(r.value.consent).toBe(false)
     }
   })
 

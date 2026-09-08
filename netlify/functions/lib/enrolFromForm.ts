@@ -39,7 +39,10 @@ type EnrolSubmissionInsert = Database['public']['Tables']['enrolment_submissions
  * contract.
  *
  * The form's payment question is deliberately neither sent nor stored —
- * payment/fee management is out of scope (PRD Scope Boundaries).
+ * payment/fee management is out of scope (PRD Scope Boundaries). The
+ * privacy-policy consent tick is **recorded** on the log row when given
+ * but is **not required** — a submission without it still enrols
+ * (TAD ADR-044).
  */
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -182,9 +185,9 @@ export function parseEnrolPayload(body: unknown): ParseOutcome {
   if (!dob) {
     return { ok: false, error: 'date_of_birth must be a real, non-future date', partial }
   }
-  if (!consent) {
-    return { ok: false, error: 'consent is required', partial }
-  }
+  // `consent` is recorded, not required (TAD ADR-044): the enrolment's
+  // lawful basis is the educational relationship / legitimate interest,
+  // and the form tick is a signal captured when given, not a gate.
 
   return {
     ok: true,
@@ -320,8 +323,8 @@ export async function enrolFromForm(client: ServiceClient, body: unknown): Promi
   // Only when it differs from the parent's own address. A miss on
   // `public.users` → createUser (the `invite-user` shape); an
   // `email_exists` there means an auth row exists with no profile, which
-  // the RPC resolves itself via `auth.users`. PRD #10: the guardian's
-  // form consent is the basis; there is no age gate (ADR-021).
+  // the RPC resolves itself via `auth.users`. No age gate (ADR-021), and
+  // the form consent tick is recorded, not required (ADR-044).
   let studentAuthId: string | undefined
   if (p.student_email && p.student_email !== p.verified_email) {
     const { data: stuProfile, error: stuLookupError } = await client
