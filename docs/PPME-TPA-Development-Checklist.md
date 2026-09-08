@@ -759,8 +759,7 @@ invitation e-mail (ADR-018) goes out only for a brand-new account.
 `class_id` is left null for an admin to assign. **Payment is out of scope
 (PRD)** — the form asks it via a bank link but the Apps Script does not
 forward it and nothing is stored. Verified: `typecheck` +
-`typecheck:functions` + `test` (595, +26 in `enrolFromForm.test.ts`, +3
-in `functionAuth.test.ts`) + `build` green; `fn_enrol_from_form`
+`typecheck:functions` + `test` (610) + `build` green; `fn_enrol_from_form`
 exercised directly via psql on a real local stack for every branch
 (new family / re-submit / second child / tutor-as-parent / second-guardian
 needs_attention / fresh + unregistered + unlinked + name-mismatch +
@@ -781,5 +780,22 @@ ADR-043 in the TAD, PRD FR-010 + #10 + a user story + a Scope-Boundaries note,
 openapi (`/enrol-from-form`), DPIA (data categories, processors,
 retention, R16 rewritten, §3 lawful-basis, §6 items incl. the closed
 under-16 consent item), both privacy-policy halves (§4 + the form
-paragraph), checklist §0, test-plan §3.8 + §4.5j + §4.6 + E2E-23,
-`apps-script/README.md` for the manual install.
+paragraph), checklist §0, test-plan §3.8 + §4.5j/k/l + §4.6 + E2E-23/24,
+openapi (`/enrol-from-form`, `/delete-user`), the bilingual user manual
+(§2, §12.3, §12.5 — text only; the `admin-students` / `admin-users`
+screenshots are a later batch), `apps-script/README.md` for the manual
+install.
+
+**Merged** as commit `74d9b78` (PR #13, squash) on 2026-09-08 and
+deployed from `main`. Both Functions are live at
+`https://tpa.ppmedenhaag.nl/.netlify/functions/{enrol-from-form,
+delete-user}` — verified by probe: an unauthenticated POST returns
+`401 {"error":"Unauthorized"}` (not the `500 "…is not set"` fail-closed
+path), so **`ENROL_FORM_SECRET` is set** on the production project. Still
+outstanding before the form is published (see the PR's post-merge ops):
+install `enrol-from-form.gs` on the response sheet with its Script
+Properties + trigger; add the **consent** question (a form without it
+fails every submission), and optionally the language and relationship
+questions (a form without those still works — locale defaults to `id`,
+relation to null); **[IT TEAM]** countersign privacy-policy §4 and add
+the form + Sheet to the processing register.
