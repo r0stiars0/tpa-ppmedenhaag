@@ -42,8 +42,10 @@ optioneel: vult u niets in, dan bewaren wij niets extra's.
 
 **Over de herinschrijving via Google Formulieren.** De jaarlijkse herinschrijving
 verloopt via een Google Formulier. U vult daarin de naam en geboortedatum van uw
-kind in, uw eigen naam, en u vinkt aan dat u dit privacybeleid heeft gelezen; uw
-e-mailadres wordt door Google zelf bevestigd doordat u ingelogd moet zijn. Met
+kind in en uw eigen naam; er staat ook een vinkje "ik heb het privacybeleid
+gelezen" — u mag dat aanvinken, maar het is niet verplicht en de inschrijving
+werkt ook zonder. Uw e-mailadres wordt door Google zelf bevestigd doordat u
+ingelogd moet zijn. Met
 die gegevens maken wij automatisch het account van de ouder/verzorger, het
 leerlingdossier en de koppeling tussen beide aan, en sturen wij u een
 uitnodigingsmail. Stuurt u het formulier voor hetzelfde kind nogmaals in, dan
@@ -120,7 +122,7 @@ De meeste leerlingen zijn jonger dan 16 jaar. Voor hen geldt:
 - In de regel wordt **geen** eigen account aangemaakt; alle toegang loopt via het account van een ouder/verzorger. Een uitzondering: als een ouder/verzorger bij de (her)inschrijving het e-mailadres van de leerling opgeeft, maakt de app een leerlingaccount aan en stuurt de leerling een uitnodiging (zie hieronder). Of dat account daadwerkelijk werkt, hangt nog altijd af van de leeftijdsgrens die Google zelf bij het inloggen hanteert.
 - Een kind kan aan **meerdere** ouders/verzorgers gekoppeld zijn — bijvoorbeeld beide ouders. Zij hebben allemaal dezelfde toegang: zij zien de voortgang, ontvangen de meldingen en kunnen thuisoefening bevestigen. Er is geen "hoofd"-ouder.
 - Bij de inschrijving via het inschrijfformulier wordt de ouder/verzorger die het formulier invult **automatisch** gekoppeld. Alle overige koppelingen — en elke **ontkoppeling** — doet een beheerder; er is geen manier voor de ene ouder om de andere zelf uit te nodigen. Wordt een ouder/verzorger ontkoppeld, dan vervalt de toegang direct. Dat de koppeling ooit heeft bestaan, blijft geregistreerd (voor controle).
-- Elke gekoppelde ouder/verzorger geeft bij de inschrijving toestemming voor de verwerking van de gegevens van het kind — en, als het e-mailadres van de leerling wordt opgegeven, voor het aanmaken van het eigen account van de leerling.
+- De verwerking van de gegevens van het kind (en, als het e-mailadres van de leerling wordt opgegeven, het aanmaken van diens eigen account) vindt plaats in het kader van de TPA-inschrijving. Het inschrijfformulier bevat een optioneel vinkje om te bevestigen dat u het privacybeleid heeft gelezen; dit wordt geregistreerd wanneer het is aangevinkt. `[IT-team bevestigt hier de grondslag]`
 
 Inloggen gaat uitsluitend met een Google-account. **Wij hanteren daarbij geen eigen
 leeftijdsgrens**: welke minimumleeftijd geldt voor een eigen Google-account bepaalt
@@ -286,9 +288,10 @@ menyimpan data tambahan.
 
 **Tentang pendaftaran ulang lewat Google Formulir.** Pendaftaran ulang tahunan
 dilakukan melalui Google Formulir. Di sana Anda mengisi nama dan tanggal lahir
-anak, nama Anda sendiri, dan Anda mencentang bahwa Anda telah membaca kebijakan
-privasi ini; alamat email Anda dikonfirmasi sendiri oleh Google karena Anda harus
-login. Dengan data itu kami otomatis membuat akun orang tua/wali, data santri,
+anak dan nama Anda sendiri; ada juga kotak centang "saya telah membaca kebijakan
+privasi" — Anda boleh mencentangnya, tetapi tidak wajib dan pendaftaran tetap
+berjalan tanpa itu. Alamat email Anda dikonfirmasi sendiri oleh Google karena
+Anda harus login. Dengan data itu kami otomatis membuat akun orang tua/wali, data santri,
 dan tautan di antara keduanya, lalu mengirimi Anda email undangan. Jika Anda
 mengirim formulir untuk anak yang sama lagi, kami memperbarui data yang ada
 alih-alih membuat data kedua. Jawaban juga tetap tersimpan di spreadsheet Google
@@ -359,7 +362,7 @@ Sebagian besar santri berusia di bawah 16 tahun. Bagi mereka:
 - Umumnya **tidak** dibuatkan akun sendiri; semua akses melalui akun orang tua/wali. Pengecualian: jika orang tua/wali mengisi alamat email santri saat (pen)daftaran ulang, aplikasi membuat akun santri dan mengirim santri sebuah undangan (lihat di bawah). Apakah akun itu benar-benar berfungsi tetap bergantung pada batas usia yang diterapkan Google sendiri saat login.
 - Seorang anak dapat ditautkan ke **lebih dari satu** orang tua/wali — misalnya kedua orang tua. Mereka semua memiliki akses yang sama: melihat perkembangan, menerima notifikasi, dan mengonfirmasi latihan di rumah. Tidak ada orang tua "utama".
 - Saat pendaftaran melalui formulir, orang tua/wali yang mengisi formulir **otomatis** ditautkan. Semua penautan lain — dan setiap **pelepasan tautan** — dilakukan oleh admin; tidak ada cara bagi satu orang tua untuk mengundang yang lain sendiri. Jika tautan orang tua/wali dilepas, aksesnya langsung berakhir. Catatan bahwa tautan itu pernah ada tetap disimpan (untuk audit).
-- Setiap orang tua/wali yang ditautkan memberikan persetujuan saat pendaftaran untuk pemrosesan data anak — dan, jika alamat email santri diisi, untuk pembuatan akun sendiri milik santri.
+- Pemrosesan data anak (dan, jika alamat email santri diisi, pembuatan akun sendiri milik santri) dilakukan dalam rangka pendaftaran TPA. Formulir pendaftaran memuat kotak centang opsional untuk menyatakan bahwa Anda telah membaca kebijakan privasi; ini dicatat bila dicentang. `[tim IT menetapkan dasar hukum di sini]`
 
 Seorang santri yang memiliki akun sendiri hanya melihat datanya sendiri dan tidak
 dapat mengubahnya. Tautan dengan akun orang tua selalu tetap ada. Akun seperti itu

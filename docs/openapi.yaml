@@ -1830,8 +1830,8 @@ paths:
 
         When `student_email` is given it also links or provisions the
         student's own `role=student` self-login and e-mails the student
-        (PRD #10, no age gate — ADR-021; the form's required consent tick
-        is the guardian's basis). A non-student address or a name
+        (PRD #10, no age gate — ADR-021; the form's consent tick is recorded,
+        not required — ADR-044). A non-student address or a name
         mismatch → `needs_attention`.
 
         Every submission — including a validation failure — writes one
@@ -1849,7 +1849,7 @@ paths:
           application/json:
             schema:
               type: object
-              required: [verified_email, parent_name, student_name, date_of_birth, consent]
+              required: [verified_email, parent_name, student_name, date_of_birth]
               properties:
                 submitted_at: { type: string, format: date-time, description: The form Timestamp; defaults to now if absent }
                 verified_email: { type: string, format: email, description: The Google-verified respondent address — the parent identity }
@@ -1859,7 +1859,7 @@ paths:
                 locale: { type: string, description: "'Bahasa Indonesia' / 'Nederlands' / 'id' / 'nl'; defaults to id", enum: [id, nl, 'Bahasa Indonesia', 'Nederlands'] }
                 relation: { type: string, maxLength: 40, description: Ayah / Ibu / Wali / Lainnya — stored on the guardian link }
                 student_email: { type: string, description: "Optional, free text. A non-e-mail-shaped value is treated as absent. If a valid address is given: links the student's existing role=student login (adding this guardian) or, for a new/unregistered address, creates the account and invites the student (PRD #10, no age gate). A non-student address or a name mismatch -> needs_attention. Also stored on the log row." }
-                consent: { description: The consent checkbox — required truthy; accepts the option text or a boolean }
+                consent: { description: "The privacy-policy checkbox — recorded when given, not required (ADR-044); accepts the option text or a boolean" }
       responses:
         '201':
           description: >
@@ -1880,7 +1880,7 @@ paths:
                   invitation_email: { type: string, nullable: true, description: parent sendEmail result status, or null when no invitation was due }
                   student_invitation_email: { type: string, nullable: true, description: student sendEmail result status, or null when no self-login was provisioned }
         '200': { description: "Processed but a human is needed (status needs_attention) — the verified e-mail already belongs to an auth account that has no profile; supabase-js cannot resolve it, so an admin finishes it from Registrations" }
-        '400': { description: Invalid JSON, or a payload that fails validation (bad e-mail, missing name, non-date DOB, consent not given) — still logged as an error row }
+        '400': { description: Invalid JSON, or a payload that fails validation (bad e-mail, missing name, non-date DOB) — still logged as an error row }
         '401': { description: Missing or wrong X-Webhook-Secret }
         '500': { description: ENROL_FORM_SECRET unset, a Supabase env var missing, or the RPC failed }
         '502': { description: Creating the parent auth account failed for a reason other than "already exists" }

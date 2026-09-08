@@ -516,7 +516,7 @@ links or provisions the student's own `role=student` **self-login**
 non-student address or a name mismatch → `needs_attention`; an
 unlinked/unregistered address → create the account, set
 `students.user_id`, and e-mail the student. No age gate (ADR-021); the
-form's required consent tick is the guardian's basis. `class_id` is left
+form's consent tick is recorded, not required (ADR-044). `class_id` is left
 null for an admin to assign. The form's payment question is **not
 forwarded or stored** — payment is out of Phase 1 scope (PRD).
 

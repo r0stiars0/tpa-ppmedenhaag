@@ -116,7 +116,7 @@ Still open (non-blocking, can resolve in parallel): WhatsApp integration + budge
 - [ ] DPIA completed for children's data (PPME IT team ownership)
 - [~] Right-to-erasure flow: cascade delete of student + all related records is in place at the DB layer, and the **manual** procedure is now written down step by step (README "Right to erasure"), including deleting the year-end report PDF from Storage first — `on delete cascade` never reaches Storage. Still no admin-facing UI or automated flow
 - [ ] GDPR Article 20 data export (CSV) implemented for parents
-- [x] Consent flow for under-16 students confirmed against the hybrid account model — since ADR-043 the enrolment form's **required** privacy-policy consent checkbox is the guardian's basis for both processing the child's data and (when the student e-mail is given) the app creating the student's own `role=student` login; there is no age gate (ADR-021 — Google's sign-in age check governs whether it works). DPIA R16 + §6 carry it; **[IT TEAM]** to countersign the privacy-policy §4 wording
+- [ ] Consent flow for under-16 students — since **ADR-044** the enrolment form's privacy-policy checkbox is recorded, not required, so it is not the lawful basis. **[IT TEAM]** to confirm and document the legitimate-interest / educational-relationship basis for enrolment and the student self-login, decide whether the checkbox stays on the form, and countersign the privacy-policy §4 wording. DPIA R16 + §3 + §6 carry it
 - [ ] **[IT TEAM] Confirm Google's current minimum age for a self-managed account in the Netherlands, and decide whether a Family Link supervised account may be linked to a student record (ADR-021).** The app deliberately enforces no age rule of its own — auth is Google OAuth only, so the threshold is applied upstream, and `date_of_birth` is recorded but never gates anything. Two things follow that IT should settle rather than inherit: the privacy policy tells families that under-16s get no account of their own, which is true because *Google* declines them and not because the app refuses, and a supervised child account can complete an OAuth sign-in, so the boundary is a strong default rather than an enforced one. Related: PPME has decided an under-16 santri **may** assist with a younger class (ADR-020/ADR-021), and an assistant who does hold a login can record that class's data — assigning a student to `classes.tutor_ids` is an enrolment decision with an access consequence
 - [~] Basic OWASP Top 10 check on public Netlify Functions (input validation, rate limiting on endpoints like `push-subscribe`) — done for the two Functions added with notifications, not yet as a sweep across all of them. `push-subscribe` validates the subscription shape (HTTPS endpoint, both keys present, length bounds) before anything reaches the untyped `jsonb` column, stores only the three fields it uses, and rate-limits per caller. `notify-absence` authenticates its channel in constant time and fails closed. **The rate limiter's honest scope**: it counts per warm function instance, in memory, so it stops a looping client or a retry storm but not an attacker spreading requests across cold starts. Anything stronger needs shared state (Postgres or a KV store) this project has no place for yet — recorded in TAD ADR-015 rather than left implied
 - [ ] **PPME IT sign-off on the super-admin role (ADR-014) before real student data is entered.** The `admin` role now reads *and* writes every child's operational data across the whole TPA. Nothing about that is new at the database layer (RLS has always granted admin `ALL`), but it is new in practice, and it changes the blast radius of a compromised or offboarded admin account from "enrollment records" to "everything". Three things IT should decide and record: (1) how many admin accounts exist and who holds them — keep the number small and named, not shared; (2) 2FA required on the Google accounts behind them (the app has no password of its own — DPIA R2); (3) admin offboarding must be as prompt as tutor offboarding, and is more urgent (DPIA R8 vs R11). Also worth noting for the record: the app keeps no audit log, so an admin edit to a report or an attendance row is not attributable after the fact beyond the `tutor_id` on rows it creates
@@ -753,8 +753,10 @@ unregistered account whose name matches → link/provision it (a fresh id
 comes from a Function `createUser`, an unregistered `auth.users` row is
 resolved by the RPC itself via `auth.users`), write a `role=student`
 profile + `students.user_id`, and the Function e-mails the student. **No
-age gate** (ADR-021); the form's required consent tick is the guardian's
-basis (PRD #10). This closes the ADR-032 gap from the form. The branded
+age gate** (ADR-021). This closes the ADR-032 gap from the form. *(Since
+ADR-044 the form's consent tick is recorded, not required — a submission
+without it still enrols; lawful basis is the educational relationship,
+[IT TEAM] to confirm.)* The branded
 invitation e-mail (ADR-018) goes out only for a brand-new account.
 `class_id` is left null for an admin to assign. **Payment is out of scope
 (PRD)** — the form asks it via a bank link but the Apps Script does not
@@ -794,8 +796,26 @@ delete-user}` — verified by probe: an unauthenticated POST returns
 path), so **`ENROL_FORM_SECRET` is set** on the production project. Still
 outstanding before the form is published (see the PR's post-merge ops):
 install `enrol-from-form.gs` on the response sheet with its Script
-Properties + trigger; add the **consent** question (a form without it
-fails every submission), and optionally the language and relationship
-questions (a form without those still works — locale defaults to `id`,
-relation to null); **[IT TEAM]** countersign privacy-policy §4 and add
+Properties + trigger; optionally add the consent, language and
+relationship questions (a form without any of them still works — consent
+records `false`, locale defaults to `id`, relation to null; see
+ADR-044); **[IT TEAM]** countersign privacy-policy §4 and add
 the form + Sheet to the processing register.
+
+**Post-milestone change (TAD ADR-044):** the **privacy-policy consent
+tick on the "Daftar Ulang" form is optional, not required.** ADR-043 made
+it a hard gate — a submission without it was `400`/`error` — which
+dropped a whole family's enrolment on one missed checkbox. `parseEnrolPayload`
+now records the answer (`enrolment_submissions.consent` stays `true` when
+ticked, `false` otherwise) but no longer blocks on it; nothing else from
+ADR-043 changes. The lawful basis moves to the educational relationship /
+legitimate interest — **[IT TEAM]** to confirm and document, and to
+decide whether the checkbox stays on the form at all. Verified:
+`typecheck` + `typecheck:functions` + `test` (`enrolFromForm.test.ts` — a
+blank/falsy consent now parses `ok` with `consent: false`, a given
+consent records `true`) + `build` green; no pgTAP change. Docs: ADR-044
+in the TAD (+ pointers on ADR-043's superseded consent statements), PRD
+#10 + FR-010, DPIA R16 rewritten + §3 lawful-basis + §6 (the under-16
+consent item reopened as an [IT TEAM] confirmation), both privacy-policy
+§4 halves + the form paragraph, openapi (`consent` off the `required`
+list), test-plan §4.5j, the bilingual user manual §2.
