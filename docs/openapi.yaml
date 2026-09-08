@@ -1749,6 +1749,55 @@ paths:
         '409': { description: That id already has a public.users profile and cannot be rejected }
         '500': { description: Server misconfigured, or the profile-existence lookup failed }
 
+  /delete-user:
+    post:
+      tags: [functions, admin]
+      summary: Permanently delete a registered parent / student account (Admin only)
+      description: |
+        The opposite end of `/reject-registration` (TAD ADR-043): that
+        one deletes a *pending* `auth.users` row and refuses one with a
+        profile; this deletes a **registered** `parent` or `student`
+        account — for cleaning up a bogus account a malicious enrolment
+        form submission created (the form pre-creates a `parent` before
+        any human sees the row).
+
+        `auth.admin.deleteUser` under `SUPABASE_SERVICE_ROLE_KEY`;
+        `public.users.id references auth.users (id) on delete cascade`
+        takes the profile, `notifications` with it,
+        `enrolment_submissions.parent_user_id` → `set null` (the audit
+        row survives).
+
+        Guards, all in code (no RLS layer on `auth.users`): an id is
+        required and is never the caller's own; the id must have a
+        `public.users` profile; the role must be `parent` or `student`
+        (a `tutor`/`admin` account is offboarded by a role change, not
+        deleted); and no `student_guardians` link — active or historical
+        — may reference the account (`ON DELETE RESTRICT`, ADR-040), so
+        the admin deletes the linked students first.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string, format: uuid, description: The public.users / auth.users id }
+      responses:
+        '200':
+          description: Deleted — the auth.users row and its cascade are gone
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+        '400': { description: Missing id, invalid JSON, or a GoTrue error }
+        '401': { description: Missing/invalid Authorization header or session }
+        '403': { description: Caller is not an admin, is deleting their own account, or the target is a tutor/admin account }
+        '409': { description: No registered account with that id, or it still holds a student_guardians link (delete its students first) }
+        '500': { description: Server misconfigured, or a lookup failed }
+
   /enrol-from-form:
     post:
       tags: [functions, admin]

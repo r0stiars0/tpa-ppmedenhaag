@@ -334,6 +334,8 @@
     "usersSearchPlaceholder": "Cari nama atau email",
     "allRoles": "Semua peran",
     "usersNoResults": "Tidak ada pengguna yang cocok.",
+    "deleteUser": "Hapus",
+    "confirmDeleteUser": "Hapus akun {{name}} ({{email}}) secara permanen? Semua data terkait ikut terhapus. Gunakan ini untuk membersihkan akun palsu dari pengiriman formulir yang tidak sah. Jika akun ini masih tertaut sebagai wali santri, hapus data santrinya lebih dulu.",
     "userCannotEditOwnRole": "Anda tidak dapat mengubah peran akun Anda sendiri.",
     "userRoleChangeConfirmIntro": "Ubah peran {{name}} menjadi {{role}}?",
     "userRoleImpactTutorGroups": "Ia akan dikeluarkan sebagai pengajar dari: {{groups}}",

@@ -4357,6 +4357,34 @@ insert into _tap_log(line) select is(
   0::bigint, 'RLS-115: …and its student_guardians link cascades away'
 );
 
+-- RLS-116: the invariant the `delete-user` Function's 409 mirrors —
+-- `student_guardians.user_id` is ON DELETE RESTRICT (ADR-040 keeps
+-- removed links for audit), so a guardian's `public.users` row cannot be
+-- deleted while any link (active or unlinked) references it; once the
+-- linked students are gone, the delete succeeds and cascades the
+-- guardian's notification-centre rows.
+reset role;
+insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous, created_at, updated_at)
+values ('df000000-0000-0000-0000-0000000d1601', 'authenticated', 'authenticated', 'bogus@test.local', '', now(), '{}', '{}', false, false, now(), now());
+insert into public.users (id, email, full_name, role, locale)
+values ('df000000-0000-0000-0000-0000000d1601', 'bogus@test.local', 'Bogus Parent', 'parent', 'id');
+insert into public.students (id, full_name, date_of_birth)
+values ('df000000-0000-0000-0000-0000000d1602', 'Bogus Kid', date '2016-01-01');
+insert into public.student_guardians (student_id, user_id)
+values ('df000000-0000-0000-0000-0000000d1602', 'df000000-0000-0000-0000-0000000d1601');
+
+insert into _tap_log(line) select throws_ok(
+  $$ delete from public.users where id = 'df000000-0000-0000-0000-0000000d1601' $$,
+  '23503', null,
+  'RLS-116: a guardian''s users row cannot be deleted while a student_guardians link exists'
+);
+
+delete from public.students where id = 'df000000-0000-0000-0000-0000000d1602';  -- cascades the link
+insert into _tap_log(line) select lives_ok(
+  $$ delete from public.users where id = 'df000000-0000-0000-0000-0000000d1601' $$,
+  'RLS-116: …once the linked student is gone, the guardian''s users row deletes'
+);
+
 reset role;
 
 -- ---------- done ----------

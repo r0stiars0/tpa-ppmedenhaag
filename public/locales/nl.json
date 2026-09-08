@@ -334,6 +334,8 @@
     "usersSearchPlaceholder": "Zoek op naam of e-mail",
     "allRoles": "Alle rollen",
     "usersNoResults": "Geen gebruikers gevonden.",
+    "deleteUser": "Verwijderen",
+    "confirmDeleteUser": "Account {{name}} ({{email}}) permanent verwijderen? Alle bijbehorende gegevens gaan mee. Gebruik dit om een nepaccount van een kwaadaardige formulierinzending op te ruimen. Als dit account nog als verzorger aan leerlingen is gekoppeld, verwijder eerst die leerlinggegevens.",
     "userCannotEditOwnRole": "U kunt de rol van uw eigen account niet wijzigen.",
     "userRoleChangeConfirmIntro": "Rol van {{name}} wijzigen naar {{role}}?",
     "userRoleImpactTutorGroups": "De persoon wordt als docent losgekoppeld van: {{groups}}",

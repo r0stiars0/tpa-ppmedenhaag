@@ -765,11 +765,16 @@ exercised directly via psql on a real local stack for every branch
 (new family / re-submit / second child / tutor-as-parent / second-guardian
 needs_attention / fresh + unregistered + unlinked + name-mismatch +
 non-student student-e-mail / student-e-mail == parent / bad locale /
-non-service caller); the RLS suite gains RLS-98…115 and `supabase test db`
-reports `1..411` all green on a clean `supabase db reset`. Beheer → Santri
+non-service caller); the RLS suite gains RLS-98…116 and `supabase test db`
+reports `1..413` all green on a clean `supabase db reset`. Beheer → Santri
 gains a **Hapus** (delete student) action — the only admin path to remove
 a duplicate record a name-typo re-submission can create (same-day twins
-with different names are not blocked); RLS-115 covers it. Requirements
+with different names are not blocked); RLS-115 covers it. And a
+**`delete-user`** Netlify Function + a guarded **Hapus** on `/admin/users`
+deletes a registered `parent`/`student` account, for cleaning up a bogus
+account a malicious form submission creates — refusing the caller's own,
+any `tutor`/`admin`, and any account still holding a `student_guardians`
+link (RLS-116; `tests/unit/deleteUser.test.ts`). Requirements
 and design were signed off in draft, then **folded into the PRD and the
 TAD** — no standalone `docs/requirements-*`/`docs/design-*` files. Docs:
 ADR-043 in the TAD, PRD FR-010 + #10 + a user story + a Scope-Boundaries note,

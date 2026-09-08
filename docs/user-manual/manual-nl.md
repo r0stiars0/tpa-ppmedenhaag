@@ -543,13 +543,14 @@ Dit scherm is **alleen om te bekijken** — corrigeren gebeurt op het Aanwezighe
 
 ### 12.5 Gebruikers
 
-Een lijst van alle bestaande accounts, om iemands **naam** of **rol** te corrigeren. Accounts aanmaken en afwijzen blijft op [§12.1 Registraties](#121-registraties); hier is geen verwijderknop.
+Een lijst van alle bestaande accounts, om iemands **naam** of **rol** te corrigeren. Accounts aanmaken blijft op [§12.1 Registraties](#121-registraties).
 
 | Element | Functie |
 |---|---|
 | **Zoek op naam of e-mail** | Filtert de lijst op een deel van de naam of het e-mailadres. |
 | Rolfilter | **Alle rollen** / Beheerder / Docent / Ouder / Leerling. |
 | **Bewerken** | Opent het regelformulier: veld **Volledige naam** en keuzelijst **Rol**. Tik **Opslaan** of **Annuleren**. |
+| **Verwijderen** | Verschijnt alleen op regels van een **Ouder**- of **Leerling**-account (niet Docent/Beheerder, en niet uw eigen account). Verwijdert het account **permanent**, met de bijbehorende gegevens, na een bevestigingsvraag. Bedoeld om een nepaccount van een kwaadaardige inschrijfformulier-inzending op te ruimen. Is het account nog als verzorger aan leerlingen gekoppeld, verwijder dan eerst die leerlinggegevens in [§12.3 Leerlingen](#123-leerlingen); zolang de koppeling bestaat wordt verwijderen geweigerd met een uitleg. |
 
 Enkele beveiligingen:
 

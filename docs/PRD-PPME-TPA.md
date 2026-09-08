@@ -488,12 +488,13 @@ Digital attendance management system allowing tutors to record student presence/
 
 **FR-009: User Directory & Role Management**
 - Priority: Medium
-- A Beheer screen ("Pengguna" / "Gebruikers") lists every account, with a free-text name/email search and a role filter. An admin can edit a user's display name and role inline. Creating, inviting and rejecting accounts stays on the Registrations screen; there is no delete.
+- A Beheer screen ("Pengguna" / "Gebruikers") lists every account, with a free-text name/email search and a role filter. An admin can edit a user's display name and role inline. Creating and inviting accounts stays on the Registrations screen.
+- An admin can **permanently delete** a `parent` or `student` account from this screen — the path to clean up a bogus account a malicious enrolment-form submission created (FR-010). The action refuses the admin's own account, any tutor/admin account, and any account still linked as a guardian of one or more students (those students must be removed first). Tutor/admin accounts are still only ever offboarded by a role change, never deleted.
 - The signed-in admin cannot change their own role (the control is disabled, and the server refuses it), and the last remaining admin cannot be demoted.
 - Changing a tutor to another role first shows the groups that tutor is assigned to and, on confirmation, removes them from those groups' tutor lists in the same step. Changing a parent or a linked 16+ student to another role warns that they keep their guardian links / self-login (those are relationships, not the role) but does not sever them.
 - Every role change is recorded — who changed whose role, from what to what, when — in an admin-only log. A name-only edit is not logged. The log is not shown in the app yet.
 - *User story:* As the TPA head, I can correct someone's role or the spelling of their name from one screen, without asking a developer to run SQL, and I can see afterwards that a role was changed and by whom.
-- *Implementation status: **built** — TAD ADR-042 / migration 023 (`public.user_role_changes`, `fn_admin_update_user`, `fn_admin_user_role_impact`); screen at `/admin/users`.*
+- *Implementation status: **built** — TAD ADR-042 / migration 023 (`public.user_role_changes`, `fn_admin_update_user`, `fn_admin_user_role_impact`); screen at `/admin/users`. The delete action is TAD ADR-043 (`delete-user` Netlify Function).*
 
 **FR-010: Form-Driven Enrolment**
 - Priority: Medium

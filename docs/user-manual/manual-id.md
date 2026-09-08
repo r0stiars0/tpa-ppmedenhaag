@@ -543,13 +543,14 @@ Layar ini **hanya untuk melihat** — koreksi kehadiran dilakukan di layar Kehad
 
 ### 12.5 Pengguna
 
-Daftar semua akun yang sudah terdaftar, untuk memperbaiki **nama** atau **peran** seseorang. Pembuatan dan penolakan akun tetap dilakukan di [§12.1 Pendaftaran](#121-pendaftaran); di sini tidak ada tombol hapus.
+Daftar semua akun yang sudah terdaftar, untuk memperbaiki **nama** atau **peran** seseorang. Pembuatan akun tetap dilakukan di [§12.1 Pendaftaran](#121-pendaftaran).
 
 | Elemen | Fungsi |
 |---|---|
 | **Cari nama atau email** | Menyaring daftar berdasarkan potongan nama atau alamat email. |
 | Penyaring peran | **Semua peran** / Admin / Guru / Orang Tua / Santri. |
 | **Ubah** | Membuka formulir baris: kolom **Nama Lengkap** dan pilihan **Peran**. Tekan **Simpan** atau **Batal**. |
+| **Hapus** | Hanya muncul pada baris akun **Orang Tua** atau **Santri** (bukan Guru/Admin, dan bukan akun Anda sendiri). Menghapus akun **secara permanen** beserta data terkaitnya, setelah pertanyaan konfirmasi. Dipakai untuk membersihkan akun palsu dari pengiriman formulir pendaftaran yang tidak sah. Jika akun masih tertaut sebagai wali santri, hapus dulu data santrinya di [§12.3 Santri](#123-santri); selama masih tertaut, penghapusan ditolak dengan pesan yang menjelaskan hal itu. |
 
 Beberapa aturan pengaman:
 

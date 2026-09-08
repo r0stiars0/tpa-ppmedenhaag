@@ -222,6 +222,36 @@ export async function updateUser(input: {
   if (error) throw error
 }
 
+/**
+ * Permanently delete a registered `parent` or `student` account via the
+ * `delete-user` Netlify Function (TAD ADR-043) — for cleaning up a bogus
+ * account a malicious enrolment-form submission created. Service-role
+ * only: `auth.users` is not PostgREST-reachable. The Function refuses to
+ * delete the caller's own account, a `tutor`/`admin` account, or one
+ * that still guards student records (`student_guardians.user_id` is
+ * `ON DELETE RESTRICT`) — delete those students first.
+ */
+export async function deleteUser(id: string): Promise<void> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  if (!session) throw new Error('Not signed in')
+
+  const res = await fetch('/.netlify/functions/delete-user', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ id }),
+  })
+
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: string } | null
+    throw new Error(body?.error ?? `Delete failed (${res.status})`)
+  }
+}
+
 /** One active guardian of a student, for the admin enrolment screens. */
 export interface AdminStudentGuardian {
   user_id: string
