@@ -49,15 +49,17 @@ function stubQuery(rows: unknown[], error: unknown = null) {
 beforeEach(() => supabaseMock.from.mockReset())
 
 describe('fetchClassRoster', () => {
-  it('asks for one class by id, ordered by name', () => {
-    const calls = stubQuery([{ id: 's1', full_name: 'Ali' }])
+  it("asks for one group's members by id, ordered by name", () => {
+    const calls = stubQuery([{ id: 's1', full_name: 'Ali', member: [{ class_id: KELAS_A }] }])
     return fetchClassRoster(KELAS_A).then((rows) => {
       expect(calls.table).toBe('students')
       // Names only. A register does not need a date of birth or a
       // parent's id, and what a screen loads is part of data
-      // minimisation, not only what it displays.
-      expect(calls.select).toBe('id, full_name')
-      expect(calls.eqColumn).toBe('class_id')
+      // minimisation, not only what it displays. Membership is read
+      // through `class_members` (PRD Feature 8, ADR-045) — an inner join,
+      // so a child in several groups appears on each group's roster.
+      expect(calls.select).toBe('id, full_name, member:class_members!inner(class_id)')
+      expect(calls.eqColumn).toBe('member.class_id')
       expect(calls.eqValue).toBe(KELAS_A)
       expect(calls.order).toBe('full_name')
       expect(rows).toEqual([{ id: 's1', full_name: 'Ali' }])

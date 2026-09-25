@@ -54,6 +54,12 @@ export function copyKeyFor(
   if (event === 'assignmentDueTomorrow' && typeof context.count === 'number') {
     return 'notifications.assignmentDueTomorrowMany'
   }
+  // A child in several groups (PRD Feature 8): the row names the group so
+  // two absences on one day read differently. Rows written before groups
+  // carried a name have no `group` and keep their original copy.
+  if ((event === 'absence' || event === 'newAssignment') && typeof context.group === 'string') {
+    return `notifications.${event}InGroup`
+  }
   return `notifications.${event}`
 }
 

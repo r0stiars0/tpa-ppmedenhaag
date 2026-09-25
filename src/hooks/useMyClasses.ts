@@ -22,8 +22,13 @@ export type ClassOption = TaughtClass
  * The admin branch has to be an explicit "all classes" rather than
  * `contains('tutor_ids', me)`, since an admin is normally in no
  * `tutor_ids` array at all and would otherwise get an empty picker.
+ *
+ * `trackingOnly` is for the screens that RECORD Yanbu'a/Quran/Murajaah
+ * (PRD Feature 8 FR-001): a group with tracking off, such as an Aqidah
+ * group, is left out, since nobody may record progress through it.
  */
-export function useMyClasses() {
+export function useMyClasses(options: { trackingOnly?: boolean } = {}) {
+  const trackingOnly = options.trackingOnly ?? false
   const { session, profile, loading: authLoading } = useAuth()
   const userId = session?.user.id ?? null
   const isAdmin = profile?.role === 'admin'
@@ -51,7 +56,7 @@ export function useMyClasses() {
 
     let active = true
     setLoading(true)
-    fetchTaughtClasses(supabase, userId, { isAdmin })
+    fetchTaughtClasses(supabase, userId, { isAdmin, trackingOnly })
       .then((rows) => {
         if (!active) return
         setClasses(rows)
@@ -69,7 +74,7 @@ export function useMyClasses() {
     return () => {
       active = false
     }
-  }, [userId, isAdmin, authLoading])
+  }, [userId, isAdmin, authLoading, trackingOnly])
 
   return { classes, loading, error }
 }

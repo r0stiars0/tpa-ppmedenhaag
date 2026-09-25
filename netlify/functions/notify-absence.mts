@@ -66,7 +66,7 @@ export default async (req: Request) => {
   const { data: row, error: rowError } = await client
     .from('attendance')
     // One string literal so supabase-js can infer the row type from it.
-    .select('id, status, student_id, session:sessions(date)')
+    .select('id, status, student_id, session_id, session:sessions(date, class:classes(name))')
     .eq('id', attendanceId)
     .maybeSingle()
   if (rowError) return jsonError(rowError.message, 500)
@@ -87,6 +87,12 @@ export default async (req: Request) => {
     // morning is still an absence for the day it happened, and the dedup
     // tag keys on that same date.
     date: row.session.date,
+    // A child in two groups can miss both sessions on one day (PRD
+    // Feature 8): the session keeps the two notifications apart, and the
+    // group's name tells the family which one it was (ADR-045(g)).
+    refId: row.session_id,
+    group: row.session.class?.name,
+    context: row.session.class?.name ? { group: row.session.class.name } : undefined,
   })
 
   if (result.failed > 0) return jsonError('Push delivery failed', 502)

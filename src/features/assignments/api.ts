@@ -78,9 +78,19 @@ export async function fetchMyAssignmentStatuses(studentId: string): Promise<Assi
   return data ?? []
 }
 
-export async function fetchAssignmentsByIds(ids: string[]): Promise<Assignment[]> {
+/** A homework item with the name of the group that set it (PRD Feature 8 FR-003). */
+export type FamilyAssignment = Assignment & { class: { name: string } | null }
+
+/**
+ * The family's homework items, each with its group's name: a child in
+ * several groups gets homework from each, and the list labels every item
+ * with the group it came from. `classes_read` grants a family the names
+ * of their children's groups — including one the child has left, so the
+ * history stays labelled (migration 026).
+ */
+export async function fetchAssignmentsByIds(ids: string[]): Promise<FamilyAssignment[]> {
   if (ids.length === 0) return []
-  const { data, error } = await supabase.from('assignments').select('*').in('id', ids)
+  const { data, error } = await supabase.from('assignments').select('*, class:classes(name)').in('id', ids)
   if (error) throw error
   return data ?? []
 }

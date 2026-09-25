@@ -25,7 +25,7 @@ import {
  */
 export function TutorOverviewView() {
   const { t } = useTranslation()
-  const { classes, loading: classesLoading } = useMyClasses()
+  const { classes, loading: classesLoading } = useMyClasses({ trackingOnly: true })
   const { selfStudentId } = useViewScope()
 
   const [classId, setClassId] = useState<string | null>(null)

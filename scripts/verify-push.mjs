@@ -247,14 +247,19 @@ async function enable(page, label) {
 }
 
 function markAbsent(studentId, reason = null) {
+  // The child's Yanbu'a/Quran group (first by name) — memberships since
+  // ADR-045, where a child can also be in an Aqidah group. Preferring the
+  // tracking group keeps these checks on Grup A, as they always were.
+  const groupOf = `(select class_id from public.class_members m join public.classes c on c.id = m.class_id
+      where m.student_id='${studentId}' and c.archived_at is null order by c.tracks_progress desc, c.name limit 1)`
   sql(`
     insert into public.sessions (class_id, date, tutor_id)
-    values ((select class_id from public.students where id='${studentId}'), current_date, '${AHMAD.id}')
+    values (${groupOf}, current_date, '${AHMAD.id}')
     on conflict (class_id, date) do nothing;
   `)
   const sessionId = sql(`
     select id from public.sessions
-    where class_id = (select class_id from public.students where id='${studentId}')
+    where class_id = ${groupOf}
       and date = current_date limit 1
   `)
   sql(`

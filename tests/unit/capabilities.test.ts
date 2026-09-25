@@ -339,6 +339,8 @@ describe('fetchTutorClassCount', () => {
       options?: { count?: string; head?: boolean }
       containsColumn?: string
       containsValue?: unknown
+      isColumn?: string
+      isValue?: unknown
     } = {}
     const client = {
       from(table: string) {
@@ -350,7 +352,13 @@ describe('fetchTutorClassCount', () => {
               contains(column: string, value: unknown) {
                 calls.containsColumn = column
                 calls.containsValue = value
-                return Promise.resolve({ count, error: null })
+                return {
+                  is(isColumn: string, isValue: unknown) {
+                    calls.isColumn = isColumn
+                    calls.isValue = isValue
+                    return Promise.resolve({ count, error: null })
+                  },
+                }
               },
             }
           },
@@ -380,10 +388,18 @@ describe('fetchTutorClassCount', () => {
     })
   })
 
+  it('does not count an archived group — its tutor no longer teaches anyone (PRD Feature 8 FR-010)', () => {
+    const { client, calls } = fakeClient(1)
+    return fetchTutorClassCount(client, TP).then(() => {
+      expect(calls.isColumn).toBe('archived_at')
+      expect(calls.isValue).toBeNull()
+    })
+  })
+
   it('treats a null count as no classes', () => {
     const client = {
       from: () => ({
-        select: () => ({ contains: () => Promise.resolve({ count: null, error: null }) }),
+        select: () => ({ contains: () => ({ is: () => Promise.resolve({ count: null, error: null }) }) }),
       }),
     } as unknown as Parameters<typeof fetchTutorClassCount>[0]
     return expect(fetchTutorClassCount(client, TP)).resolves.toBe(0)
@@ -396,6 +412,7 @@ describe('fetchTaughtClasses — the tutor-side mirror of the same fix', () => {
     name: 'Grup A',
     schedule: 'Sabtu 10:00-12:00',
     meeting_days: [6],
+    tracks_progress: true,
   }
 
   function fakeClient(rows: TaughtClass[]) {
@@ -405,11 +422,20 @@ describe('fetchTaughtClasses — the tutor-side mirror of the same fix', () => {
       containsColumn?: string
       containsValue?: unknown
       order?: string
-    } = {}
+      filters: [string, string, unknown][]
+    } = { filters: [] }
     const builder = {
       contains(column: string, value: unknown) {
         calls.containsColumn = column
         calls.containsValue = value
+        return this
+      },
+      is(column: string, value: unknown) {
+        calls.filters.push(['is', column, value])
+        return this
+      },
+      eq(column: string, value: unknown) {
+        calls.filters.push(['eq', column, value])
         return this
       },
       order(column: string) {
@@ -458,15 +484,44 @@ describe('fetchTaughtClasses — the tutor-side mirror of the same fix', () => {
     })
   })
 
+  it('never offers an archived group — it is frozen (PRD Feature 8 FR-010)', () => {
+    const { client, calls } = fakeClient([GRUP_A])
+    return fetchTaughtClasses(client, TP, { isAdmin: false }).then(() => {
+      expect(calls.filters).toContainEqual(['is', 'archived_at', null])
+      expect(calls.select).toContain('tracks_progress')
+    })
+  })
+
+  it('also for an admin', () => {
+    const { client, calls } = fakeClient([GRUP_A])
+    return fetchTaughtClasses(client, OTHER, { isAdmin: true }).then(() => {
+      expect(calls.filters).toContainEqual(['is', 'archived_at', null])
+    })
+  })
+
+  it('offers only groups with tracking on to a progress-recording screen (PRD Feature 8 FR-001)', () => {
+    const { client, calls } = fakeClient([GRUP_A])
+    return fetchTaughtClasses(client, TP, { isAdmin: false, trackingOnly: true }).then(() => {
+      expect(calls.filters).toContainEqual(['eq', 'tracks_progress', true])
+    })
+  })
+
+  it('offers every active group to attendance and homework', () => {
+    const { client, calls } = fakeClient([GRUP_A])
+    return fetchTaughtClasses(client, TP, { isAdmin: false }).then(() => {
+      expect(calls.filters.some(([, column]) => column === 'tracks_progress')).toBe(false)
+    })
+  })
+
   it('throws rather than presenting an empty picker', () => {
+    const failing = {
+      contains: () => failing,
+      is: () => failing,
+      eq: () => failing,
+      order: () => Promise.resolve({ data: null, error: { message: 'permission denied' } }),
+    }
     const client = {
-      from: () => ({
-        select: () => ({
-          contains: () => ({
-            order: () => Promise.resolve({ data: null, error: { message: 'permission denied' } }),
-          }),
-        }),
-      }),
+      from: () => ({ select: () => failing }),
     } as unknown as Parameters<typeof fetchTaughtClasses>[0]
     return expect(fetchTaughtClasses(client, TP, { isAdmin: false })).rejects.toMatchObject({
       message: 'permission denied',
@@ -506,8 +561,9 @@ describe('fetchViewerRelationships — the two relationship queries, together', 
         started.push(table)
         return {
           select: () => ({
-            contains: () =>
-              Promise.resolve({ count: over.classCount ?? 0, error: over.classesError ?? null }),
+            contains: () => ({
+              is: () => Promise.resolve({ count: over.classCount ?? 0, error: over.classesError ?? null }),
+            }),
           }),
         }
       },

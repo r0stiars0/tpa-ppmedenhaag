@@ -830,3 +830,31 @@ Verified:
 - a live run against a local stack at 025 with the dev fixture: correct count, same-week re-run corrects rather than duplicates, admin-only REST read, and the digest survives a missing function (test-plan §4.5m).
 
 Docs: ADR-045 status, TAD RLS table + Scheduler row, `openapi.yaml` (`/push_subscriber_counts`), test-plan §3 + §4.5m. No DPIA change: the data is an aggregate count with no personal data. **Post-merge ops:** apply migration 025 to production (`supabase db push`) so counting starts; until then, the digest runs normally and reports `subscriberCountError`.
+
+**Feature 8, release 8a — multi-group enrolment (TAD ADR-045, migration 026).** A student can be in any number of groups (`class_members`). Each group has a Yanbu'a/Quran/Murajaah tracking switch (off for Aqidah). Groups can be archived, which freezes them for every role, and a group with history can no longer be deleted.
+- **Admin screens:** the group form's tracking checkbox; the group list with active/archived filter and badges; a group members screen with bulk add filtered by date of birth (with a confirmation naming the tutors who gain access) and remove; the student form's multi-group checklist; the Santri "No group" filter; a "students without a group" strip on every Beheer screen; the Murajaah close-or-keep prompt.
+- **Tutor pickers:** progress screens offer only tracking groups; attendance and homework offer every active group. A per-child cross-group attendance history sits on the register, with no reason for other groups' sessions.
+- **Family screens:** attendance rate per group plus overall, history and homework labelled by group, meeting days per group, and a no-tracking explanation for an Aqidah-only child.
+- **Notifications:** absence and new-homework notifications name the group and carry a per-session / per-group reference.
+- **Scheduled jobs:** the Murajaah reminder skips targets no tutor can manage, due-tomorrow reminders and the weekly digest skip archived groups, and the digest shows attendance per group.
+- **Audit:** every enrolment change and archive/unarchive is logged admin-only (`class_member_changes`).
+
+Verified:
+- `typecheck`, `typecheck:functions`, 667 unit tests and `build` are green;
+- pgTAP 505/505 (RLS-122…142 new, the earlier 427 unchanged);
+- live on a separate local stack (test-plan §6.x): the backfill identical to `students.class_id`; the old app's query shapes replayed against 026 (15/15; this found and fixed a PostgREST embed ambiguity); 35 browser checks with zero console errors and zero failed requests; notification Functions and scheduled jobs driven for real.
+
+Docs: ADR-045 status + findings, PRD implementation-status lines, `openapi.yaml`, test-plan §3.9 / §4.5n / §5 E2E-25…30 (specified, pending the E2E harness) / §6.x, **DPIA R17** + privacy-policy §2/§5 in both languages, and the bilingual user manual.
+
+**Before 8a goes live — [IT TEAM]:** review DPIA R17 and the privacy-policy paragraph "Leerlingen in meer dan één groep" / "Santri yang ikut lebih dari satu grup" (PRD Feature 8 §8.4: families must be told before cross-group reading goes live).
+
+**Production runbook for 8a (ADR-045(a0)) — do in this order, by hand:**
+1. `pg_dump` the production database and store the dump off-platform. The Supabase free plan's own backups are not relied on.
+2. Apply migration 026 only: `supabase db push` from `main` *before* merging the 8a PR, i.e. from a checkout of this branch. The old app keeps working against it; this was verified by replaying its queries.
+3. Smoke-check the **old** app in production: a tutor opens the register and a parent opens attendance. Both must load without errors.
+4. Merge the 8a PR. Netlify deploys the new app.
+5. Smoke-check the **new** app: Beheer → Grup shows the tracking badges; a parent's attendance screen shows its groups.
+6. Tell the TPA coordinator 8a is live. The admin bulk-enrols the Aqidah groups *before* their first digital session (PRD Feature 8 §8.10).
+7. **Later, a separate PR — the contract migration**, once 8a is verified in production: drop `trg_students_class_id_sync`, `students.class_id` and the six-argument `fn_admin_save_student` compatibility path; swap `notifications`' unique key to `(user_id, student_id, event, event_date, ref_id) nulls not distinct`; and move `dev-fixture.sql` and `rls.test.sql` off `students.class_id`. The swap is what gives two same-day absences separate in-app rows (AC-011).
+
+**Rollback before step 7:** a Netlify rollback to the previous deploy. Migration 026 is backward-compatible, so no database rollback is needed. Restoring the dump from step 1 is the last resort.

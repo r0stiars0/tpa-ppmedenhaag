@@ -6,7 +6,8 @@ import type { AdminClass, AdminStudent, DirectoryUser } from './api'
 export interface StudentFormValue {
   full_name: string
   date_of_birth: string
-  class_id: string | null
+  /** The student's ACTIVE groups — any number (PRD Feature 8 FR-002). */
+  class_ids: string[]
   user_id: string | null
   /** The wanted guardian set — at least one, no duplicates (ADR-040). */
   guardians: { user_id: string; relation: string | null }[]
@@ -49,7 +50,15 @@ export function StudentForm({
   const { t } = useTranslation()
   const [fullName, setFullName] = useState(initial?.full_name ?? '')
   const [dob, setDob] = useState(initial?.date_of_birth ?? '')
-  const [classId, setClassId] = useState(initial?.class_id ?? NONE)
+  const [classIds, setClassIds] = useState<string[]>(
+    () => initial?.groups.filter((g) => !g.archived).map((g) => g.id) ?? [],
+  )
+  const activeClasses = classes.filter((c) => c.archived_at === null)
+  const archivedGroups = initial?.groups.filter((g) => g.archived) ?? []
+
+  function toggleClass(id: string) {
+    setClassIds((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]))
+  }
   const [userId, setUserId] = useState(initial?.user_id ?? NONE)
   const [guardians, setGuardians] = useState<GuardianRow[]>(() => initialGuardians(initial))
 
@@ -147,21 +156,44 @@ export function StudentForm({
         )}
       </div>
 
-      <label className="block text-xs font-medium text-ppme-text/70">
-        {t('admin.studentClass')}
-        <select
-          value={classId}
-          onChange={(e) => setClassId(e.target.value)}
-          className="mt-1 min-h-11 w-full rounded-lg border border-black/10 px-3 text-sm text-ppme-text"
-        >
-          <option value={NONE}>{classes.length === 0 ? t('admin.noClasses') : '—'}</option>
-          {classes.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      {/*
+        Any number of groups, of either kind (PRD Feature 8 FR-002): a
+        child is typically in a Yanbu'a/Quran group and an Aqidah group.
+        Only active groups are offered; an archived group the child was
+        in is history, shown below and kept as it is on save.
+      */}
+      <fieldset>
+        <legend className="text-xs font-medium text-ppme-text/70">{t('admin.studentGroups')}</legend>
+        {activeClasses.length === 0 ? (
+          <p className="mt-1 text-xs text-ppme-text/50">{t('admin.noClasses')}</p>
+        ) : (
+          <div className="mt-1 space-y-1">
+            {activeClasses.map((c) => (
+              <label key={c.id} className="flex min-h-11 items-center gap-2 text-sm text-ppme-text">
+                <input
+                  type="checkbox"
+                  checked={classIds.includes(c.id)}
+                  onChange={() => toggleClass(c.id)}
+                  className="h-4 w-4"
+                />
+                <span>
+                  {c.name}
+                  {!c.tracks_progress && (
+                    <span className="ml-2 rounded-full bg-ppme-text/10 px-2 py-0.5 text-xs text-ppme-text/70">
+                      {t('admin.noProgressTracking')}
+                    </span>
+                  )}
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+        {archivedGroups.length > 0 && (
+          <p className="mt-1 text-xs text-ppme-text/50">
+            {t('admin.archivedGroupsOfStudent', { groups: archivedGroups.map((g) => g.name).join(', ') })}
+          </p>
+        )}
+      </fieldset>
 
       {unlinkedAccounts.length > 0 && (
         <label className="block text-xs font-medium text-ppme-text/70">
@@ -189,7 +221,7 @@ export function StudentForm({
             onSave({
               full_name: fullName.trim(),
               date_of_birth: dob,
-              class_id: classId || null,
+              class_ids: classIds,
               user_id: userId || null,
               guardians: guardians.map((g) => ({
                 user_id: g.user_id,

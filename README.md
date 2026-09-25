@@ -36,7 +36,7 @@ npm run build                  # production build
 
 ## Database
 
-Migrations live in `supabase/migrations/` (001–012, applied in order). The
+Migrations live in `supabase/migrations/` (001–026, applied in order; see the development checklist for the hand-applied order of 026, the multi-group migration). The
 project is already linked (`supabase/config.toml` + `supabase link`); to apply
 a new migration:
 
@@ -71,8 +71,10 @@ local Docker stack, which is disposable and per-machine.
 #### Dev fixture + fixture sign-in (no real Google OAuth needed)
 
 `supabase/dev-fixture.sql` seeds a small realistic dataset (2 tutors — one
-assigned to both classes, one to Grup B only — plus admin, 2 parents,
-4 multi-role accounts, 2 classes, 8 students, 1 pending/unregistered sign-in)
+assigned to both classes, one to Grup B only — plus an Aqidah-only tutor,
+admin, 2 parents, 4 multi-role accounts, 3 groups — Grup A and Grup B with
+Yanbu'a/Quran tracking on, and "Aqidah 9–11 th" with it off — 8 students, four
+of them in two groups, and 1 pending/unregistered sign-in)
 into a local stack — load it after migrations are applied:
 
 ```bash

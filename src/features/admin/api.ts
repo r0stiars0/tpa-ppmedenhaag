@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import type { Database, Tables, TablesInsert } from '../../lib/database.types'
+import { groupsOf, type MembershipRow, type StudentGroup } from '../../lib/groups'
 
 type UserRole = Database['public']['Enums']['user_role']
 
@@ -145,11 +146,143 @@ export async function createClass(row: TablesInsert<'classes'>): Promise<AdminCl
 
 export async function updateClass(
   id: string,
-  patch: Partial<Pick<AdminClass, 'name' | 'schedule' | 'meeting_days' | 'tutor_ids'>>,
+  patch: Partial<Pick<AdminClass, 'name' | 'schedule' | 'meeting_days' | 'tutor_ids' | 'tracks_progress'>>,
 ): Promise<AdminClass> {
   const { data, error } = await supabase.from('classes').update(patch).eq('id', id).select().single()
   if (error) throw error
   return data
+}
+
+/**
+ * Archive or unarchive a group (PRD Feature 8 FR-010). An archived group
+ * is frozen for every role by `trg_class_not_archived` (migration 026),
+ * leaves every picker, and stops counting as "teaching" its members; the
+ * change is written to the admin audit log by trigger.
+ */
+export async function setClassArchived(id: string, archived: boolean): Promise<void> {
+  const { error } = await supabase
+    .from('classes')
+    .update({ archived_at: archived ? new Date().toISOString() : null })
+    .eq('id', id)
+  if (error) throw error
+}
+
+/**
+ * Whether a group has any history. Only a group without any may be
+ * deleted (PRD FR-010); the database refuses the rest anyway, since
+ * migration 026 made `sessions`/`assignments` → `classes` ON DELETE
+ * RESTRICT. Asked first so the screen offers Delete only where it works.
+ */
+export async function classHasHistory(id: string): Promise<boolean> {
+  const [sessions, assignments] = await Promise.all([
+    supabase.from('sessions').select('id', { count: 'exact', head: true }).eq('class_id', id),
+    supabase.from('assignments').select('id', { count: 'exact', head: true }).eq('class_id', id),
+  ])
+  if (sessions.error) throw sessions.error
+  if (assignments.error) throw assignments.error
+  return (sessions.count ?? 0) + (assignments.count ?? 0) > 0
+}
+
+/**
+ * Whether the group met in the last 7 days — the archive warning (PRD
+ * FR-010): a tutor may still hold an unsynced offline register (ADR-029)
+ * that the frozen group would refuse.
+ */
+export async function hasRecentSession(classId: string, sinceDate: string): Promise<boolean> {
+  const { count, error } = await supabase
+    .from('sessions')
+    .select('id', { count: 'exact', head: true })
+    .eq('class_id', classId)
+    .gte('date', sinceDate)
+  if (error) throw error
+  return (count ?? 0) > 0
+}
+
+export async function deleteClass(id: string): Promise<void> {
+  const { error } = await supabase.from('classes').delete().eq('id', id)
+  if (error) throw error
+}
+
+/** Every membership with its group's switches — admin reads all (`class_members_admin_all`). */
+export async function fetchAllMemberships(): Promise<MembershipRow[]> {
+  const { data, error } = await supabase
+    .from('class_members')
+    .select('student_id, class_id, class:classes(name, tracks_progress, archived_at)')
+  if (error) throw error
+  return (data ?? []) as MembershipRow[]
+}
+
+/**
+ * Add students to a group in one call (PRD FR-009). `ignoreDuplicates`
+ * makes a student already in the group a silent no-op, as the PRD asks.
+ * Each row the database actually inserts is logged by trigger.
+ */
+export async function addClassMembers(classId: string, studentIds: readonly string[]): Promise<void> {
+  if (studentIds.length === 0) return
+  const { error } = await supabase.from('class_members').upsert(
+    studentIds.map((student_id) => ({ class_id: classId, student_id })),
+    { onConflict: 'class_id,student_id', ignoreDuplicates: true },
+  )
+  if (error) throw error
+}
+
+export async function removeClassMembers(classId: string, studentIds: readonly string[]): Promise<void> {
+  if (studentIds.length === 0) return
+  const { error } = await supabase
+    .from('class_members')
+    .delete()
+    .eq('class_id', classId)
+    .in('student_id', studentIds as string[])
+  if (error) throw error
+}
+
+export interface ActiveMurajaahTarget {
+  id: string
+  student_id: string
+  surah_num: number
+  ayah_from: number
+  ayah_to: number
+  surah: { transliteration: string } | null
+  student: { full_name: string } | null
+}
+
+/** Active Murajaah targets of these students, for the close-or-keep prompt (PRD FR-001). */
+export async function fetchActiveMurajaahTargets(studentIds: readonly string[]): Promise<ActiveMurajaahTarget[]> {
+  if (studentIds.length === 0) return []
+  const { data, error } = await supabase
+    .from('murajaah_assignments')
+    .select('id, student_id, surah_num, ayah_from, ayah_to, surah:surahs(transliteration), student:students(full_name)')
+    .eq('active', true)
+    .in('student_id', studentIds as string[])
+  if (error) throw error
+  return data ?? []
+}
+
+/**
+ * Students with no group at all — the admin's to-do list after the
+ * "Daftar Ulang" form, which enrols a child in no group (PRD Feature 8
+ * FR-002). No tutor can see them until they are placed.
+ */
+export async function countStudentsWithoutGroup(): Promise<number> {
+  // "No group" means no ACTIVE group: a child whose only groups were
+  // archived last year is as unplaced as one never enrolled.
+  const [students, members] = await Promise.all([
+    supabase.from('students').select('id'),
+    supabase.from('class_members').select('student_id, class:classes!inner(archived_at)').is('class.archived_at', null),
+  ])
+  if (students.error) throw students.error
+  if (members.error) throw members.error
+  const enrolled = new Set((members.data ?? []).map((m) => m.student_id))
+  return (students.data ?? []).filter((s) => !enrolled.has(s.id)).length
+}
+
+export async function closeMurajaahTargets(ids: readonly string[]): Promise<void> {
+  if (ids.length === 0) return
+  const { error } = await supabase
+    .from('murajaah_assignments')
+    .update({ active: false })
+    .in('id', ids as string[])
+  if (error) throw error
 }
 
 /**
@@ -264,8 +397,11 @@ export interface AdminStudent {
   id: string
   full_name: string
   date_of_birth: string
-  class_id: string | null
-  class: { name: string } | null
+  // Every group the student is in (PRD Feature 8, ADR-045), archived ones
+  // included — the list shows the active ones, the edit form keeps the
+  // archived ones as history.
+  memberships: MembershipRow[]
+  groups: StudentGroup[]
   // Every *active* guardian of this child (ADR-040). >=1, symmetric —
   // no "primary". The list line shows their names; the edit form seeds
   // its guardian editor from this.
@@ -291,17 +427,18 @@ export async function fetchAllStudents(): Promise<AdminStudent[]> {
   const { data, error } = await supabase
     .from('students')
     .select(
-      'id, full_name, date_of_birth, class_id, user_id, ' +
-        'class:classes(name), ' +
+      'id, full_name, date_of_birth, user_id, ' +
+        'memberships:class_members(student_id, class_id, class:classes(name, tracks_progress, archived_at)), ' +
         'user:users!students_user_id_fkey(full_name, email), ' +
         'guardians:student_guardians(user_id, relation, unlinked_at, guardian:users(full_name, email))',
     )
     .order('full_name')
   if (error) throw error
-  return ((data ?? []) as unknown as (Omit<AdminStudent, 'guardians'> & {
+  return ((data ?? []) as unknown as (Omit<AdminStudent, 'guardians' | 'groups'> & {
     guardians: RawGuardianEmbed[]
   })[]).map((row) => ({
     ...row,
+    groups: groupsOf(row.memberships ?? [], row.id, { includeArchived: true }),
     guardians: (row.guardians ?? [])
       .filter((g) => g.unlinked_at === null)
       .map((g) => ({
@@ -330,7 +467,11 @@ export interface SaveStudentInput {
   id?: string | null
   full_name: string
   date_of_birth: string
-  class_id: string | null
+  /**
+   * The student's ACTIVE groups — any number (PRD Feature 8 FR-002). The
+   * RPC replaces the active set and leaves archived memberships alone.
+   */
+  class_ids: string[]
   /** 16+ self-login account, or null. */
   user_id: string | null
   /** The wanted set of guardians — at least one (ADR-040). */
@@ -356,8 +497,8 @@ export async function saveStudent(input: SaveStudentInput): Promise<string> {
     p_dob: input.date_of_birth,
     p_guardians: input.guardians.map((g) => ({ user_id: g.user_id, relation: g.relation })),
     p_id: input.id ?? undefined,
-    p_class_id: input.class_id ?? undefined,
     p_user_id: input.user_id ?? undefined,
+    p_class_ids: input.class_ids,
   })
   if (error) throw error
   return data as string

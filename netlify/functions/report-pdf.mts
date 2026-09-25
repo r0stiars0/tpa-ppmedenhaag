@@ -60,17 +60,28 @@ export default async (req: Request) => {
 
   const { data: student, error: studentError } = await admin
     .from('students')
-    .select('id, user_id, class_id')
+    .select('id, user_id')
     .eq('id', report.student_id)
     .maybeSingle()
   if (studentError) return jsonError(studentError.message, 500)
   if (!student) return jsonError('Report not found', 404)
 
+  // Every group the student is in, with what the tutor rule needs to
+  // know about each (ADR-045): a child can have several.
+  const { data: memberships, error: memberError } = await admin
+    .from('class_members')
+    .select('class:classes(tutor_ids, tracks_progress, archived_at)')
+    .eq('student_id', report.student_id)
+  if (memberError) return jsonError(memberError.message, 500)
+
   const allowed = await isReportAuthorized(admin, caller, {
     status: report.status,
     student_id: report.student_id,
     user_id: student.user_id,
-    class_id: student.class_id,
+    groups: (memberships ?? [])
+      .map((m) => m.class)
+      .filter((c): c is NonNullable<typeof c> => c !== null)
+      .map((c) => ({ tutor_ids: c.tutor_ids ?? [], tracks_progress: c.tracks_progress, archived: c.archived_at !== null })),
   })
   if (!allowed) return jsonError('Not authorized to view this report', 403)
 

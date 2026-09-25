@@ -600,6 +600,7 @@ describe('recordNotifications — the in-app half (ADR-017)', () => {
           event: 'reportReady',
           context: {},
           event_date: '2026-03-10',
+          ref_id: null,
         },
         {
           user_id: 'self-1',
@@ -607,15 +608,48 @@ describe('recordNotifications — the in-app half (ADR-017)', () => {
           event: 'reportReady',
           context: {},
           event_date: '2026-03-10',
+          ref_id: null,
         },
       ])
     })
   })
 
-  it('upserts on the same tuple the dedup tag uses, so a re-run cannot duplicate', async () => {
+  it('upserts on the same tuple the dedup tag uses, reference included, so a re-run cannot duplicate', async () => {
     const { client, calls } = fakeUpsertClient()
-    await recordNotifications(client, [target()], 'murajaahReminder', '2026-03-10')
-    expect(calls[0].onConflict).toBe('user_id,student_id,event,event_date')
+    await recordNotifications(client, [target()], 'absence', '2026-03-10', undefined, 'session-1')
+    expect(calls[0].onConflict).toBe('user_id,student_id,event,event_date,ref_id')
+    expect((calls[0].rows[0] as { ref_id: unknown }).ref_id).toBe('session-1')
+  })
+
+  it('falls back to the pre-ADR-045 key while the database does not have the new one yet', async () => {
+    // Migration 026 adds `ref_id` but keeps the old unique key; the
+    // contract migration swaps it. Until then Postgres answers 42P10 ("no
+    // unique constraint matching") and the row must still be written.
+    const calls: string[] = []
+    const client = {
+      from: () => ({
+        upsert: async (_rows: unknown[], opts?: { onConflict?: string }) => {
+          calls.push(opts?.onConflict ?? '')
+          return calls.length === 1 ? { error: { code: '42P10', message: 'no unique constraint' } } : { error: null }
+        },
+      }),
+    } as unknown as Parameters<typeof recordNotifications>[0]
+    await expect(recordNotifications(client, [target()], 'absence', '2026-03-10', undefined, 'session-1')).resolves.toBe(1)
+    expect(calls).toEqual(['user_id,student_id,event,event_date,ref_id', 'user_id,student_id,event,event_date'])
+  })
+
+  it('does not retry on any other error', async () => {
+    const calls: string[] = []
+    const client = {
+      from: () => ({
+        upsert: async (_rows: unknown[], opts?: { onConflict?: string }) => {
+          calls.push(opts?.onConflict ?? '')
+          return { error: { code: '23503', message: 'fk' } }
+        },
+      }),
+    } as unknown as Parameters<typeof recordNotifications>[0]
+    await expect(recordNotifications(client, [target()], 'absence', '2026-03-10')).resolves.toBe(0)
+    expect(calls).toHaveLength(1)
   })
 
   it('carries a constant context to every recipient', async () => {

@@ -33,6 +33,21 @@ export interface WeeklyActivity {
   quran: number
   /** Home-practice confirmations the family logged. */
   murajaah: number
+  /**
+   * The attendance above, per group, ordered by name (PRD Feature 8
+   * FR-003) — a child in two groups can attend one and skip the other,
+   * which a single figure hides. Archived groups are not included.
+   */
+  groups: GroupWeek[]
+}
+
+export interface GroupWeek {
+  classId: string
+  className: string
+  recorded: number
+  present: number
+  absent: number
+  late: number
 }
 
 export const EMPTY_WEEK: WeeklyActivity = {
@@ -43,6 +58,7 @@ export const EMPTY_WEEK: WeeklyActivity = {
   yanbua: 0,
   quran: 0,
   murajaah: 0,
+  groups: [],
 }
 
 export function hasActivity(week: WeeklyActivity): boolean {
@@ -55,7 +71,7 @@ export function hasActivity(week: WeeklyActivity): boolean {
  * one. A week with no TPA sessions in it (a holiday) would otherwise
  * report every child as having attended nothing.
  */
-export function attendancePercent(week: WeeklyActivity): number | null {
+export function attendancePercent(week: Pick<WeeklyActivity, 'recorded' | 'present'>): number | null {
   if (week.recorded === 0) return null
   return Math.round((week.present / week.recorded) * 100)
 }
@@ -80,6 +96,16 @@ export interface WeekWindow {
   toLocalDate: (iso: string) => string
 }
 
+function tally(
+  counts: { recorded: number; present: number; absent: number; late: number },
+  status: string,
+): void {
+  counts.recorded += 1
+  if (status === 'present') counts.present += 1
+  else if (status === 'absent') counts.absent += 1
+  else if (status === 'late') counts.late += 1
+}
+
 export async function fetchWeeklyActivity(
   client: SupabaseClient<Database>,
   studentIds: string[],
@@ -87,7 +113,7 @@ export async function fetchWeeklyActivity(
 ): Promise<Map<string, WeeklyActivity>> {
   const result = new Map<string, WeeklyActivity>()
   if (studentIds.length === 0) return result
-  for (const id of studentIds) result.set(id, { ...EMPTY_WEEK })
+  for (const id of studentIds) result.set(id, { ...EMPTY_WEEK, groups: [] })
 
   const { from, to, toLocalDate } = window
   const inWeek = (iso: string) => {
@@ -97,26 +123,38 @@ export async function fetchWeeklyActivity(
 
   // Attendance. Sessions first, so both queries are bounded by the week
   // rather than by a child's whole history.
+  // An archived group runs nothing automatic (PRD Feature 8 FR-010), so
+  // its sessions are left out of the week altogether.
   const { data: sessions } = await client
     .from('sessions')
-    .select('id')
+    .select('id, class_id, class:classes(name, archived_at)')
     .gte('date', from)
     .lte('date', to)
-  const sessionIds = (sessions ?? []).map((s) => s.id)
+  const liveSessions = (sessions ?? []).filter((s) => !s.class?.archived_at)
+  const groupBySession = new Map(
+    liveSessions.map((s) => [s.id, { classId: s.class_id, className: s.class?.name ?? '' }]),
+  )
+  const sessionIds = liveSessions.map((s) => s.id)
   if (sessionIds.length > 0) {
     const { data: attendance } = await client
       .from('attendance')
-      .select('student_id, status')
+      .select('student_id, status, session_id')
       .in('session_id', sessionIds)
       .in('student_id', studentIds)
     for (const row of attendance ?? []) {
       const week = result.get(row.student_id)
       if (!week) continue
-      week.recorded += 1
-      if (row.status === 'present') week.present += 1
-      else if (row.status === 'absent') week.absent += 1
-      else if (row.status === 'late') week.late += 1
+      tally(week, row.status)
+      const group = groupBySession.get(row.session_id)
+      if (!group?.classId) continue
+      let groupWeek = week.groups.find((g) => g.classId === group.classId)
+      if (!groupWeek) {
+        groupWeek = { ...group, recorded: 0, present: 0, absent: 0, late: 0 }
+        week.groups.push(groupWeek)
+      }
+      tally(groupWeek, row.status)
     }
+    for (const week of result.values()) week.groups.sort((a, b) => a.className.localeCompare(b.className))
   }
 
   const wideFrom = `${addDays(from, -1)}T00:00:00Z`

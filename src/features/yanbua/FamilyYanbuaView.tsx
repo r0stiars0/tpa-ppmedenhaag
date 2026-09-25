@@ -9,6 +9,8 @@ import { getErrorMessage } from '../../lib/errors'
 import { fetchYanbuaHistory, fetchYanbuaJilidRef, type YanbuaProgress } from './api'
 import { CurrentLevelCard } from './CurrentLevelCard'
 import { YanbuaTimeline } from './YanbuaTimeline'
+import { useHasTrackingGroup } from '../../hooks/useHasTrackingGroup'
+import { NoTrackingNotice } from '../../components/NoTrackingNotice'
 
 export function FamilyYanbuaView() {
   const { t } = useTranslation()
@@ -20,6 +22,7 @@ export function FamilyYanbuaView() {
   const [jilidRefs, setJilidRefs] = useState<JilidRef[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const hasTracking = useHasTrackingGroup(studentId)
 
   useEffect(() => {
     fetchYanbuaJilidRef()
@@ -60,6 +63,8 @@ export function FamilyYanbuaView() {
       ? t('yanbua.childTitle', { name: selectedName })
       : t('yanbua.myTitle')
 
+  const untracked = hasTracking === false && !loading && history.length === 0
+
   if (studentsLoading) return <p className="text-ppme-text/60">{t('common.loading')}</p>
   if (students.length === 0) return <p className="text-ppme-text/60">{t('common.empty')}</p>
 
@@ -71,12 +76,18 @@ export function FamilyYanbuaView() {
 
       {error && <p className="rounded-lg bg-ppme-danger/10 p-3 text-sm text-ppme-danger">{error}</p>}
 
-      <CurrentLevelCard latest={history[0] ?? null} jilidRefs={jilidRefs} titleKey="yanbua.myCurrentLevel" />
+      {untracked ? (
+        <NoTrackingNotice />
+      ) : (
+        <>
+          <CurrentLevelCard latest={history[0] ?? null} jilidRefs={jilidRefs} titleKey="yanbua.myCurrentLevel" />
 
-      <div>
-        <h2 className="mb-2 text-sm font-semibold text-ppme-text/70">{t('yanbua.sessionHistory')}</h2>
-        {loading ? <p className="text-ppme-text/60">{t('common.loading')}</p> : <YanbuaTimeline entries={history} />}
-      </div>
+          <div>
+            <h2 className="mb-2 text-sm font-semibold text-ppme-text/70">{t('yanbua.sessionHistory')}</h2>
+            {loading ? <p className="text-ppme-text/60">{t('common.loading')}</p> : <YanbuaTimeline entries={history} />}
+          </div>
+        </>
+      )}
     </div>
   )
 }

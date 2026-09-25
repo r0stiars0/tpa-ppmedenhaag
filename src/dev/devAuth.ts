@@ -27,6 +27,9 @@ export const FIXTURE_USERS: FixtureUser[] = [
   // check a tutor's class scoping from the browser rather than by hand
   // with a minted JWT.
   { id: 'b1000000-0000-0000-0000-000000000001', label: 'Ustadz Baru (Tutor — Grup B only)' },
+  // PRD Feature 8: teaches only the Aqidah group, which has Yanbu'a/
+  // Quran/Murajaah tracking off.
+  { id: 'e1000000-0000-0000-0000-000000000001', label: 'Ustadzah Maryam (Tutor — Aqidah only)' },
   { id: 'a2000000-0000-0000-0000-000000000001', label: 'Ibu Siti (Parent — 3 children)' },
   { id: 'a2000000-0000-0000-0000-000000000002', label: 'Bapak Rudi (Parent — 2 children)' },
   { id: 'a3000000-0000-0000-0000-000000000001', label: 'Fatimah (Santri, 16+ self-login)' },

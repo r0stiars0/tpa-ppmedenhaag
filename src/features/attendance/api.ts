@@ -68,26 +68,34 @@ export async function getOrCreateScheduledSession(
   throw insertError
 }
 
+export interface StudentGroupOption {
+  id: string
+  name: string
+  meeting_days: number[]
+  schedule: string | null
+  tracks_progress: boolean
+}
+
 /**
- * The meeting days (and time-range text) of the class a student is
- * enrolled in, for the read-only "Lesdagen" line on the family
- * attendance screen (TAD ADR-037). `classes_read` already grants a
- * parent / 16+ student the class row for their own child, so no policy
- * change is needed; the embed resolves through students.class_id. Null
- * when the student is not enrolled in any class.
+ * The ACTIVE groups a student is in, with their meeting days (and
+ * time-range text), for the family attendance screen's read-only
+ * "Lesdagen" lines (TAD ADR-037) — one per group since PRD Feature 8.
+ * `class_members_family_read` and `classes_read` grant a family exactly
+ * these rows for their own child; an archived group is history, not a
+ * group the child meets in.
  */
-export async function fetchStudentMeetingDays(
-  studentId: string,
-): Promise<{ meeting_days: number[]; schedule: string | null } | null> {
+export async function fetchStudentGroups(studentId: string): Promise<StudentGroupOption[]> {
   const { data, error } = await supabase
-    .from('students')
-    .select('class:classes(meeting_days, schedule)')
-    .eq('id', studentId)
-    .maybeSingle()
+    .from('class_members')
+    .select('class:classes!inner(id, name, meeting_days, schedule, tracks_progress, archived_at)')
+    .eq('student_id', studentId)
+    .is('class.archived_at', null)
   if (error) throw error
-  const cls = (data as { class: { meeting_days: number[]; schedule: string | null } | null } | null)
-    ?.class
-  return cls ?? null
+  return ((data ?? []) as { class: StudentGroupOption | null }[])
+    .map((row) => row.class)
+    .filter((cls): cls is StudentGroupOption => cls !== null)
+    .map(({ id, name, meeting_days, schedule, tracks_progress }) => ({ id, name, meeting_days, schedule, tracks_progress }))
+    .sort((a, b) => a.name.localeCompare(b.name))
 }
 
 export async function fetchAttendanceForSession(sessionId: string): Promise<Tables<'attendance'>[]> {
@@ -223,41 +231,38 @@ export async function fetchTutorAttendanceHistory(
 }
 
 export interface AttendanceHistoryRow {
+  /** The session's id — one row per session attended. */
   id: string
   status: AttendanceStatus
+  /**
+   * Null for anyone but the session's own group tutors, admins and the
+   * child's family — the reason can carry health information and never
+   * crosses groups (PRD Feature 8 FR-006, DPIA R4).
+   */
   reason: string | null
   date: string
+  classId: string
+  className: string
 }
 
 /**
- * Fetches all attendance rows for a student and stitches in the session
- * date via a second query (rather than a PostgREST embedded-resource
- * filter) — simpler to keep correctly typed, and a student's full
- * attendance history is small enough (~100 rows/year per TAD storage
- * estimate) that client-side date filtering is fine for MVP.
+ * A student's attendance across ALL their groups, newest first, each
+ * row labelled with its group (PRD Feature 8 FR-003). Read through
+ * `fn_student_attendance_history` rather than the `attendance` table:
+ * a tutor's grant on that table is scoped to their own groups' sessions,
+ * and the function is the one path by which a child's own attendance
+ * crosses groups — with the absence reason withheld where it must be
+ * (TAD ADR-045(d)). Families read the same function and get the reason.
  */
 export async function fetchAttendanceHistory(studentId: string): Promise<AttendanceHistoryRow[]> {
-  const { data: rows, error } = await supabase
-    .from('attendance')
-    .select('id, status, reason, session_id')
-    .eq('student_id', studentId)
+  const { data, error } = await supabase.rpc('fn_student_attendance_history', { p_student: studentId })
   if (error) throw error
-  if (!rows || rows.length === 0) return []
-
-  const sessionIds = [...new Set(rows.map((r) => r.session_id))]
-  const { data: sessions, error: sessionsError } = await supabase
-    .from('sessions')
-    .select('id, date')
-    .in('id', sessionIds)
-  if (sessionsError) throw sessionsError
-
-  const dateBySession = new Map((sessions ?? []).map((s) => [s.id, s.date]))
-  return rows
-    .map((r) => ({
-      id: r.id,
-      status: r.status,
-      reason: r.reason,
-      date: dateBySession.get(r.session_id) ?? '',
-    }))
-    .sort((a, b) => (a.date < b.date ? 1 : -1))
+  return (data ?? []).map((row) => ({
+    id: row.session_id,
+    status: row.status,
+    reason: row.reason,
+    date: row.session_date,
+    classId: row.class_id,
+    className: row.class_name,
+  }))
 }

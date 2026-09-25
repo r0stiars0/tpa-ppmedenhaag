@@ -47,25 +47,27 @@ export default async (req: Request) => {
 
   const { data: assignment, error } = await client
     .from('assignments')
-    .select('id, class_id, created_at, title, due_date')
+    .select('id, class_id, created_at, title, due_date, class:classes(name)')
     .eq('id', assignmentId)
     .maybeSingle()
   if (error) return jsonError(error.message, 500)
   if (!assignment) return jsonOk({ sent: 0, skipped: 'no such assignment' })
 
-  // The roster is read here, not taken from the request: a class's
-  // membership is exactly who may be told about its homework.
-  const { data: students, error: rosterError } = await client
-    .from('students')
-    .select('id')
+  // The roster is read here, not taken from the request: a group's
+  // membership is exactly who may be told about its homework. Since
+  // ADR-045 that is `class_members`, where a child can be in several.
+  const { data: members, error: rosterError } = await client
+    .from('class_members')
+    .select('student_id')
     .eq('class_id', assignment.class_id)
   if (rosterError) return jsonError(rosterError.message, 500)
-  if (!students || students.length === 0) {
+  if (!members || members.length === 0) {
     return jsonOk({ sent: 0, skipped: 'no students enrolled in this class' })
   }
+  const groupName = assignment.class?.name
 
   const result = await notifyStudents(client, {
-    studentIds: students.map((s) => s.id),
+    studentIds: members.map((m) => m.student_id),
     event: 'newAssignment',
     // The Spec addresses this one to "Parent + Student".
     audience: 'family',
@@ -76,7 +78,14 @@ export default async (req: Request) => {
     date: amsterdamDate(new Date(assignment.created_at)),
     // The title and deadline the Spec's copy asked for, kept out of the
     // push payload (DPIA R6) and carried here for the in-app list.
-    context: { title: assignment.title, date: assignment.due_date },
+    context: groupName
+      ? { title: assignment.title, date: assignment.due_date, group: groupName }
+      : { title: assignment.title, date: assignment.due_date },
+    // Per group per day: a child with homework from two groups on the
+    // same day hears about each (ADR-045(g)); two from one group in one
+    // sitting still collapse, as before.
+    refId: assignment.class_id,
+    group: groupName,
   })
 
   if (result.failed > 0) return jsonError('Push delivery failed', 502)

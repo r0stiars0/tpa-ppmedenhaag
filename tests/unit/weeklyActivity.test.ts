@@ -28,8 +28,8 @@ const WINDOW: WeekWindow = {
 }
 
 interface Tables {
-  sessions?: { id: string }[]
-  attendance?: { student_id: string; status: string }[]
+  sessions?: { id: string; class_id?: string; class?: { name: string; archived_at: string | null } }[]
+  attendance?: { student_id: string; status: string; session_id?: string }[]
   yanbua_progress?: { student_id: string; recorded_at: string }[]
   quran_progress?: { student_id: string; recorded_at: string }[]
   murajaah_assignments?: { id: string; student_id: string }[]
@@ -111,6 +111,39 @@ describe('fetchWeeklyActivity', () => {
     const result = await fetchWeeklyActivity(client, [ALI, ZAINAB], WINDOW)
     expect(result.get(ALI)).toMatchObject({ recorded: 2, present: 1, absent: 1, late: 0 })
     expect(result.get(ZAINAB)).toMatchObject({ recorded: 1, present: 0, absent: 0, late: 1 })
+  })
+
+  it('breaks attendance down per group, ordered by name (PRD Feature 8 FR-003)', async () => {
+    // A child in two groups: 100% in one and 0% in the other must not
+    // read as a reassuring 50% on the dashboard.
+    const { client } = fakeClient({
+      sessions: [
+        { id: 's-yanbua', class_id: 'yb', class: { name: 'Kelas A', archived_at: null } },
+        { id: 's-aqidah', class_id: 'aq', class: { name: 'Aqidah', archived_at: null } },
+      ],
+      attendance: [
+        { student_id: ALI, status: 'present', session_id: 's-yanbua' },
+        { student_id: ALI, status: 'absent', session_id: 's-aqidah' },
+      ],
+    })
+    const week = (await fetchWeeklyActivity(client, [ALI], WINDOW)).get(ALI)!
+    expect(week.recorded).toBe(2)
+    expect(week.groups).toEqual([
+      { classId: 'aq', className: 'Aqidah', recorded: 1, present: 0, absent: 1, late: 0 },
+      { classId: 'yb', className: 'Kelas A', recorded: 1, present: 1, absent: 0, late: 0 },
+    ])
+  })
+
+  it('leaves an archived group out entirely — it runs nothing automatic (PRD FR-010)', async () => {
+    const { client, filters } = fakeClient({
+      sessions: [
+        { id: 's-live', class_id: 'yb', class: { name: 'Kelas A', archived_at: null } },
+        { id: 's-old', class_id: 'old', class: { name: 'Old', archived_at: '2026-08-11T00:00:00Z' } },
+      ],
+      attendance: [{ student_id: ALI, status: 'present', session_id: 's-live' }],
+    })
+    await fetchWeeklyActivity(client, [ALI], WINDOW)
+    expect(filters.find((f) => f.table === 'attendance')?.in.session_id).toEqual(['s-live'])
   })
 
   it('bounds the attendance read by the week’s sessions, not by a child’s history', async () => {

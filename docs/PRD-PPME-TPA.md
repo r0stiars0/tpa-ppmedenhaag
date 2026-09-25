@@ -1368,6 +1368,7 @@ A group with tracking off otherwise behaves like any other group. It has meeting
   - removing a student from their last active group with tracking on.
 
   For each target, the admin must close it or keep it. **"Keep" is offered only when the student is still in another active group with tracking on**, i.e. a tutor who can manage the target exists. Otherwise the only option is to close it. As a safety net, daily Murajaah reminders are **not sent** for a target whose student is no longer in any active group with tracking on, so a family is never reminded about a target no tutor can change.
+- *Implementation status: **built — release 8a** (TAD ADR-045, migration 026).*
 
 **FR-002: Multi-Group Enrolment**
 - Priority: High
@@ -1379,6 +1380,7 @@ A group with tracking off otherwise behaves like any other group. It has meeting
 - **Form-driven enrolment (Feature 1 FR-010) is unchanged.** A student enrolled from the "Daftar Ulang" form still arrives in no group, and an admin adds them to their groups afterwards.
 - **Existing data:** every existing group keeps its name, tutors, meeting days, homework and attendance history, and has tracking switched on. Every student's current group becomes their first group membership. Nothing is lost or re-entered.
 - Removing a student from a group does not delete that group's past attendance or homework records for the student. The family keeps seeing those records for their own child. They **lose access** to that group's announcements and course materials from the moment the student leaves.
+- *Implementation status: **built — release 8a** (TAD ADR-045, migration 026).*
 
 **FR-003: Group-Scoped Attendance, Homework and Rosters**
 - Priority: High
@@ -1395,6 +1397,7 @@ A group with tracking off otherwise behaves like any other group. It has meeting
   - The attendance summary shows **one percentage per group**, plus the overall figure. A single combined figure would hide a child who misses only one group.
   - The weekly digest's attendance line is also per group.
   - The meeting days shown (Feature 1 FR-007) are listed per group.
+- *Implementation status: **built — release 8a** (TAD ADR-045, migration 026).* The per-group split of two same-day absence notifications in the *in-app list* takes effect with the contract migration (ADR-045(g)); both pushes already arrive separately, each naming its group.
 
 **FR-004: Group Announcements**
 - Priority: High
@@ -1460,6 +1463,7 @@ A group with tracking off otherwise behaves like any other group. It has meeting
   - **Student assistants** (16+ students who also tutor a group) get **no cross-group reads**. They see what they need for the group they teach and nothing from the child's other groups: no other groups' announcements, materials or homework, no attendance from other groups, and Yanbu'a/Quran/Murajaah history only for students of a group they teach with tracking on.
 - Only the group's own tutors and admins can post, edit or delete there. A tutor who can read another group's content through a shared student cannot change it.
 - A parent of a child in groups A and B sees A's and B's content. A parent with no child in group C sees nothing of C. This family isolation is re-verified live against the database, not only in the automated suite.
+- *Implementation status: attendance, homework and progress visibility **built — release 8a** (TAD ADR-045, migration 026); announcements and materials are release 8b.*
 
 **FR-007: Family and Tutor Screens**
 - Priority: High
@@ -1469,6 +1473,7 @@ A group with tracking off otherwise behaves like any other group. It has meeting
 - The bottom tab bar is unchanged.
 - For a child who is in **no** group with Yanbu'a/Quran/Murajaah tracking on, the Yanbu'a, Al-Quran and Murajaah screens show a short explanation instead of an empty history.
 - Tutor screens that pick a group (the attendance register, homework, the scope switch) list every **active** group the tutor teaches. Archived groups (FR-010) are left out of pickers, and their history stays reachable from the student's records.
+- *Implementation status: the per-group family attendance screens, the no-tracking explanation and the tutor pickers are **built — release 8a**; the "Pengumuman & Materi" page is release 8b.*
 
 **FR-008: Year-End Reports Across Groups**
 - Priority: Medium
@@ -1494,6 +1499,7 @@ A group with tracking off otherwise behaves like any other group. It has meeting
   - **Every membership change is logged**: who added or removed which student to or from which group, and when, whether through bulk enrolment or the student form. The log is admin-only, like the role-change log (Feature 1 FR-009), and is not shown in the app yet.
 - Adding a student already in the group is a no-op, not an error.
 - *User story:* As the TPA admin, at the start of the year I open "Aqidah 7–9 th", filter by birthdate, tick the children and save once, instead of editing 40 student records one by one.
+- *Implementation status: **built — release 8a** (TAD ADR-045, migration 026).*
 
 **FR-010: Group Archiving**
 - Priority: High (release 8a)
@@ -1510,6 +1516,7 @@ A group with tracking off otherwise behaves like any other group. It has meeting
 - Archiving removes nobody's membership. Its former members still appear on it for history, and the admin enrols them in their new groups (FR-009).
 - **Groups with history cannot be deleted.** Deleting a group today would silently erase its sessions, attendance and homework. Delete is offered only for a group that has never had a session, homework, announcement or material, e.g. one created by mistake.
 - **Deferred to a later release:** a bulk "move these students from group A to group B" action. It is named here so the need is recorded. Until then, the admin archives the old group and uses FR-009 on the new one.
+- *Implementation status: **built — release 8a** (TAD ADR-045, migration 026).*
 
 #### 8.4. Non-Functional Requirements
 *   **Security/Privacy:** every rule in FR-006 is enforced in the database (RLS). File downloads are authorised by the storage service against the same rule before it issues a 5-minute download link (TAD ADR-045(f)). Cross-family isolation is re-verified live. Course materials are **teaching content and must not contain images or personal data of children**. This is confirmed by PPME, and the tutor upload screen states it. The DPIA and privacy policy (both languages) are updated **in release 8a**, before cross-group reading goes live, since families must be told that a child's tutors in other groups can read their progress and attendance status. They are updated again in 8b for announcements, stored files and the accepted-risk entry above.
@@ -1607,7 +1614,7 @@ A group with tracking off otherwise behaves like any other group. It has meeting
 - **When:** an admin opens Beheer
 - **Then:** the no-group count includes them, and the Santri "No group" filter lists them
 
-**AC-011:** Per-group absence notification
+**AC-011:** Per-group absence notification *(pushes: met in 8a; the in-app list: met once the contract migration swaps the notification key — ADR-045(g))*
 - **Given:** a child absent from both "Kelas A" and "Aqidah 7–9 th" on the same day
 - **When:** both registers are saved
 - **Then:** the guardians receive two notifications, each naming its group

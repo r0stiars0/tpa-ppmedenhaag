@@ -34,6 +34,20 @@ export const NOTIFICATION_EVENTS = [
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[number]
 
 /**
+ * The events whose push can name the group it happened in (PRD Feature 8,
+ * ADR-045(g)). A child in two groups can be absent from both on one day,
+ * or get homework from both; without the group the two pushes read
+ * identically. Each has a `<event>InGroup` string beside its plain one,
+ * and only those strings may carry `{{group}}` — a group's name is
+ * teaching metadata, not something about the child (DPIA R6).
+ */
+export const PUSH_GROUP_VARIANTS = ['absence', 'newAssignment'] as const satisfies readonly NotificationEvent[]
+
+function hasGroupVariant(event: NotificationEvent): boolean {
+  return (PUSH_GROUP_VARIANTS as readonly NotificationEvent[]).includes(event)
+}
+
+/**
  * Where tapping the notification lands. Deliberately a route the
  * recipient is authorized to see anyway — the deep link carries no data
  * of its own, so a link leaked with the payload reveals nothing that the
@@ -96,6 +110,14 @@ export interface PayloadInput {
   studentId: string
   /** Europe/Amsterdam calendar date (YYYY-MM-DD) — see `amsterdamDate`. */
   date: string
+  /**
+   * What the event is about beyond the child and the day — the session
+   * for an absence, the group for new homework — so two of the same
+   * event on one day get two tags (ADR-045(g)). Never rendered.
+   */
+  refId?: string
+  /** The group's name, for the events in PUSH_GROUP_VARIANTS. */
+  group?: string
 }
 
 export interface PushPayload {
@@ -135,25 +157,36 @@ export function dedupTag(
   recipientUserId: string,
   studentId: string,
   date: string,
+  refId?: string,
 ): string {
-  return `${event}:${recipientUserId}:${studentId}:${date}`
+  const base = `${event}:${recipientUserId}:${studentId}:${date}`
+  // Narrows the key further, as adding the child did (ADR-016): the same
+  // child, event, day AND source is still exactly one notification.
+  return refId ? `${base}:${refId}` : base
 }
 
-function interpolate(template: string, name: string): string {
-  return template.replace(/\{\{\s*name\s*\}\}/g, name)
+function interpolate(template: string, values: Record<string, string>): string {
+  return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (whole, key: string) => values[key] ?? whole)
 }
 
-export function pushBody(event: NotificationEvent, locale: Locale, childFullName: string): string {
-  const template = COPY[locale].notifications.push[event]
-  if (!template) throw new Error(`Missing push copy for "${event}" in locale "${locale}"`)
-  return interpolate(template, firstName(childFullName))
+export function pushBody(
+  event: NotificationEvent,
+  locale: Locale,
+  childFullName: string,
+  group?: string,
+): string {
+  const key = group && hasGroupVariant(event) ? `${event}InGroup` : event
+  const push = COPY[locale].notifications.push as Record<string, string>
+  const template = push[key]
+  if (!template) throw new Error(`Missing push copy for "${key}" in locale "${locale}"`)
+  return interpolate(template, { name: firstName(childFullName), group: group ?? '' })
 }
 
 export function buildPayload(input: PayloadInput): PushPayload {
   return {
     title: COPY[input.locale].app.name,
-    body: pushBody(input.event, input.locale, input.childFullName),
-    tag: dedupTag(input.event, input.recipientUserId, input.studentId, input.date),
+    body: pushBody(input.event, input.locale, input.childFullName, input.group),
+    tag: dedupTag(input.event, input.recipientUserId, input.studentId, input.date, input.refId),
     url: EVENT_URL[input.event],
     icon: '/icons/icon-192.png',
   }

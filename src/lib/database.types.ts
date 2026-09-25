@@ -163,29 +163,120 @@ export type Database = {
           },
         ]
       }
+      class_member_changes: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string | null
+          class_id: string
+          id: string
+          student_id: string | null
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by?: string | null
+          class_id: string
+          id?: string
+          student_id?: string | null
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string | null
+          class_id?: string
+          id?: string
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_member_changes_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_member_changes_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_member_changes_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_members: {
+        Row: {
+          class_id: string
+          enrolled_at: string
+          id: string
+          student_id: string
+        }
+        Insert: {
+          class_id: string
+          enrolled_at?: string
+          id?: string
+          student_id: string
+        }
+        Update: {
+          class_id?: string
+          enrolled_at?: string
+          id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_members_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_members_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
+          archived_at: string | null
           created_at: string
           id: string
           meeting_days: number[]
           name: string
           schedule: string | null
+          tracks_progress: boolean
           tutor_ids: string[]
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string
           id?: string
           meeting_days?: number[]
           name: string
           schedule?: string | null
+          tracks_progress?: boolean
           tutor_ids?: string[]
         }
         Update: {
+          archived_at?: string | null
           created_at?: string
           id?: string
           meeting_days?: number[]
           name?: string
           schedule?: string | null
+          tracks_progress?: boolean
           tutor_ids?: string[]
         }
         Relationships: []
@@ -367,6 +458,7 @@ export type Database = {
           event_date: string
           id: string
           read_at: string | null
+          ref_id: string | null
           student_id: string
           user_id: string
         }
@@ -377,6 +469,7 @@ export type Database = {
           event_date: string
           id?: string
           read_at?: string | null
+          ref_id?: string | null
           student_id: string
           user_id: string
         }
@@ -387,6 +480,7 @@ export type Database = {
           event_date?: string
           id?: string
           read_at?: string | null
+          ref_id?: string | null
           student_id?: string
           user_id?: string
         }
@@ -971,6 +1065,7 @@ export type Database = {
       fn_admin_save_student: {
         Args: {
           p_class_id?: string
+          p_class_ids?: string[]
           p_dob: string
           p_full_name: string
           p_guardians: Json
@@ -992,6 +1087,7 @@ export type Database = {
           would_block: string
         }[]
       }
+      fn_assignment_class: { Args: { p_assignment: string }; Returns: string }
       fn_class_tutors: {
         Args: { p_class: string }
         Returns: {
@@ -1025,15 +1121,47 @@ export type Database = {
         }[]
       }
       fn_is_admin: { Args: never; Returns: boolean }
+      fn_is_class_member: {
+        Args: { p_class: string; p_student: string }
+        Returns: boolean
+      }
+      fn_my_active_classes: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
       fn_my_children: { Args: never; Returns: string[] }
+      fn_my_class_assignment_ids: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
+      fn_my_class_session_ids: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
       fn_my_class_students: { Args: never; Returns: string[] }
       fn_my_classes: { Args: never; Returns: string[] }
+      fn_my_family_assignment_ids: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
+      fn_my_family_classes: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
       fn_my_family_flags: {
         Args: { p_user?: string }
         Returns: {
           is_parent: boolean
           is_self: boolean
         }[]
+      }
+      fn_my_family_history_classes: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
+      fn_my_family_session_ids: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
       }
       fn_my_family_students: {
         Args: never
@@ -1045,8 +1173,24 @@ export type Database = {
           user_id: string
         }[]
       }
+      fn_my_progress_students: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
       fn_my_recordable_students: { Args: never; Returns: string[] }
+      fn_my_report_students: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
+      fn_my_roster_students: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
       fn_my_student_id: { Args: never; Returns: string }
+      fn_my_tutor_readable_classes: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
       fn_pending_registrations: {
         Args: never
         Returns: {
@@ -1064,6 +1208,18 @@ export type Database = {
       fn_record_push_subscriber_count: {
         Args: { p_week_start: string }
         Returns: number
+      }
+      fn_session_class: { Args: { p_session: string }; Returns: string }
+      fn_student_attendance_history: {
+        Args: { p_student: string }
+        Returns: {
+          class_id: string
+          class_name: string
+          reason: string
+          session_date: string
+          session_id: string
+          status: Database["public"]["Enums"]["attendance_status"]
+        }[]
       }
       fn_student_guardians: {
         Args: { p_student: string }

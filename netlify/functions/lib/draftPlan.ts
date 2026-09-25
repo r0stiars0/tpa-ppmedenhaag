@@ -6,7 +6,7 @@ export interface DraftCandidate {
 export interface DraftPlan {
   candidates: DraftCandidate[]
   skipped_existing: number
-  /** Student has no class, or their class has no tutor assigned. */
+  /** Student is in no active group that has a tutor assigned. */
   skipped_no_tutor: number
 }
 
@@ -23,14 +23,43 @@ export interface DraftPlan {
  *     `(student_id, academic_year)` is the real guarantee); this is the
  *     count that tells the admin the run was a no-op rather than a
  *     failure.
- *   - `skipped_no_tutor` — no class, or a class with an empty
- *     `tutor_ids`. `year_end_reports.tutor_id` is NOT NULL and a report
+ *   - `skipped_no_tutor` — in no active group, or only in groups with an
+ *     empty `tutor_ids`. `year_end_reports.tutor_id` is NOT NULL and a report
  *     without an authoring tutor has nobody who can write or publish it,
  *     so these are genuinely blocked on enrollment work, not skipped
  *     because they were already done.
  */
+export interface DraftGroup {
+  class_id: string
+  name: string
+  tracks_progress: boolean
+}
+
+/**
+ * The default author of a child's report (PRD Feature 8 FR-008, TAD
+ * ADR-045(h)): the first tutor of the student's first group with tracking
+ * on — the tutor who writes the Yanbu'a/Quran/Murajaah part — and only if
+ * there is none, the first tutor of their first other group (an
+ * Aqidah-only child). "First" is by group name, so a re-run picks the
+ * same author. An admin can reassign it afterwards.
+ *
+ * `groups` is the student's ACTIVE groups only: a tutor of an archived
+ * group no longer counts as teaching the child and could not author the
+ * report under `yer_tutor_rw` anyway.
+ */
+export function defaultAuthor(groups: readonly DraftGroup[], tutorByClass: Map<string, string>): string | undefined {
+  const ordered = [...groups].sort(
+    (a, b) => Number(b.tracks_progress) - Number(a.tracks_progress) || a.name.localeCompare(b.name),
+  )
+  for (const group of ordered) {
+    const tutorId = tutorByClass.get(group.class_id)
+    if (tutorId) return tutorId
+  }
+  return undefined
+}
+
 export function planDrafts(input: {
-  students: { id: string; class_id: string | null }[]
+  students: { id: string; groups: DraftGroup[] }[]
   tutorByClass: Map<string, string>
   existingStudentIds: Iterable<string>
 }): DraftPlan {
@@ -38,7 +67,7 @@ export function planDrafts(input: {
   const plan: DraftPlan = { candidates: [], skipped_existing: 0, skipped_no_tutor: 0 }
 
   for (const student of input.students) {
-    const tutorId = student.class_id ? input.tutorByClass.get(student.class_id) : undefined
+    const tutorId = defaultAuthor(student.groups, input.tutorByClass)
     if (!tutorId) {
       plan.skipped_no_tutor += 1
       continue

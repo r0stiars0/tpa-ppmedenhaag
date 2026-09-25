@@ -27,7 +27,7 @@ type MurajaahFrequency = Database['public']['Enums']['murajaah_frequency']
 export function TutorAssignView() {
   const { t } = useTranslation()
   const { profile } = useAuth()
-  const { classes, loading: classesLoading } = useMyClasses()
+  const { classes, loading: classesLoading } = useMyClasses({ trackingOnly: true })
   const { selfStudentId } = useViewScope()
 
   const [classId, setClassId] = useState<string | null>(null)

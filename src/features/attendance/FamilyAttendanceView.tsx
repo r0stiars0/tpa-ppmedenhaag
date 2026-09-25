@@ -4,14 +4,15 @@ import { useMyStudents } from '../../hooks/useMyStudents'
 import { useViewScope } from '../../context/ViewScopeContext'
 import { isSelfRecord } from '../../lib/capabilities'
 import { ChildPicker } from '../../components/ChildPicker'
-import { computeAttendanceRate } from '../../lib/attendance'
+import { ratesByGroup } from '../../lib/attendance'
 import { getErrorMessage } from '../../lib/errors'
 import { formatDayList } from '../../lib/weekdays'
 import {
   fetchAttendanceHistory,
-  fetchStudentMeetingDays,
+  fetchStudentGroups,
   todayLocalDate,
   type AttendanceHistoryRow,
+  type StudentGroupOption,
 } from './api'
 
 function daysAgo(days: number): string {
@@ -40,7 +41,7 @@ export function FamilyAttendanceView() {
   const [error, setError] = useState<string | null>(null)
   const [from, setFrom] = useState(() => daysAgo(90))
   const [to, setTo] = useState(() => todayLocalDate())
-  const [meetingDays, setMeetingDays] = useState<number[] | null>(null)
+  const [groups, setGroups] = useState<StudentGroupOption[]>([])
 
   useEffect(() => {
     if (!studentId && students.length > 0) setStudentId(students[0].id)
@@ -49,14 +50,14 @@ export function FamilyAttendanceView() {
   useEffect(() => {
     if (!studentId) return
     let active = true
-    setMeetingDays(null)
-    fetchStudentMeetingDays(studentId)
-      .then((cls) => {
-        if (active) setMeetingDays(cls?.meeting_days ?? [])
+    setGroups([])
+    fetchStudentGroups(studentId)
+      .then((rows) => {
+        if (active) setGroups(rows)
       })
       .catch(() => {
         // A non-fatal extra: the history below is the screen's job.
-        if (active) setMeetingDays([])
+        if (active) setGroups([])
       })
     return () => {
       active = false
@@ -87,7 +88,11 @@ export function FamilyAttendanceView() {
     () => history.filter((r) => r.date >= from && r.date <= to),
     [history, from, to],
   )
-  const rate = useMemo(() => computeAttendanceRate(filtered.map((r) => r.status)), [filtered])
+  // One rate per group as well as the overall (PRD Feature 8 FR-003): a
+  // single combined figure hides a child who attends one group and skips
+  // the other.
+  const rates = useMemo(() => ratesByGroup(filtered), [filtered])
+  const showGroups = rates.groups.length > 1 || groups.length > 1
 
   const dateFormatter = useMemo(
     () =>
@@ -165,12 +170,28 @@ export function FamilyAttendanceView() {
       </div>
 
       <div className="rounded-lg bg-white p-4 text-center shadow-sm">
-        <p className="text-3xl font-bold text-ppme-primary">{rate}%</p>
-        <p className="mt-1 text-sm text-ppme-text/70">{t('attendance.attendanceRate')}</p>
-        {meetingDays && meetingDays.length > 0 && (
-          <p className="mt-2 text-xs text-ppme-text/60">
-            {t('attendance.meetingDaysLabel')}: {formatDayList(meetingDays, t)}
-          </p>
+        <p className="text-3xl font-bold text-ppme-primary">{rates.overall}%</p>
+        <p className="mt-1 text-sm text-ppme-text/70">
+          {showGroups ? t('attendance.overallRate') : t('attendance.attendanceRate')}
+        </p>
+        {showGroups && rates.groups.length > 0 && (
+          <ul className="mt-3 space-y-1 border-t border-black/5 pt-3 text-left">
+            {rates.groups.map((group) => (
+              <li key={group.classId} className="flex items-center justify-between text-sm">
+                <span className="text-ppme-text/80">{group.className}</span>
+                <span className="font-semibold text-ppme-primary">{group.rate}%</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {groups.map((group) =>
+          group.meeting_days.length > 0 ? (
+            <p key={group.id} className="mt-2 text-xs text-ppme-text/60">
+              {showGroups
+                ? t('attendance.meetingDaysOfGroup', { group: group.name, days: formatDayList(group.meeting_days, t) })
+                : `${t('attendance.meetingDaysLabel')}: ${formatDayList(group.meeting_days, t)}`}
+            </p>
+          ) : null,
         )}
       </div>
 
@@ -193,6 +214,7 @@ export function FamilyAttendanceView() {
                   <p className="text-sm font-medium text-ppme-text">
                     {dateFormatter.format(new Date(`${row.date}T00:00:00`))}
                   </p>
+                  {showGroups && <p className="text-xs text-ppme-text/60">{row.className}</p>}
                   {row.status === 'absent' && row.reason && (
                     <p className="text-xs text-ppme-text/60">{row.reason}</p>
                   )}

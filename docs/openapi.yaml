@@ -72,12 +72,21 @@ paths:
         `is_guardian` / `is_self`. It replaced the former
         `or=(parent_id.eq.{uuid},user_id.eq.{uuid})` filter — `students.parent_id`
         no longer exists. See TAD ADR-019, ADR-040.
+
+        **Groups (migration 026, TAD ADR-045):** a student can be in several
+        groups, so a group's roster is read through `class_members` — e.g.
+        `select=id,full_name,member:class_members!inner(class_id)&member.class_id=eq.{uuid}`.
+        A tutor reads the names of the members of any of their groups,
+        archived included (`fn_my_roster_students()`).
       parameters:
         - $ref: '#/components/parameters/select'
         - name: class_id
           in: query
           schema: { type: string }
-          description: 'PostgREST filter, e.g. `eq.{uuid}`'
+          deprecated: true
+          description: >-
+            Pre-ADR-045 single group. The column survives only until the
+            contract migration; filter via `class_members` instead.
       responses:
         '200':
           description: Filtered list of students
@@ -695,6 +704,15 @@ paths:
         single transaction, so a student can never momentarily exist with no
         guardian. Replaces the client-side `createStudent` / `updateStudent`
         pair. Returns the student id.
+
+        **Groups (migration 026, TAD ADR-045):** pass `p_class_ids` — the
+        student's ACTIVE groups, any number. The call removes active
+        memberships not in the set and adds missing ones; memberships in
+        **archived** groups are history and are left untouched. Each change
+        is written to `class_member_changes` by trigger. `p_class_id` is the
+        pre-ADR-045 single group, still accepted without `p_class_ids`
+        during the transition (mirrored into `class_members` by a sync
+        trigger) and removed with the contract migration.
       requestBody:
         required: true
         content:
@@ -715,8 +733,18 @@ paths:
                       user_id: { type: string, format: uuid }
                       relation: { type: string, nullable: true }
                 p_id: { type: string, format: uuid, nullable: true }
-                p_class_id: { type: string, format: uuid, nullable: true }
+                p_class_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  deprecated: true
+                  description: Pre-ADR-045 single group; ignored when `p_class_ids` is given.
                 p_user_id: { type: string, format: uuid, nullable: true }
+                p_class_ids:
+                  type: array
+                  nullable: true
+                  items: { type: string, format: uuid }
+                  description: The student's active groups (ADR-045). Replaces the active set.
       responses:
         '200':
           description: The saved student's id
@@ -725,6 +753,133 @@ paths:
               schema: { type: string, format: uuid }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/ForbiddenRLS' }
+
+  /class_members:
+    get:
+      tags: [students, admin]
+      summary: Group memberships visible to the caller
+      description: |
+        Added in migration 026 (TAD ADR-045, PRD Feature 8). A student can be
+        in any number of groups. RLS: an admin reads all; a tutor reads the
+        memberships of their own groups (archived included); a guardian reads
+        their children's; a 16+ student their own. Embed the group with
+        `class:classes(name, tracks_progress, archived_at)`.
+      parameters:
+        - $ref: '#/components/parameters/select'
+        - name: student_id
+          in: query
+          schema: { type: string }
+        - name: class_id
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Membership rows
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ClassMember' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [admin]
+      summary: Enrol students in a group (Admin only)
+      description: |
+        Bulk enrolment (PRD FR-009) is one call with
+        `Prefer: resolution=ignore-duplicates` and
+        `on_conflict=class_id,student_id`, so a student already in the group
+        is a no-op. Admin-only (`class_members_admin_all`); refused with
+        `23514` for an archived group (`trg_class_not_archived`). Every
+        inserted row is logged to `class_member_changes`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required: [class_id, student_id]
+                properties:
+                  class_id: { type: string, format: uuid }
+                  student_id: { type: string, format: uuid }
+      responses:
+        '201': { description: Enrolled }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ForbiddenRLS' }
+    delete:
+      tags: [admin]
+      summary: Remove students from a group (Admin only)
+      description: |
+        `class_id=eq.{id}&student_id=in.(…)`. The student's own past
+        attendance and homework stay readable to their family. Logged to
+        `class_member_changes`.
+      responses:
+        '204': { description: Removed }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /class_member_changes:
+    get:
+      tags: [admin]
+      summary: Enrolment audit log (Admin only)
+      description: |
+        Added in migration 026 (TAD ADR-045, PRD Resolved Decision 25). One
+        row per membership added/removed and per group archived/unarchived:
+        `class_id`, `student_id` (null for archive rows), `action`,
+        `changed_by`, `changed_at`. Written only by triggers; admin-read,
+        no client write. Not surfaced in the app yet.
+      parameters:
+        - $ref: '#/components/parameters/select'
+      responses:
+        '200':
+          description: Audit rows (empty array for non-admin callers)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ClassMemberChange' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /rpc/fn_student_attendance_history:
+    post:
+      tags: [attendance]
+      summary: A child's attendance across all their groups
+      description: |
+        Added in migration 026 (TAD ADR-045(d)). The one path by which a
+        child's attendance crosses groups. Returns `session_id`,
+        `session_date`, `class_id`, `class_name`, `status`, `reason`, newest
+        first. `reason` is **null** unless the caller is a tutor of that
+        session's group, an admin, or the child's family — it can carry
+        health information. Entitled callers: admin, any current tutor of
+        the child (not via an archived group; a 16+ student assistant sees
+        only their own groups' sessions), the child's guardians, and the
+        16+ student themselves. Anyone else gets zero rows, not an error.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_student]
+              properties:
+                p_student: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Attendance rows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    session_id: { type: string, format: uuid }
+                    session_date: { type: string, format: date }
+                    class_id: { type: string, format: uuid }
+                    class_name: { type: string }
+                    status: { type: string, enum: [present, absent, late] }
+                    reason: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
   /student_guardians:
     get:
@@ -2061,6 +2216,22 @@ components:
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
+        tracks_progress:
+          type: boolean
+          description: >-
+            Whether this group's tutors may RECORD Yanbu'a/Quran/Murajaah (PRD
+            Feature 8 FR-001, migration 026). Default true; false for an Aqidah
+            group. Admin-write only.
+        archived_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: >-
+            Set when an admin archives the group (FR-010). An archived group is
+            frozen for every role (inserts/updates to its sessions, attendance,
+            homework, completion marks and memberships are refused `23514`) and
+            no longer counts as teaching its members for cross-group reads.
+            A group with any session or homework cannot be deleted (`23503`).
         schedule:
           type: string
           nullable: true
@@ -2085,6 +2256,24 @@ components:
             relationship — `fn_my_classes()` is `auth.uid() = any (tutor_ids)`,
             and no policy consults `users.role` to decide it (TAD ADR-019).
         created_at: { type: string, format: date-time }
+
+    ClassMember:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        class_id: { type: string, format: uuid }
+        student_id: { type: string, format: uuid }
+        enrolled_at: { type: string, format: date-time }
+
+    ClassMemberChange:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        class_id: { type: string, format: uuid }
+        student_id: { type: string, format: uuid, nullable: true }
+        action: { type: string, enum: [added, removed, archived, unarchived] }
+        changed_by: { type: string, format: uuid, nullable: true }
+        changed_at: { type: string, format: date-time }
 
     Student:
       type: object

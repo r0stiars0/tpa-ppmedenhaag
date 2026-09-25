@@ -65,10 +65,12 @@ describe('planDrafts (test-plan §4.4 — duplicate generation)', () => {
     ['class-a', 'tutor-1'],
     ['class-b', 'tutor-2'],
   ])
+  const yanbua = (class_id: string, name = class_id) => ({ class_id, name, tracks_progress: true })
+  const aqidah = (class_id: string, name = class_id) => ({ class_id, name, tracks_progress: false })
   const students = [
-    { id: 'stu-1', class_id: 'class-a' },
-    { id: 'stu-2', class_id: 'class-a' },
-    { id: 'stu-3', class_id: 'class-b' },
+    { id: 'stu-1', groups: [yanbua('class-a')] },
+    { id: 'stu-2', groups: [yanbua('class-a')] },
+    { id: 'stu-3', groups: [yanbua('class-b')] },
   ]
 
   it('creates one candidate per enrolled student on a first run', () => {
@@ -93,13 +95,49 @@ describe('planDrafts (test-plan §4.4 — duplicate generation)', () => {
 
   it('counts a class with no tutor separately from an already-generated one', () => {
     const plan = planDrafts({
-      students: [...students, { id: 'stu-4', class_id: 'class-c' }, { id: 'stu-5', class_id: null }],
+      students: [...students, { id: 'stu-4', groups: [yanbua('class-c')] }, { id: 'stu-5', groups: [] }],
       tutorByClass,
       existingStudentIds: ['stu-1'],
     })
     expect(plan.candidates.map((c) => c.student_id)).toEqual(['stu-2', 'stu-3'])
     expect(plan.skipped_existing).toBe(1)
     expect(plan.skipped_no_tutor).toBe(2)
+  })
+
+  describe('default author for a child in several groups (PRD Feature 8 FR-008)', () => {
+    it('prefers a tutor of a group with tracking on over an Aqidah tutor, whatever the order', () => {
+      const tutors = new Map([
+        ['aq', 'tutor-aqidah'],
+        ['yb', 'tutor-yanbua'],
+      ])
+      const plan = planDrafts({
+        students: [{ id: 'stu-1', groups: [aqidah('aq', 'A Aqidah'), yanbua('yb', 'Z Yanbua')] }],
+        tutorByClass: tutors,
+        existingStudentIds: [],
+      })
+      expect(plan.candidates).toEqual([{ student_id: 'stu-1', tutor_id: 'tutor-yanbua' }])
+    })
+
+    it('falls back to a tutor of a non-tracking group for an Aqidah-only child', () => {
+      const plan = planDrafts({
+        students: [{ id: 'stu-1', groups: [aqidah('aq')] }],
+        tutorByClass: new Map([['aq', 'tutor-aqidah']]),
+        existingStudentIds: [],
+      })
+      expect(plan.candidates).toEqual([{ student_id: 'stu-1', tutor_id: 'tutor-aqidah' }])
+    })
+
+    it('between two tracking groups, picks the first by name, and skips one with no tutor', () => {
+      const plan = planDrafts({
+        students: [{ id: 'stu-1', groups: [yanbua('b', 'Beta'), yanbua('a', 'Alpha'), yanbua('0', 'Aardvark')] }],
+        tutorByClass: new Map([
+          ['a', 'tutor-alpha'],
+          ['b', 'tutor-beta'],
+        ]),
+        existingStudentIds: [],
+      })
+      expect(plan.candidates).toEqual([{ student_id: 'stu-1', tutor_id: 'tutor-alpha' }])
+    })
   })
 })
 

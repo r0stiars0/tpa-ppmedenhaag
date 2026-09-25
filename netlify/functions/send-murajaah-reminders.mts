@@ -3,6 +3,7 @@ import { amsterdamDate } from './lib/notifications'
 import { notifyStudents, reportable } from './lib/notifyStudent'
 import { HOURLY, scheduledHandler } from './lib/scheduled'
 import { needsReminder, weekStart } from '../../src/lib/murajaah'
+import { studentsInActiveTrackingGroups } from '../../src/lib/groups'
 
 /**
  * PRD Feature 5 **FR-006** — the evening Murajaah reminder, at 18:00
@@ -58,6 +59,18 @@ export default scheduledHandler({
       return { sent: 0, expired: 0, failed: 0, skipped: 'no active targets' }
     }
 
+    // The safety net behind the admin's close-or-keep prompt (PRD Feature
+    // 8 FR-001): a target whose student is no longer in any active group
+    // with tracking on has no tutor left who may change it, so the family
+    // is not reminded about it. A filter, not a data change, so a later
+    // re-enrolment brings the reminders back by itself.
+    const { data: memberships, error: memberError } = await client
+      .from('class_members')
+      .select('student_id, class_id, class:classes(name, tracks_progress, archived_at)')
+      .in('student_id', [...new Set(assignments.map((a) => a.student_id))])
+    if (memberError) throw new Error(memberError.message)
+    const managed = studentsInActiveTrackingGroups(memberships ?? [])
+
     // One query for every target's confirmations this week. That is all
     // `needsReminder` can look at — it only ever asks about the period
     // in progress — so there is no reason to read a family's history.
@@ -83,6 +96,7 @@ export default scheduledHandler({
     // is no point paying a push service to find that out.
     const due = new Set<string>()
     for (const assignment of assignments as AssignmentRow[]) {
+      if (!managed.has(assignment.student_id)) continue
       const overdue = needsReminder({
         logDates: datesByAssignment.get(assignment.id) ?? [],
         frequency: assignment.frequency,

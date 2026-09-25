@@ -18,7 +18,9 @@
 -- child who's also a 16+ self-login) + 4 multi-role accounts (a tutor who
 -- is also a parent, a parent who is also a tutor, an admin who is both
 -- — TAD ADR-019 — and a 16+ student who assists in a class, ADR-020) +
--- 2 classes + 8 students + their `student_guardians` links (one child has
+-- 3 groups (two Yanbu'a/Quran groups and one Aqidah group with tracking
+-- off, PRD Feature 8) + 8 students, four of them in two groups, via
+-- `class_members` + their `student_guardians` links (one child has
 -- two active guardians, one has a removed one — ADR-040) + 1 pending
 -- (unregistered) sign-in for the
 -- Registrations page to show — which, since ADR-038, also carries the
@@ -63,6 +65,9 @@ values
   ('00000000-0000-0000-0000-000000000000', 'd1000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'bapak.hasan@dev.local', '', now(), '{}', '{}', false, false, now(), now(), '', '', '', '', '', '', '', ''),
   ('00000000-0000-0000-0000-000000000000', 'd1000000-0000-0000-0000-000000000003', 'authenticated', 'authenticated', 'ustadzah.laila@dev.local', '', now(), '{}', '{}', false, false, now(), now(), '', '', '', '', '', '', '', ''),
   ('00000000-0000-0000-0000-000000000000', 'd1000000-0000-0000-0000-000000000004', 'authenticated', 'authenticated', 'aisyah@dev.local', '', now(), '{}', '{}', false, false, now(), now(), '', '', '', '', '', '', '', ''),
+  -- An Aqidah-only tutor (PRD Feature 8): teaches the Aqidah group, which
+  -- has tracking off, and nothing else.
+  ('00000000-0000-0000-0000-000000000000', 'e1000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'ustadzah.maryam@dev.local', '', now(), '{}', '{}', false, false, now(), now(), '', '', '', '', '', '', '', ''),
   -- Deliberately no matching public.users row — this is what the
   -- Registrations page (admin-only) is for. `raw_user_meta_data` carries a
   -- Google-style `full_name`, which the Unauthorized form (ADR-038)
@@ -139,7 +144,8 @@ values
   ('d1000000-0000-0000-0000-000000000001', 'ustadzah.aminah@dev.local', 'Ustadzah Aminah', 'tutor', 'id'),
   ('d1000000-0000-0000-0000-000000000002', 'bapak.hasan@dev.local', 'Bapak Hasan', 'parent', 'id'),
   ('d1000000-0000-0000-0000-000000000003', 'ustadzah.laila@dev.local', 'Ustadzah Laila', 'admin', 'id'),
-  ('d1000000-0000-0000-0000-000000000004', 'aisyah@dev.local', 'Aisyah', 'student', 'id');
+  ('d1000000-0000-0000-0000-000000000004', 'aisyah@dev.local', 'Aisyah', 'student', 'id'),
+  ('e1000000-0000-0000-0000-000000000001', 'ustadzah.maryam@dev.local', 'Ustadzah Maryam', 'tutor', 'id');
 
 -- The two overlap personas are seeded by naming an existing account in an
 -- existing class, so this fixture gains **no rows** for them: no student,
@@ -170,6 +176,18 @@ values
     'd1000000-0000-0000-0000-000000000004'    -- Aisyah (the disjoint half: she teaches here, she sits in Grup A)
   ]::uuid[]);
 
+-- The Aqidah group (PRD Feature 8): placed by age, not level, so its
+-- members come from both Yanbu'a/Quran groups. Tracking is OFF: its tutor
+-- takes attendance and sets homework but cannot record Yanbu'a, Quran or
+-- Murajaah — sign in as Ustadzah Maryam to see the pickers on those
+-- screens come up empty, and as Ibu Siti to see Ali and Umar each in two
+-- groups (per-group attendance, homework labelled by group).
+insert into public.classes (id, name, schedule, meeting_days, tutor_ids, tracks_progress)
+values
+  ('a4000000-0000-0000-0000-000000000003', 'Aqidah 9–11 th', 'Ahad 10:00-11:00', '{0}', array[
+    'e1000000-0000-0000-0000-000000000001'    -- Ustadzah Maryam
+  ]::uuid[], false);
+
 -- `students.parent_id` was retired in migration 021 (ADR-040). A child's
 -- guardians now live in `student_guardians` (below), and a child may have
 -- more than one. The students insert and its guardian links are wrapped
@@ -178,25 +196,47 @@ values
 -- both — psql autocommits each statement otherwise.
 begin;
 
-insert into public.students (id, user_id, full_name, class_id, date_of_birth)
+-- Groups are memberships since migration 026 (ADR-045): `students` no
+-- longer names a class, and a child can be in several — see
+-- `class_members` below.
+insert into public.students (id, user_id, full_name, date_of_birth)
 values
-  ('a5000000-0000-0000-0000-000000000001', null, 'Ali', 'a4000000-0000-0000-0000-000000000001', '2015-03-10'),
-  ('a5000000-0000-0000-0000-000000000002', null, 'Zainab', 'a4000000-0000-0000-0000-000000000001', '2016-07-22'),
-  ('a5000000-0000-0000-0000-000000000003', 'a3000000-0000-0000-0000-000000000001', 'Fatimah', 'a4000000-0000-0000-0000-000000000001', '2009-11-02'),
-  ('a5000000-0000-0000-0000-000000000004', null, 'Umar', 'a4000000-0000-0000-0000-000000000002', '2017-05-05'),
+  ('a5000000-0000-0000-0000-000000000001', null, 'Ali', '2015-03-10'),
+  ('a5000000-0000-0000-0000-000000000002', null, 'Zainab', '2016-07-22'),
+  ('a5000000-0000-0000-0000-000000000003', 'a3000000-0000-0000-0000-000000000001', 'Fatimah', '2009-11-02'),
+  ('a5000000-0000-0000-0000-000000000004', null, 'Umar', '2017-05-05'),
   -- Each dual-role tutor's own child sits in the class the *other* one
   -- teaches, so neither can reach their own child through their tutor
   -- grant — the union of the two grants is the only way either of them
   -- sees everything they are entitled to.
-  ('a5000000-0000-0000-0000-000000000005', null, 'Yusuf', 'a4000000-0000-0000-0000-000000000002', '2016-02-14'),
-  ('a5000000-0000-0000-0000-000000000006', null, 'Khadijah', 'a4000000-0000-0000-0000-000000000001', '2015-09-30'),
+  ('a5000000-0000-0000-0000-000000000005', null, 'Yusuf', '2016-02-14'),
+  ('a5000000-0000-0000-0000-000000000006', null, 'Khadijah', '2015-09-30'),
   -- The triple-role account's own child, likewise in the class she does
   -- not teach.
-  ('a5000000-0000-0000-0000-000000000007', null, 'Salma', 'a4000000-0000-0000-0000-000000000002', '2017-01-19'),
+  ('a5000000-0000-0000-0000-000000000007', null, 'Salma', '2017-01-19'),
   -- The student assistant's own record: a santri in Grup A with her own
   -- login, who assists in Grup B. Still linked to a guardian, as every
   -- student record is (the hybrid account model).
-  ('a5000000-0000-0000-0000-000000000008', 'd1000000-0000-0000-0000-000000000004', 'Aisyah', 'a4000000-0000-0000-0000-000000000001', '2008-06-12');
+  ('a5000000-0000-0000-0000-000000000008', 'd1000000-0000-0000-0000-000000000004', 'Aisyah', '2008-06-12');
+
+-- Memberships (migration 026). Each child's Yanbu'a/Quran group is as it
+-- always was; four of them are also in the Aqidah group. `scripts/
+-- verify-push.mjs` asserts on Grup A's roster, which this leaves as it
+-- was — the Aqidah memberships add no one to Grup A.
+insert into public.class_members (class_id, student_id)
+values
+  ('a4000000-0000-0000-0000-000000000001', 'a5000000-0000-0000-0000-000000000001'),  -- Ali      Grup A
+  ('a4000000-0000-0000-0000-000000000001', 'a5000000-0000-0000-0000-000000000002'),  -- Zainab   Grup A
+  ('a4000000-0000-0000-0000-000000000001', 'a5000000-0000-0000-0000-000000000003'),  -- Fatimah  Grup A
+  ('a4000000-0000-0000-0000-000000000002', 'a5000000-0000-0000-0000-000000000004'),  -- Umar     Grup B
+  ('a4000000-0000-0000-0000-000000000002', 'a5000000-0000-0000-0000-000000000005'),  -- Yusuf    Grup B
+  ('a4000000-0000-0000-0000-000000000001', 'a5000000-0000-0000-0000-000000000006'),  -- Khadijah Grup A
+  ('a4000000-0000-0000-0000-000000000002', 'a5000000-0000-0000-0000-000000000007'),  -- Salma    Grup B
+  ('a4000000-0000-0000-0000-000000000001', 'a5000000-0000-0000-0000-000000000008'),  -- Aisyah   Grup A
+  ('a4000000-0000-0000-0000-000000000003', 'a5000000-0000-0000-0000-000000000001'),  -- Ali      Aqidah
+  ('a4000000-0000-0000-0000-000000000003', 'a5000000-0000-0000-0000-000000000004'),  -- Umar     Aqidah
+  ('a4000000-0000-0000-0000-000000000003', 'a5000000-0000-0000-0000-000000000005'),  -- Yusuf    Aqidah
+  ('a4000000-0000-0000-0000-000000000003', 'a5000000-0000-0000-0000-000000000007');  -- Salma    Aqidah
 
 -- ── Guardians (migration 021, ADR-040) ──────────────────────
 -- One active link per child, mirroring the former `parent_id`, PLUS two
