@@ -407,6 +407,24 @@ export type Database = {
           },
         ]
       }
+      push_subscriber_counts: {
+        Row: {
+          recorded_at: string
+          subscribed: number
+          week_start: string
+        }
+        Insert: {
+          recorded_at?: string
+          subscribed: number
+          week_start: string
+        }
+        Update: {
+          recorded_at?: string
+          subscribed?: number
+          week_start?: string
+        }
+        Relationships: []
+      }
       quran_progress: {
         Row: {
           ayah_from: number
@@ -1042,6 +1060,10 @@ export type Database = {
       fn_post_webhook: {
         Args: { fn_path: string; op: string; record_id: string; tbl: string }
         Returns: undefined
+      }
+      fn_record_push_subscriber_count: {
+        Args: { p_week_start: string }
+        Returns: number
       }
       fn_student_guardians: {
         Args: { p_student: string }

@@ -4387,6 +4387,138 @@ insert into _tap_log(line) select lives_ok(
 
 reset role;
 
+-- ======================================================================
+-- RLS-117…RLS-121: weekly push-subscriber count (migration 025, TAD
+-- ADR-045, PRD KPI 10 — the push opt-out guardrail)
+--
+-- The app keeps no history of push opt-outs (switching push off simply
+-- clears `users.push_sub`), so a baseline has to be recorded ahead of
+-- release 8a. `push_subscriber_counts` holds one number per week and no
+-- personal data. It is admin-readable, written only by
+-- `fn_record_push_subscriber_count`, which only the service role (the
+-- weekly-progress-digest scheduled Function) may call.
+--
+-- Counted: an account with a non-null push_sub that is an ACTIVE guardian
+-- of any child, or a 16+ student's own self-login — the family recipients
+-- every notification goes to. Not counted: a tutor with no child, and a
+-- removed guardian (unlinked_at set). An account guarding two children
+-- counts once.
+-- ======================================================================
+reset role;
+
+-- Known state: nobody subscribed, then exactly these five accounts.
+update public.users set push_sub = null;
+update public.users set push_sub = '{"endpoint":"https://push.test/x","keys":{"p256dh":"k","auth":"a"}}'::jsonb
+ where id in (
+  '90000000-0000-0000-0000-000000000001',  -- P1: active guardian of TWO children -> counts once
+  '50000000-0000-0000-0000-000000000001',  -- S16: 16+ self-login -> counts
+  '92000000-0000-0000-0000-000000000002',  -- GX: REMOVED guardian only -> not counted
+  '70000000-0000-0000-0000-000000000001',  -- T1: a tutor, guardian of nobody -> not counted
+  '92000000-0000-0000-0000-000000000001'   -- G2: second active guardian of Child A -> counts
+ );
+
+-- RLS-117: nobody but the service role can call the recorder — belt (the
+-- REVOKE) and braces (the in-body auth.role() guard). Even an admin.
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+insert into _tap_log(line) select throws_ok(
+  $$ select public.fn_record_push_subscriber_count(date '2026-09-21') $$,
+  '42501', null,
+  'RLS-117: an authenticated caller (even an admin) cannot record a push-subscriber count'
+);
+
+-- RLS-118: the service role records the count, and it is the right number.
+set local role service_role;
+set local request.jwt.claim.role to 'service_role';
+insert into _tap_log(line) select is(
+  public.fn_record_push_subscriber_count(date '2026-09-21'), 3,
+  'RLS-118: the recorder counts P1 once, S16 and G2 — not a removed guardian, not a childless tutor'
+);
+reset role;
+insert into _tap_log(line) select is(
+  (select subscribed from public.push_subscriber_counts where week_start = date '2026-09-21'), 3,
+  'RLS-118: …and stores it against that week'
+);
+
+-- RLS-119: re-running for the same week updates the row, never duplicates
+-- it (the scheduler may fire twice); a different week gets its own row.
+update public.users set push_sub = null where id = '92000000-0000-0000-0000-000000000001';  -- G2 opts out
+set local role service_role;
+set local request.jwt.claim.role to 'service_role';
+insert into _tap_log(line) select is(
+  public.fn_record_push_subscriber_count(date '2026-09-21'), 2,
+  'RLS-119: a re-run for the same week reflects the opt-out'
+);
+select public.fn_record_push_subscriber_count(date '2026-09-28');
+reset role;
+insert into _tap_log(line) select is(
+  (select count(*) from public.push_subscriber_counts where week_start = date '2026-09-21'), 1::bigint,
+  'RLS-119: …and still leaves exactly one row for that week'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.push_subscriber_counts
+     where week_start in (date '2026-09-21', date '2026-09-28')), 2::bigint,
+  'RLS-119: …while a new week gets its own row'
+);
+
+-- RLS-120: the table is admin-read-only. A tutor, a guardian, a 16+
+-- student and anon see nothing, though rows exist.
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+insert into _tap_log(line) select ok(
+  (select count(*) from public.push_subscriber_counts) >= 2,
+  'RLS-120: an admin reads push_subscriber_counts'
+);
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';  -- T1
+insert into _tap_log(line) select is(
+  (select count(*) from public.push_subscriber_counts), 0::bigint,
+  'RLS-120: a tutor sees no push_subscriber_counts rows'
+);
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000001';  -- P1
+insert into _tap_log(line) select is(
+  (select count(*) from public.push_subscriber_counts), 0::bigint,
+  'RLS-120: a guardian sees no push_subscriber_counts rows'
+);
+set local request.jwt.claim.sub to '50000000-0000-0000-0000-000000000001';  -- S16
+insert into _tap_log(line) select is(
+  (select count(*) from public.push_subscriber_counts), 0::bigint,
+  'RLS-120: a 16+ student sees no push_subscriber_counts rows'
+);
+set local role anon;
+set local request.jwt.claim.role to 'anon';
+set local request.jwt.claim.sub to '';
+insert into _tap_log(line) select is(
+  (select count(*) from public.push_subscriber_counts), 0::bigint,
+  'RLS-120: anon sees no push_subscriber_counts rows'
+);
+
+-- RLS-121: no client can write the table directly — not even an admin,
+-- which could otherwise rewrite the baseline the KPI is judged against.
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.push_subscriber_counts (week_start, subscribed) values (date '2026-10-05', 999) $$,
+  '42501', null,
+  'RLS-121: an admin cannot insert a push_subscriber_counts row'
+);
+update public.push_subscriber_counts set subscribed = 999;
+insert into _tap_log(line) select is(
+  (select count(*) from public.push_subscriber_counts where subscribed = 999), 0::bigint,
+  'RLS-121: …and an admin UPDATE changes nothing'
+);
+delete from public.push_subscriber_counts;
+reset role;
+insert into _tap_log(line) select is(
+  (select count(*) from public.push_subscriber_counts
+     where week_start in (date '2026-09-21', date '2026-09-28')), 2::bigint,
+  'RLS-121: …nor does an admin DELETE (asserted from outside RLS)'
+);
+
+reset role;
+
 -- ---------- done ----------
 reset role;
 insert into _tap_log(line) select * from finish();
