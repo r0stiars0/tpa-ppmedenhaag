@@ -120,6 +120,7 @@
     *   Quran recitation progress tracker (surah, ayah, quality assessment)
     *   Murajaah/memorization tracker (assigned verses, home practice logging, parent confirmation)
     *   Year-end curriculum report generator (auto-drafted stats + tutor narrative/grades, PDF export)
+    *   A student enrolled in any number of groups (e.g. a Yanbu'a/Quran group and an Aqidah group), with Yanbu'a/Quran/Murajaah tracking switched on or off per group; per-group announcements and downloadable course materials (Feature 8)
     *   Dashboard views tailored to each user role
     *   **Scope Boundaries:**
         *   In scope: Attendance, homework, Yanbu'a, Quran, Murajaah tracking for PPME Den Haag TPA
@@ -379,6 +380,29 @@ A: The app is available to all families enrolled in PPME Den Haag's TPA program.
     *   Definition: Percentage of assigned homework marked as completed before due date
     *   Target: 75%
 
+**Feature 8 (multi-group) KPIs:**
+
+6.  **Aqidah Roster Completeness** (8a)
+    *   Definition: Aqidah is **optional**, so the app cannot know which children should be in it. The measure is therefore against the Aqidah tutors' own attendance lists: the percentage of children actually attending an Aqidah group who are enrolled in that group in the app, 4 weeks after 8a launch. The TPA coordinator checks this once with each Aqidah tutor.
+    *   Target: 100%
+    *   How measured: manual check by the TPA coordinator, as above
+7.  **Aqidah Attendance Logging Rate** (8a)
+    *   Definition: KPI 1, measured for groups with tracking off only
+    *   Target: 90% (same bar as Yanbu'a/Quran groups)
+    *   How measured: from existing data. Meeting days (`classes.meeting_days`) give the expected sessions; `sessions` rows give the recorded ones
+8.  **Announcement Read Rate** (8b)
+    *   Definition: Percentage of announcement notifications opened in the notification centre within 7 days
+    *   Target: 60%
+    *   How measured: from existing data (`notifications.read_at` against `created_at` for event `groupAnnouncement`). No new collection needed. Because notifications are pruned after their retention period (ADR-017), it is read within that window
+9.  **WhatsApp Broadcast Reduction** (8b)
+    *   Definition: Tutors' self-reported number of group broadcasts sent via WhatsApp per month, compared with before 8b
+    *   Target: 50% fewer
+    *   How measured: the TPA coordinator asks each tutor once before 8b and once 8 weeks after. Outside the app
+10. **Guardrail: Push Opt-Out Rate**
+    *   Definition: Percentage of push-subscribed guardians who switch push off in the 8 weeks after each release, compared with the 8 weeks before
+    *   Target: no increase of more than 5 percentage points. More groups means more notifications per family, and this is the signal that it has become too many.
+    *   How measured: the app keeps no history of opt-outs; turning push off simply clears the subscription. So a **weekly count of push-subscribed guardians** is recorded by an existing scheduled job, starting **before 8a ships** so there is a baseline (TAD ADR-045). It is a single number per week, with no personal data
+
 #### 5.11.2 Baseline vs. Target
 
 | Metric | Current State (Baseline) | Target State (3 months post-GA) | Success Criteria |
@@ -501,7 +525,7 @@ Digital attendance management system allowing tutors to record student presence/
 - Families are enrolled through the annual "Daftar Ulang" Google Form. Each submission (one per child, with the guardian signed into Google so the e-mail is verified) is turned automatically into a guardian account, a student record and the guardian link, and the guardian is sent the branded invitation e-mail — no admin re-typing. The enrolment form is the one place a guardian is added automatically; an admin manages every other guardian and all removals.
 - A submission is matched to an existing child by this guardian already having that child at the same name + birthdate; a match updates the records in place rather than creating duplicates, and does not resend the invitation. If only the name + birthdate match — typically a second guardian enrolling a child the first already registered — nothing is created and the row is flagged `needs_attention` for an admin to link the guardian (or confirm it is a different child). A guardian who re-submits with a *corrected* student name creates a duplicate record (same-day twins with different names are legitimate, so this is not blocked); an admin removes the duplicate with the **Hapus** action on Beheer → Santri.
 - **Student self-login:** if the guardian supplies the student's e-mail, the app links their existing `role=student` account (adding this guardian) or, for a new/unregistered address, creates the account and invites the student — no age gate (ADR-021); a mismatched or non-student address is flagged `needs_attention`.
-- The Grup is **not** set from the form — an admin assigns it in Beheer afterwards. The re-registration payment is **not** stored or tracked by the app; the form asks families to confirm it via a bank link and the treasurer reconciles it separately.
+- No Grup is set from the form. An admin enrols the student in their groups (any number; Feature 8 FR-002) in Beheer afterwards. The re-registration payment is **not** stored or tracked by the app; the form asks families to confirm it via a bank link and the treasurer reconciles it separately.
 - Every submission — success or failure — is recorded in an admin-only enrolment log with its outcome (`enrolled` / `updated` / `needs_attention` / `error`), and the outcome is also written back onto the response sheet row. A row needing a human (e.g. the parent's e-mail already belongs to an unrelated account) is flagged `needs_attention` for an admin to finish.
 
 **The Google Form** — one submission per child. It collects: the guardian's Google-**verified** e-mail (auto), student name, date of birth, guardian name, preferred language (`Bahasa Indonesia` / `Nederlands`), relationship to the child (optional), an optional student e-mail (→ self-login), and an "I have read the privacy policy" tick that is **recorded but not required** (ADR-044 — a submission without it still enrols; the lawful basis is the educational relationship, [IT TEAM] to confirm). It also asks the family to confirm the re-registration payment via a bank link — an answer the app deliberately does not read. Form requirements: e-mail collection set to **Verified**; response editing on; "limit to 1 response" off; a question a submission maps to must **not be renamed after go-live** (the Apps Script matches responses by question title); and the form *and* its response sheet must be owned by an organisation-controlled Google account, not a volunteer's personal one, since the Apps Script, its trigger and the shared secret live there.
@@ -604,11 +628,11 @@ Enables tutors to create, assign, and track homework assignments for students. P
 
 **FR-001: Create Assignment**
 - Priority: High
-- Tutor must be able to create a homework assignment with title, description, due date, and optional attachments/notes.
+- Tutor must be able to create a homework assignment with title, description and due date. Homework is **text-only** for every group. File attachments are out of scope; files are shared as group course materials instead (Feature 8 FR-005).
 
 **FR-002: Assign to Students**
 - Priority: High
-- Tutor can assign homework to an entire class or select individual students.
+- Tutor can assign homework to an entire group or select individual students of that group. Works identically for every group (Feature 8 FR-003).
 
 **FR-003: View Assignments (Parent/Student)**
 - Priority: High
@@ -1138,7 +1162,7 @@ Generates a formal, per-student year-end report combining auto-computed statisti
 
 #### 6.5. Non-Goals (Out of Scope)
 1.  Mid-year / semester reports — Phase 1 covers year-end only (see Open Questions re: academic year boundaries)
-2.  Tutor-to-tutor collaborative editing of a single report — one authoring tutor per report
+2.  Tutor-to-tutor collaborative editing of a single report — one authoring tutor per report. *Exception (Feature 8 FR-008): each group with tracking unticked that the student is in (e.g. Aqidah) adds its own section, written by that group's tutor. The Yanbu'a/Quran/Murajaah part still has one author.*
 3.  Historical versioning of published PDFs — only the current version is retained, per FR-006
 4.  Automated narrative generation (AI-written comments) — narrative is always tutor-authored
 
@@ -1280,6 +1304,425 @@ When someone signs in with Google for the first time and has no account yet, the
 
 ---
 
+### Feature 8: Multi-Group Enrolment, Announcements & Course Materials
+
+#### 8.1. Feature Overview
+PPME's TPA runs two kinds of group, and today the app treats every group as the first kind:
+
+*   **Yanbu'a/Quran groups**: students are placed by reading and recitation level. These are the groups the app has always had. Yanbu'a, Quran and Murajaah progress is recorded in them.
+*   **Aqidah groups**: students are placed by **age**. They teach Islamic belief, not recitation.
+
+Most students attend one of each. Today a student can belong to only **one** group (`students.class_id`), so an Aqidah group cannot be represented without taking the child out of their Yanbu'a/Quran group. This feature does three things:
+
+1.  Adds one setting to every group, a **"Yanbu'a/Quran/Murajaah tracking"** checkbox. It is on for a Yanbu'a/Quran group and off for an Aqidah group. There is no separate list of group types.
+2.  Lets a student be enrolled in **any number of groups**.
+3.  Gives **every** group's tutors two new tools, in addition to the attendance and homework they already have: free-form **announcements** to the group, and downloadable **course materials** (PDF and PPTX, e.g. presentation slides).
+
+A group with tracking off otherwise behaves like any other group. It has meeting days, an attendance register (students and tutors), homework, and absence and new-homework notifications. It does **not** get Yanbu'a/Quran/Murajaah recording.
+
+**Release plan: two releases, not one.** Only enrolment is urgent. Aqidah groups are already meeting on paper, and their tutors need nothing but a roster, a register and homework.
+
+| Release | Contents | Why this order |
+|---|---|---|
+| **8a — Multi-group enrolment** | FR-001 tracking setting · FR-002 multi-group enrolment · FR-003 group-scoped attendance/homework (incl. per-group absence notification) · FR-006 visibility rules for attendance, homework and progress · FR-009 bulk enrolment · FR-010 group archiving · the per-group parent attendance screens (FR-003) | Unblocks Aqidah tutors. Contains the database access-rule migration, which is the riskiest part, in the smallest reviewable change |
+| **8b — Group content** | FR-004 announcements · FR-005 course materials · FR-006 visibility for announcements/materials · the "Pengumuman & Materi" page in FR-007 · FR-008 year-end report sections | Needs 8a's memberships. Report sections are needed only by July (Resolved Decision 14) |
+
+*   **Feature Name:** Feature-PRD-TPA-Multi-Group-And-Content
+*   **Parent EPIC:** EPIC-001 - Build a Digital Progress Tracking Platform for TPA
+*   **Product Code:** TPA
+*   **Product:** PPME - TPA
+*   **Feature Type:** Enhancement (data model change to enrolment) + New Feature (announcements, materials)
+*   **Priority:** High
+*   **Owner:** TPA coordinator
+*   **Status:** Approved. First signed off 2026-09-25, **re-signed off 2026-09-25** after two product review rounds (Resolved Decisions 21–31). This version is the one approved for development.
+*   **Feature Access:** External
+*   **Applies To:** All TPA groups
+*   **Region Availability:** Netherlands (PPME Den Haag, expandable to other branches)
+*   **Targeted Product Offerings:** PPME - TPA (Web/Mobile)
+
+#### 8.2. Feature User Stories
+*   *As a TPA admin, I want to switch Yanbu'a/Quran/Murajaah tracking off for an Aqidah group, so that its tutors get attendance and homework but cannot record recitation progress.*
+*   *As a TPA admin, I want to enrol a student in both their Yanbu'a/Quran group and their Aqidah group, so that both of their tutors can work with them.*
+*   *As an Aqidah tutor, I want to take attendance and set homework for my group exactly as the Yanbu'a/Quran tutors do, so that I don't need a separate paper process.*
+*   *As a tutor of any group, I want to post an announcement to my group, so that every family in it is informed without a WhatsApp broadcast.*
+*   *As a tutor of any group, I want to upload the slides I teach from, so that students and parents can review them at home.*
+*   *As a parent, I want to see each of my child's groups, with their announcements, materials and homework, so that I know what is happening in all of them.*
+*   *As a 16+ student with my own login, I want to see and download my groups' materials myself.*
+
+#### 8.3. Functional Requirements
+
+**FR-001: Per-Group Tracking Setting**
+- Priority: High
+- Every group has one yes/no setting, **"Yanbu'a/Quran/Murajaah tracking"** ("Pencatatan Yanbu'a/Al-Quran/Murajaah" / "Registratie Yanbu'a/Al-Quran/Murajaah"). It is shown as a checkbox on the group create/edit form in Beheer → Grup.
+- Every group, ticked or not, has the same base set of tools for its tutors: the attendance register (students and tutors), homework, announcements and course materials.
+  - **Off:** the base set only. Its tutors cannot record Yanbu'a, Quran or Murajaah progress. This is the setting for an Aqidah group.
+  - **On:** the base set **plus** Yanbu'a, Quran and Murajaah progress recording, exactly as today. All existing groups are set to on.
+- In other words, an Aqidah tutor can do a subset of what a Yanbu'a/Quran tutor can do: everything except progress recording.
+- The checkbox is **ticked by default** for a newly created group, since most groups are Yanbu'a/Quran groups. The admin unticks it when creating an Aqidah group.
+- The group list in Beheer shows whether tracking is on for each group.
+- There is **no group-type list** to manage. "Aqidah" is simply the name an admin gives a group (e.g. "Aqidah 7–9 th"). The app decides behaviour from the checkbox, never from the name.
+- An admin can change the setting on an existing group. Switching it off stops further recording through that group but keeps all past progress records.
+- **Murajaah targets must not be orphaned.** Before any of these three actions, the admin is shown the affected students' **active Murajaah targets**:
+  - switching tracking off on a group;
+  - **archiving** a group with tracking on (FR-010);
+  - removing a student from their last active group with tracking on.
+
+  For each target, the admin must close it or keep it. **"Keep" is offered only when the student is still in another active group with tracking on**, i.e. a tutor who can manage the target exists. Otherwise the only option is to close it. As a safety net, daily Murajaah reminders are **not sent** for a target whose student is no longer in any active group with tracking on, so a family is never reminded about a target no tutor can change.
+
+**FR-002: Multi-Group Enrolment**
+- Priority: High
+- A student can be enrolled in **zero or more groups**, in any combination. A student may be in two groups with tracking on, or two with tracking off.
+- Enrolment stays **admin-only**, set on the student form in Beheer → Santri. The single "Grup" dropdown becomes a multi-select listing every group.
+- The Santri list shows all of a student's groups and can be filtered by group, including a **"No group"** filter. The Beheer landing screen shows a count of students in no group, linking to that filter. Every student enrolled from the "Daftar Ulang" form arrives there, and no tutor can see them until they are placed.
+- For enrolling many students at once, see FR-009.
+- **No age check.** Aqidah placement is by age as a matter of practice, but the app neither enforces nor suggests it. The admin chooses the right group, as they do today.
+- **Form-driven enrolment (Feature 1 FR-010) is unchanged.** A student enrolled from the "Daftar Ulang" form still arrives in no group, and an admin adds them to their groups afterwards.
+- **Existing data:** every existing group keeps its name, tutors, meeting days, homework and attendance history, and has tracking switched on. Every student's current group becomes their first group membership. Nothing is lost or re-entered.
+- Removing a student from a group does not delete that group's past attendance or homework records for the student. The family keeps seeing those records for their own child. They **lose access** to that group's announcements and course materials from the moment the student leaves.
+
+**FR-003: Group-Scoped Attendance, Homework and Rosters**
+- Priority: High
+- Everything that is scoped to "the tutor's class" today is scoped to **a group**, and works the same way for every group, whether tracking is on or off. This covers:
+  - the attendance register for students and tutors (Feature 1 FR-001/002/007/008)
+  - absence notifications (Feature 1 FR-005)
+  - homework creation, recipients, completion marking and the due-tomorrow reminder (Feature 2)
+  - the new-homework notification
+- A student in two groups appears on both registers and is marked separately on each. An absence in one group triggers one absence notification for that group's session. The notification names the group, so a parent can tell which session was missed. If a child misses sessions of two groups on the same day, the guardians get two notifications, one per group; they are no longer merged into one per day.
+- Homework stays **text-only** for every group. Feature 2 FR-001's "optional attachments" is not in scope, and course materials (FR-005) are the way to share files.
+- Parents see homework from all their child's groups in one list, each item labelled with its group.
+- **Parent attendance screens:**
+  - The child's attendance history is one list, each session labelled with its group.
+  - The attendance summary shows **one percentage per group**, plus the overall figure. A single combined figure would hide a child who misses only one group.
+  - The weekly digest's attendance line is also per group.
+  - The meeting days shown (Feature 1 FR-007) are listed per group.
+
+**FR-004: Group Announcements**
+- Priority: High
+- A tutor of the group, or an admin, can post an announcement to one group. An announcement has:
+  - a required title (up to 200 characters)
+  - a text body (up to 2,000 characters, plain text). Only `https://` links are made clickable. The link shows its full domain, and opens in a new tab with no access back to the app. Every other scheme is shown as plain text.
+- Everyone who can see the group's content (see FR-006) can read it in the app. **Notifications go to families only**: the guardians of each enrolled student and an enrolled 16+ student with their own login. Tutors, including tutors of the group and tutors of the same child in another group, are not notified; they find announcements on the group page.
+- Announcements go to the **whole group** only. There is no per-student targeting. Families cannot reply.
+- Posting sends an **in-app notification** and a **Web Push** to each family recipient who has push on. There are **no per-category notification settings**: the app has one push on/off switch, and announcements follow it like every other notification. There is no e-mail or WhatsApp delivery.
+- Like every other notification, it is sent **per child**. The push names the child's first name and the group (e.g. "Aisha: new announcement in Aqidah 7–9 th"). A guardian with two children in the same group therefore receives two, as with homework today. Neither the title nor the body is put in the push payload, following the same rule that keeps homework titles out of pushes (DPIA R6). The full text is read in the app.
+- The author, or an admin, can edit or delete an announcement. An edit does not notify again.
+- Announcements are listed newest first on the group's page (see FR-007).
+
+**FR-005: Course Materials**
+- Priority: High
+- A tutor of the group, or an admin, can upload a **course material** to a group. A material has:
+  - a required title (up to 200 characters)
+  - an optional short description
+  - exactly one file, **or** one link to a Google or personal Microsoft OneDrive file (see below)
+- **Accepted file types:** PDF (`.pdf`) and PowerPoint (`.pptx`) only. Other types are refused at upload, with a message saying which types are allowed.
+- **Maximum size per file:** 20 MB.
+- Recipients can **download** the file. A PDF will also usually open in the browser's own viewer, but the app promises only a download, because no mobile browser shows `.pptx` inline.
+- Files are stored **privately** in the EU, like year-end report PDFs, and are never publicly reachable. Every download is checked against FR-006 before it is served.
+- Posting a material sends an in-app notification and a Web Push (under the same single push switch) to the same family recipients as announcements. Tutors are not notified. The push names the child's first name and the group, never the title, file name or link. Several materials posted to one group on the same day produce one notification per child.
+- The uploader, or an admin, can rename or delete a material, or replace its file. Deleting a material deletes the stored file. An admin can **take down** any material or announcement in one action, in any group, including an archived one.
+- **Accepted risk: a compromised tutor account.** Files are not virus-scanned; no scanning service fits the free-tier stack. Someone who takes over a tutor's Google account could send a harmful PDF, or a phishing link in an announcement, to every family in that tutor's groups, carrying the TPA's authority. Mitigations: the uploader is always recorded; only PDF/PPTX and narrowly allow-listed links are accepted; only `https` links are clickable; admins can take content down at once. The residual risk is recorded in the DPIA.
+- **Links to a Google Docs/Slides/Drive file or a personal Microsoft OneDrive file** are allowed as a second kind of material. A link material has the same title, description, notification and FR-006 visibility as an upload, and opens in a new tab.
+  - Only the *listing* is protected by the app. The file itself is governed by the provider's sharing setting. It must be shared as "Anyone with the link" for families to open it, and then a forwarded link opens for anyone. The tutor's form states this plainly when they add a link.
+  - Restricted sharing (named people only) was rejected, because every parent's account would have to be added to every file by hand.
+  - The file is hosted by Google or Microsoft, outside PPME's EU-provider preference. This is acceptable only because course materials contain no personal data (Feature 8 §8.4).
+  - If the tutor deletes, moves or unshares the file, the link breaks without the app knowing. The tutor then edits or deletes the material.
+  - There is no in-app preview; the link opens in the provider's own viewer. A `.pptx` shared from OneDrive opens in PowerPoint for the web, so families can view it without downloading.
+  - **Accepted addresses:**
+    - Google Docs and Slides documents only: `https://docs.google.com/document/d/…` and `https://docs.google.com/presentation/d/…`
+    - A single Google Drive file: `https://drive.google.com/file/d/…`
+    - Microsoft, **personal accounts only**, as a full address: `https://onedrive.live.com/…`
+  - **Refused on purpose:**
+    - **Google Forms** (`docs.google.com/forms/…`) and every other Google path. A form would let anyone with a tutor's account collect personal data from families outside the app, the DPIA and EU hosting, with the TPA's authority.
+    - Drive folders.
+    - **OneDrive short links (`1drv.ms/…`).** A short link hides where it leads, so the app cannot check it. OneDrive's "Copy link" button produces this short form, so a tutor opens the link once and pastes the full `onedrive.live.com` address from the browser. The form explains this when a `1drv.ms` link is pasted.
+  - **Work/school Microsoft 365 links (`*.sharepoint.com`) are refused.** Many organisations switch off "Anyone with the link" sharing. Families would then be asked to sign in and could not open the file, and the tutor would not notice when adding the link.
+  - All other URLs are refused.
+  - Links use no app storage.
+
+**FR-006: Who Can See a Group's Content**
+- Priority: High
+- A group's **announcements and course materials**, and its **homework list** (titles, descriptions, due dates), are visible to:
+  - the group's own tutors
+  - admins
+  - every guardian of a student enrolled in the group
+  - every enrolled student with their own login
+  - **every tutor who teaches one of the group's students in another group**. For example, a child's Yanbu'a/Quran tutor can read that child's Aqidah group's announcements, materials and homework list.
+- **Attendance:**
+  - Any current tutor of a student can **read that student's own attendance** from all of their groups, read-only: date, group and status (present / absent / late). This includes groups the student has since left, so a tutor who receives a child mid-year sees the child's attendance record.
+  - **The absence reason is not shared across groups.** It can contain health information, so it is visible only to the tutors of the group whose session it is, admins, and the child's own family. Another group's tutor sees "Absent" without the reason.
+  - A group's **whole register** (its other students and its tutor attendance) stays visible only to that group's own tutors and admins.
+  - Only the group's own tutors (and admins) can record or change attendance for its sessions.
+- **Guardian contact details** (names and e-mail addresses): a group's own tutors see those of its members' guardians, **unchanged from today**, and only while the group is active (FR-010). A tutor never sees guardian details through another group. The privacy policy states this.
+- **Homework completion marks** are not shared across groups. They stay visible only to that group's own tutors, admins, and the student's own family.
+- **Yanbu'a/Quran/Murajaah history:** any tutor of the student, in any group, can **read** it. Only a tutor of a group with tracking ticked that the student is in can **record** it. Being a student's tutor no longer implies write access to all of that student's records, as it does today.
+- **Limits on "teaches the student":**
+  - Only **active** groups count. A tutor of an archived group loses every cross-group read above for its former members (FR-010).
+  - **Student assistants** (16+ students who also tutor a group) get **no cross-group reads**. They see what they need for the group they teach and nothing from the child's other groups: no other groups' announcements, materials or homework, no attendance from other groups, and Yanbu'a/Quran/Murajaah history only for students of a group they teach with tracking on.
+- Only the group's own tutors and admins can post, edit or delete there. A tutor who can read another group's content through a shared student cannot change it.
+- A parent of a child in groups A and B sees A's and B's content. A parent with no child in group C sees nothing of C. This family isolation is re-verified live against the database, not only in the automated suite.
+
+**FR-007: Family and Tutor Screens**
+- Priority: High
+- A new **"Pengumuman & Materi" / "Mededelingen & lesmateriaal"** page, reached from a Dashboard tile, lists each of the child's groups (or the tutor's groups). It is deliberately **not** called "Grup saya": that label already belongs to the scope switch ("Grup saya" / "Mijn groep", TAD ADR-025). Opening a group shows the **group's tutors by name**, so families know who teaches it, and two sections:
+  - **Pengumuman / Mededelingen** (announcements)
+  - **Materi / Lesmateriaal** (course materials)
+- The bottom tab bar is unchanged.
+- For a child who is in **no** group with Yanbu'a/Quran/Murajaah tracking on, the Yanbu'a, Al-Quran and Murajaah screens show a short explanation instead of an empty history.
+- Tutor screens that pick a group (the attendance register, homework, the scope switch) list every **active** group the tutor teaches. Archived groups (FR-010) are left out of pickers, and their history stays reachable from the student's records.
+
+**FR-008: Year-End Reports Across Groups**
+- Priority: Medium
+- There is still **one report per student per academic year**.
+- For each group with tracking **unticked** that the student **attended during the academic year** (at least one attendance record in that year, or a current membership), the report gains a **section named after that group**. A child who was in Aqidah from September to March and then moved therefore still gets a section for it. That section's attendance figures cover that group's sessions only. Each section has a grade on the existing five-level scale and a narrative, written by a tutor of that group. These tutors can edit only their own group's section.
+- The existing Yanbu'a/Quran/Murajaah grades and narrative are unchanged. A tutor of the student's group with tracking ticked writes them, as today.
+- The report is **published once every section is filled in**, by the report's author or an admin.
+- **An admin can publish with a section left empty** when its tutor cannot complete it (they left, or cannot be reached). The empty section is left out of the report and PDF, and the admin confirms this explicitly. One missing section can never block a report forever.
+- **After publishing, sections are locked** for their tutors. A correction goes through the report's author or an admin, whose edit regenerates the PDF (Feature 6 FR-006). This keeps the PDF and the in-app report identical.
+- **Report author:** draft generation picks a default author, the first tutor of the student's first group with tracking ticked. If the student has no such group, it picks the first tutor of their first group. **An admin can reassign the author** of any draft report, which covers a student in two tracking groups and any other case where the default is wrong. The author writes the Yanbu'a/Quran/Murajaah part and publishes.
+- This relaxes Feature 6's "one authoring tutor per report" non-goal, for group sections only.
+
+**FR-009: Bulk Enrolment from the Group Screen**
+- Priority: High (release 8a)
+- On a group's admin screen (Beheer → Grup → a group), an admin can **add several students at once**. The picker lists every student with a checkbox, shows their current groups and date of birth, and can be filtered by:
+  - name
+  - **date-of-birth range**
+  - current group, including "No group"
+- Filtering by date of birth is a tool for the admin, not a placement suggestion. The app still proposes nothing (non-goal 1).
+- The same screen lists the group's current members, each with a **remove** action. Removing follows FR-002's leaving rules.
+- **Enrolment grants access to children's data, so it is confirmed and logged:**
+  - Before a bulk save, the admin sees a summary: how many students are added and removed, and which tutors gain access to their records (progress history, attendance, guardian contact details).
+  - **Every membership change is logged**: who added or removed which student to or from which group, and when, whether through bulk enrolment or the student form. The log is admin-only, like the role-change log (Feature 1 FR-009), and is not shown in the app yet.
+- Adding a student already in the group is a no-op, not an error.
+- *User story:* As the TPA admin, at the start of the year I open "Aqidah 7–9 th", filter by birthdate, tick the children and save once, instead of editing 40 student records one by one.
+
+**FR-010: Group Archiving**
+- Priority: High (release 8a)
+- Groups change every year: Aqidah groups by age each September, Yanbu'a groups by level during the year. An admin can **archive** a group from Beheer → Grup.
+- An archived group:
+  - is **fully frozen**: no new or changed sessions, attendance, tutor attendance, homework, completion marks, announcements, materials or memberships, for every role including admin. To correct something, the admin unarchives the group, fixes it, and archives it again. Deletions forced by the law are the one exception: erasing a student (GDPR right to erasure) still removes their rows, and an admin can still take down a material or announcement (FR-005).
+  - is hidden from every tutor picker and from the enrolment pickers;
+  - keeps all its history. Its own tutors keep **read-only** access to its register, homework, announcements and materials. Families keep seeing their own child's records from it.
+  - **stops counting as "teaching" a student.** A tutor of an archived group loses the cross-group reads of FR-006 for its former members: their progress history, attendance from other groups, and guardian contact details. Otherwise, archiving every year would leave each former tutor with indefinite access to every child they ever taught (GDPR data minimisation).
+  - is shown on Beheer → Grup under an "Archived" filter;
+  - can be **unarchived**.
+- **Nothing automatic runs for an archived group:** no homework-due reminders for its homework, no weekly-digest lines for it, and no Murajaah reminders driven only by it (FR-001). Its past items still appear in each child's history.
+- **Warning before archiving:** if the group had a session in the last 7 days, the admin is warned that a tutor may still have an unsynced offline register (TAD ADR-029), which would be refused once the group is archived.
+- Archiving removes nobody's membership. Its former members still appear on it for history, and the admin enrols them in their new groups (FR-009).
+- **Groups with history cannot be deleted.** Deleting a group today would silently erase its sessions, attendance and homework. Delete is offered only for a group that has never had a session, homework, announcement or material, e.g. one created by mistake.
+- **Deferred to a later release:** a bulk "move these students from group A to group B" action. It is named here so the need is recorded. Until then, the admin archives the old group and uses FR-009 on the new one.
+
+#### 8.4. Non-Functional Requirements
+*   **Security/Privacy:** every rule in FR-006 is enforced in the database (RLS). File downloads are authorised by the storage service against the same rule before it issues a 5-minute download link (TAD ADR-045(f)). Cross-family isolation is re-verified live. Course materials are **teaching content and must not contain images or personal data of children**. This is confirmed by PPME, and the tutor upload screen states it. The DPIA and privacy policy (both languages) are updated **in release 8a**, before cross-group reading goes live, since families must be told that a child's tutors in other groups can read their progress and attendance status. They are updated again in 8b for announcements, stored files and the accepted-risk entry above.
+*   **Audit:** every enrolment change is logged (FR-009). Group archiving and unarchiving are logged the same way.
+*   **Safe rollout (release 8a):** the database change must not break the app at any moment of the rollout. Database migrations are applied by hand, while the app deploys automatically when merged, so the two go live at different times. Therefore:
+    *   the first database step only **adds** the new membership table and keeps the old single-group field working;
+    *   the new app ships and is verified;
+    *   the old field is removed in a later, separate step.
+    *   A full database backup is taken before the first step, and the rollback procedure is written down before starting (TAD ADR-045).
+*   **Storage cost:** Supabase's free tier gives 1 GB of storage in total, shared with year-end report PDFs (tens of MB per year). At 20 MB per file, that budget holds around 45 maximum-size files. Typical slide PDFs are 1–5 MB, which gives several hundred. The admin screen shows total storage used so the limit is visible before it is reached. **Owner: the TPA admin role** (this may be the TPA coordinator, or someone else; Feature 8 §8.10). At **80%** of the allowance, Beheer shows a warning banner to every admin. At that point the admin either deletes old materials or asks PPME to approve the Supabase Pro plan. Materials and announcements are **kept across academic years** until a tutor or admin deletes them. Nothing is cleared automatically at year end.
+*   **Performance:** a group's page loads within 2 seconds. Downloads are streamed straight from storage and do not pass through a Function.
+*   **i18n:** all new copy in Bahasa Indonesia and Dutch.
+*   **Admin console:** the students-in-no-group count and the storage warning both appear on the Beheer landing screen.
+*   **Offline:** announcements and materials are not part of the offline write queue (TAD ADR-029/030). Posting them is desk-based work on reliable connectivity.
+
+#### 8.5. Non-Goals (Out of Scope)
+1.  Automatic or suggested placement by age or level. The admin places students.
+2.  Setting groups from the "Daftar Ulang" enrolment form.
+3.  Parent or student replies, comments or read receipts on announcements.
+4.  Announcements to individual students, or across several groups at once.
+5.  E-mail or WhatsApp delivery of announcements.
+6.  File types other than PDF and PPTX: no video, audio, images, `.docx` or `.key`.
+7.  File attachments on homework. Homework stays text-only.
+8.  Students or parents uploading anything.
+9.  An in-app PPTX viewer.
+10. Content ideas specific to Aqidah (curricula, quizzes, grading scales other than the existing five levels).
+11. A bulk "move students from group A to group B" action, or automatic year rollover. Deferred; FR-010 records the need.
+12. Hard-deleting a group that has any history.
+
+#### 8.6. User Flows
+1.  **Admin sets up the group:** Beheer → Grup → creates "Aqidah 7–9 th" with meeting days and tutors, and leaves "Yanbu'a/Quran/Murajaah tracking" unticked.
+2.  **Admin enrols:** at the start of the year, Beheer → Grup → "Aqidah 7–9 th" → Add students → filters by date of birth → ticks the children → saves once (FR-009). For a single child: Beheer → Santri → the student → Grup multi-select.
+2a. **Year end:** Beheer → Grup → archives last year's groups (FR-010) → creates the new ones → enrols as in step 2.
+3.  **Aqidah tutor teaches:** opens the attendance register → picks "Aqidah 7–9 th" → marks students and tutors → sets homework for the group, exactly as today.
+4.  **Tutor posts:** Pengumuman & Materi → "Aqidah 7–9 th" → Pengumuman → writes and posts → families with push on are notified. Materi → uploads `les-3-rukun-iman.pdf` → families notified.
+5.  **Parent reads:** gets the push → opens the app → Pengumuman & Materi → the child's Aqidah group → reads the announcement → downloads the slides.
+
+#### 8.7. Design & Technical Considerations
+*   **Design Assets:**
+    *   **8a admin screens** are built from the existing card and form patterns, with no mockups first: the group admin screen (members, bulk-add picker with confirmation, archive), the Murajaah-target dialog, and the report-author picker. They are reviewed at the live click-through before merge.
+    *   **8b's family-facing "Pengumuman & Materi" page and the report-section editor** get wireframes first, reviewed with PPME before they are built.
+*   **Dependencies:** the existing group, enrolment, attendance, homework and notification features; Supabase Storage (already used for report PDFs); Web Push (ADR-015).
+*   **Critical-path dependency, outside the team:** **PPME's IT team must review the DPIA and privacy-policy update before 8a can ship** (Feature 8 §8.4), and again before 8b. There is no agreed turnaround, so the draft update goes to them **at the start of 8a development**, in parallel with the build, not after it.
+*   **Technical Constraints:** a student's single `class_id` becomes a many-to-many enrolment. Every RLS rule that currently means "the tutor's class's students" must be re-read against multiple groups, and progress recording must be limited to groups with tracking on (FR-006). The architecture is TAD **ADR-045**.
+
+#### 8.8. Acceptance Criteria
+
+**AC-001:** Existing data carries over
+- **Given:** the database before this change
+- **When:** the change is applied
+- **Then:** every group has tracking switched on; every student is a member of exactly the group they had before; all attendance, homework and progress history is unchanged and visible to the same people as before
+
+**AC-002:** A student in two groups
+- **Given:** a student enrolled in "Kelas A" (tracking on) and "Aqidah 7–9 th" (tracking off)
+- **When:** each group's tutor opens their attendance register for a meeting day
+- **Then:** the student appears on both, is recorded separately on each, and an absence in the Aqidah session notifies the guardians once, naming the Aqidah group
+
+**AC-003:** Aqidah tutors cannot record recitation progress
+- **Given:** a tutor who teaches only "Aqidah 7–9 th" (tracking off)
+- **When:** they try to record Yanbu'a, Quran or Murajaah progress for one of its students, in the app or directly against the API
+- **Then:** the write is refused
+
+**AC-004:** Announcement delivery and isolation
+- **Given:** an Aqidah tutor posts an announcement to "Aqidah 7–9 th"
+- **When:** guardians check the app
+- **Then:** the guardians of every enrolled student see it and receive the push if opted in; a guardian with no child in the group sees nothing and receives nothing; the push contains the child's first name and the group name, but not the title or body
+
+**AC-005:** Material upload rules
+- **Given:** a tutor uploading to their group
+- **When:** they select a `.docx`, or a PDF over the size limit
+- **Then:** the upload is refused with a message naming the allowed types and the limit; a valid PDF or PPTX uploads and can be downloaded by every FR-006 reader and by no one else
+
+**AC-006:** Cross-group reading
+- **Given:** a student in "Kelas A" and "Aqidah 7–9 th"
+- **When:** Kelas A's tutor opens that student's groups
+- **Then:** they can read the Aqidah group's announcements and materials, but cannot post, edit or delete there
+
+**AC-007:** Enrolment via the student form
+- **Given:** an admin editing a student in "Kelas A"
+- **When:** they add "Aqidah 7–9 th" in the Grup multi-select and save
+- **Then:** the student is in both groups, appears on both registers, and both groups' tutors can see them
+
+**AC-008:** Bulk enrolment
+- **Given:** an admin on "Aqidah 7–9 th"'s screen
+- **When:** they filter by a date-of-birth range, tick ten students (two already members) and save
+- **Then:** the group has the eight new members plus its existing ones, with no error for the two duplicates, and no other group's membership changed
+
+**AC-009:** Leaving a group
+- **Given:** a student removed from "Aqidah 7–9 th"
+- **When:** their guardian opens the app
+- **Then:** the child's own past Aqidah attendance and homework still show, labelled with the group; the group's announcements and materials no longer show; the next announcement there does not notify this family
+
+**AC-010:** Students in no group
+- **Given:** a student enrolled from the "Daftar Ulang" form
+- **When:** an admin opens Beheer
+- **Then:** the no-group count includes them, and the Santri "No group" filter lists them
+
+**AC-011:** Per-group absence notification
+- **Given:** a child absent from both "Kelas A" and "Aqidah 7–9 th" on the same day
+- **When:** both registers are saved
+- **Then:** the guardians receive two notifications, each naming its group
+
+**AC-012:** Cross-group attendance read
+- **Given:** a child who moved from "Kelas A" to "Kelas B" mid-year
+- **When:** Kelas B's tutor opens the child's attendance
+- **Then:** they see the child's Kelas A attendance read-only (date, group, status) with **no absence reason**, including via the API, and cannot see or change any other Kelas A student's attendance or Kelas A's tutor attendance
+
+**AC-013:** Archiving
+- **Given:** an archived group with sessions and homework
+- **When:** a tutor looks for it in the attendance or homework picker, or an admin tries to delete it
+- **Then:** it is not in the pickers; its history is still visible to its former families; delete is not offered (and is refused by the database); unarchiving restores it to the pickers
+
+**AC-014:** Year-end report sections
+- **Given:** a draft report for a student in "Kelas A" and "Aqidah 7–9 th"
+- **When:** the author tries to publish before the Aqidah tutor has filled in their section
+- **Then:** publishing is refused with a message naming the missing section; once it is filled in, publishing succeeds and the PDF contains the Aqidah section; an admin can reassign the author before publishing; an admin can also publish with the section left empty, which leaves it out; after publishing, the Aqidah tutor can no longer edit the section
+
+**AC-015:** Link allow-list
+- **Given:** a tutor adding a link material
+- **When:** they paste, in turn, a `docs.google.com/presentation/d/…` link, a `docs.google.com/forms/…` link, a `1drv.ms/…` link, and a `contoso.sharepoint.com` link
+- **Then:** the first is accepted; the form, short-link and SharePoint links are refused. The message for each names what is allowed, and for `1drv.ms` explains how to get the full address. The same links are also refused by the database when inserted directly through the API
+
+**AC-016:** Archived group access ends
+- **Given:** "Aqidah 7–9 th" (2025/26) is archived, and its tutor no longer teaches any of its former students elsewhere
+- **When:** that tutor opens a former student's progress, attendance history or guardians, including directly through the API
+- **Then:** they get nothing; they can still read the archived group's own register and homework; nobody, including an admin, can change its attendance until it is unarchived
+
+**AC-017:** Enrolment is logged and confirmed
+- **Given:** an admin bulk-adds 12 students to a group
+- **When:** they save
+- **Then:** they first see how many students are added and which tutors gain access; after confirming, 12 log entries record who added whom and when; removing one adds a removal entry
+
+**AC-018:** Student assistant scope
+- **Given:** a 16+ student who tutors "Aqidah 7–9 th" (tracking off)
+- **When:** they look at one of its students
+- **Then:** they see the Aqidah register and homework, but none of the child's Yanbu'a/Quran/Murajaah history, attendance from other groups, or other groups' announcements, materials or homework
+
+**AC-019:** No orphaned Murajaah targets
+- **Given:** a student with an active Murajaah target is removed from their only group with tracking on
+- **When:** the admin saves
+- **Then:** they are first asked about the target; because no other active tracking group remains, "keep" is not offered and the target is closed. The same happens when the admin archives that group instead. If a target were ever left active without a managing tutor by any other route, it produces no further reminders (safety net)
+
+**AC-020:** Safe announcement links
+- **Given:** an announcement body containing `https://example.org/x` and `javascript:alert(1)`
+- **When:** a parent views it
+- **Then:** the first is a link showing `example.org` and opening in a new tab; the second is plain, unclickable text
+
+**AC-021:** Per-group attendance for parents
+- **Given:** a child attended 9 of 10 "Kelas A" sessions and 5 of 10 "Aqidah 7–9 th" sessions
+- **When:** a guardian opens the attendance summary, and when the weekly digest is shown
+- **Then:** both show Kelas A 90% and Aqidah 50% separately, plus the overall 70%; the history list labels each session with its group
+
+**AC-022:** No-tracking explanation
+- **Given:** a child whose only group has tracking off
+- **When:** a guardian opens Yanbu'a, Al-Quran or Murajaah
+- **Then:** each shows a short explanation that this child's groups do not record recitation progress, not an empty timeline
+
+**AC-023:** Announcement edit rights
+- **Given:** an announcement posted by tutor A in a group co-taught by tutors A and B
+- **When:** A edits it, B tries to edit or delete it, and an admin deletes another one
+- **Then:** A's edit is saved and **sends no notification**; B is refused, in the app and directly through the API; the admin's delete succeeds
+
+**AC-024:** Replacing a material's file
+- **Given:** a material with file `les-3.pdf`
+- **When:** its uploader replaces the file with `les-3-v2.pdf`
+- **Then:** readers download the new file; the old file no longer exists in storage; no new notification is sent
+
+**AC-025:** Storage warning
+- **Given:** total storage use crosses 80% of the 1 GB allowance
+- **When:** any admin opens Beheer
+- **Then:** a warning banner shows the percentage used and what to do; tutors and families see no banner
+
+#### 8.9. Sequence Diagrams
+
+```mermaid
+sequenceDiagram
+    participant Tutor
+    participant App
+    participant Backend
+    participant Storage
+    participant NotificationService
+    participant Parent
+
+    Tutor->>App: Upload "Les 3.pdf" to Aqidah 7–9 th
+    App->>Storage: Store file (private)
+    Storage->>Storage: Tutor of this group? PDF/PPTX? ≤ 20 MB?
+    Storage-->>App: Stored
+    App->>Backend: Create material record
+    Backend->>NotificationService: New material in group
+    NotificationService->>Parent: "Aisha: new material in Aqidah 7–9 th"
+
+    Parent->>App: Open group → Materi → Download
+    App->>Storage: Request download link
+    Storage->>Storage: Is caller a reader of this group? (FR-006)
+    Storage-->>App: 5-minute signed link
+    App->>Storage: Download file
+```
+
+#### 8.10. Rollout
+
+*   **8a:**
+    *   Brief the Aqidah tutors in person. They are new users, so give them the tutor onboarding guide (§5.7) and a 10-minute walkthrough of the register and homework.
+    *   The admin runs bulk enrolment (FR-009) for every Aqidah group **before** the tutors' first digital session.
+    *   Tell parents through the usual PPME channels that Aqidah attendance and homework now appear in the app.
+*   **8b:** announce the "Pengumuman & Materi" page to families. Ask tutors to post their first announcement there instead of in WhatsApp, and to upload the current term's slides.
+*   **User manual:** both languages (`docs/user-manual/manual-nl.md` / `manual-id.md`), screenshots and PDFs are updated in the same PR as each release's UI.
+*   **Owner:** the **TPA coordinator** runs the rollout: briefs the Aqidah tutors, confirms bulk enrolment is complete before the first digital Aqidah session, and announces each release to families.
+*   **Two roles, which may or may not be one person.** The **TPA coordinator** owns the rollout. The **TPA admin** (whoever holds the admin role) owns the Beheer tasks: bulk enrolment, archiving, the storage warning, and the enrolment log. When they are different people, the coordinator confirms with the admin that enrolment is complete before telling the Aqidah tutors to start. Neither role is assumed to be the other.
+*   **Aqidah is optional.** Not every student attends it, so no requirement or KPI assumes every student is in an Aqidah group (KPI 6).
+*   **Dates:** both releases go live at the **earliest possible date** (see §7). Because merging to `main` deploys production, go-live is the merge date, and the TPA coordinator is told in advance so enrolment and the tutor briefing can be ready.
+
+---
+
 ## 7. Timeline and Milestones
 
 *   **Target Release Date:** [TBD]
@@ -1289,6 +1732,8 @@ When someone signs in with Google for the first time and has no account yet, the
 *   **Milestone 4:** Murajaah/Memorization Tracking with Home Practice (Month 4-5)
 *   **Milestone 5:** Full GA — All features stable, all users onboarded (Month 5-6)
 *   **Milestone 6:** Year-End Curriculum Reports (Month 6, timed to precede PPME's actual academic year-end)
+*   **Milestone 7 — Feature 8a, multi-group enrolment:** **earliest possible.** Ships as soon as it is built, passes the full test suite, is verified against a real database with its access rules, and the DPIA/privacy-policy update has been reviewed by PPME's IT team. Each week of delay is another week of Aqidah attendance kept on paper.
+*   **Milestone 8 — Feature 8b, announcements, course materials, report sections:** **earliest possible after 8a is live**, meeting the same bar. Hard deadline: before year-end report draft generation in early-to-mid July 2027, which needs the Aqidah report sections.
 
 ## 8. Open Questions
 
@@ -1309,6 +1754,24 @@ When someone signs in with Google for the first time and has no account yet, the
 | 12 | Tutor Compensation Tracking | Not needed — PPME tutors are volunteers; no session-hours tracking feature required |
 | 13 | GDPR Data Controller / DPIA Ownership | PPME Den Haag's IT team owns operational GDPR responsibility and the DPIA. Note: under GDPR, the *legal* data controller is the organization (PPME Den Haag) itself, not a department — the IT team's ownership here is best read as "responsible for compliance execution and the DPIA," with the organization remaining the controller of record. |
 | 14 | Academic Year Boundaries | PPME's TPA academic year runs late August/early September to early/mid July. `academic_year` values follow the `YYYY/YYYY` convention (e.g. `2025/2026`). Year-end report generation (Feature 6, Milestone 6) is timed for early-to-mid July, ahead of the year's actual end date. |
+| 15 | Groups and enrolment (Feature 8) | A student can be in **any number of groups**; enrolment is admin-only, with no age check or suggestion. There is **no list of group types**. Each group has one checkbox, "Yanbu'a/Quran/Murajaah tracking", **ticked by default** and unticked for an Aqidah group. Every group has attendance, homework, announcements and course materials; a ticked group also has progress recording. Existing groups start ticked, and every student keeps their current group. |
+| 16 | Cross-group visibility (Feature 8) | Any tutor of a student can **read** that student's Yanbu'a/Quran/Murajaah history, **that student's own attendance from any group** (read-only, including groups they have left; date, group and status only — **the absence reason stays with the session's own group**, admins and the family), and their other groups' announcements, materials and homework list. Only tutors of a ticked group can **record** progress. A group's whole register, tutor attendance and homework completion marks are not shared across groups. |
+| 17 | Announcements (Feature 8) | Whole group only; in-app plus Web Push under the app's single push switch (no per-category settings); no e-mail, WhatsApp or replies. Notifications go to families only, per child, and name the child and the group, never the content. Tutors are not notified. Absences in two groups on the same day give two notifications. |
+| 18 | Course materials (Feature 8) | PDF and PPTX uploads (max **20 MB**, private EU storage, download only) **and** links to a Google Doc, Google Slides deck or single Drive file, or a **personal** OneDrive file by its full `onedrive.live.com` address. Refused: Google Forms and other Google paths, Drive folders, `1drv.ms` short links, and work/school `sharepoint.com` links. For links, the tutor is told the app cannot restrict who opens the file. Materials contain no personal data or images of children. Kept across years until deleted. A family loses access to a group's announcements and materials when the student leaves it. |
+| 19 | Where it lives in the app (Feature 8) | A "Pengumuman & Materi" / "Mededelingen & lesmateriaal" page reached from a Dashboard tile, showing each group's tutors. Not "Grup saya", which is the existing scope switch's label. No new bottom tab. |
+| 20 | Year-end report with Aqidah (Feature 8) | One report per student per year. Each group with tracking unticked adds its own graded, narrated section, written by that group's tutor. Published once every section is complete. |
+| 21 | Report author for multi-group students (Feature 8) | Draft generation picks a default author; an admin can reassign it on any draft. |
+| 22 | Enrolment at scale and year change (Feature 8) | Bulk enrolment from the group screen, with date-of-birth filtering (not a suggestion). Groups are **archived**, not deleted, once they have history. A bulk "move group" is deferred. |
+| 23 | Release split (Feature 8) | 8a (enrolment, tracking setting, access rules, bulk enrolment, archiving) ships first; 8b (announcements, materials, report sections) follows. |
+| 24 | Archived groups (Feature 8) | Fully frozen for every role (unarchive to correct). Their tutors keep read-only access to the group's own records, but lose cross-group reads of its former members. |
+| 25 | Enrolment audit (Feature 8) | Every membership change is logged, admin-only. A bulk save shows who gains access before it is confirmed. |
+| 26 | Student assistants (Feature 8) | No cross-group reads for 16+ students who also tutor. |
+| 27 | Year-end sections (Feature 8) | One section per group with tracking off that the student attended during the year. An admin may publish with a section left empty. Sections lock after publishing. |
+| 28 | Material links (Feature 8) | Only Google Docs/Slides documents, single Drive files, and full `onedrive.live.com` addresses. Google Forms, Drive folders, `1drv.ms` short links and SharePoint are refused. Announcement links: `https` only. A compromised tutor account is a recorded accepted risk. |
+| 29 | Murajaah targets (Feature 8) | The admin must close or keep targets when tracking is switched off or a student leaves their last tracking group. No reminders are sent for a target without an active tracking group. |
+| 30 | Rollout safety (Feature 8a) | Additive migration first, old field removed only after the new app is verified; backup and written rollback before starting. The privacy policy and DPIA update ship with 8a. |
+| 31 | Aqidah participation and ownership (Feature 8) | Aqidah is optional, and nothing assumes every student is in an Aqidah group. KPI 6 measures the app roster against the Aqidah tutors' actual attendance. The TPA coordinator (rollout) and the TPA admin role (Beheer tasks) may be the same person or different people, and the PRD assigns tasks to each role explicitly. |
+| 32 | Final review (Feature 8) | Murajaah targets can be kept only if another active tracking group still covers the student; archiving a tracking group triggers the same prompt. 8a admin screens are built from existing patterns and reviewed at the click-through; the 8b family page and section editor are wireframed first. Archived groups run no reminders or digests. Guardian contact details stay within each active group. KPIs state how they are measured, including a weekly push-subscriber count started before 8a. |
 
 ### Remaining Open Questions
 
@@ -1334,6 +1797,9 @@ When someone signs in with Google for the first time and has no account yet, the
 *   **Ayah:** A verse of the Quran.
 *   **Juz:** One of 30 equal divisions of the Quran.
 *   **Santri:** A student of Islamic studies/Quran.
+*   **Grup / Groep (group):** A teaching group the app tracks. Earlier versions of this document call it a "class". A student may belong to several groups (Feature 8).
+*   **Yanbu'a/Quran/Murajaah tracking (group setting):** A per-group checkbox. When it is on, the group's tutors can record recitation progress. It is off for Aqidah groups.
+*   **Aqidah:** Islamic creed/belief. PPME's Aqidah groups are arranged by age, not by recitation level.
 *   **Ustadz/Ustadzah:** Male/Female Islamic teacher or tutor. The app UI uses the gender-neutral **"Guru"** (Indonesian) / **"Docent"** (Dutch) instead.
 *   **Lancar:** Fluent/smooth (used as a quality assessment).
 *   **Mumtaz:** Excellent (highest quality grade for recitation).
