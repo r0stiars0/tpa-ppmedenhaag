@@ -211,7 +211,7 @@ export function GroupContentPage() {
         <h1 className="text-lg font-bold text-ppme-primary">{group.name}</h1>
         <p className="text-sm text-ppme-text/70">
           {tutorNames.length > 0 ? t('groups.tutors', { names: tutorNames.join(', ') }) : t('groups.noTutors')}
-          {group.meeting_days.length > 0 && ` · ${formatDayList(group.meeting_days, t)}`}
+          {group.meeting_days.length > 0 && ` · ${formatDayList(group.meeting_days, t, 'long')}`}
         </p>
       </div>
       {archived && <p className="rounded-lg bg-ppme-bg-alt p-3 text-sm text-ppme-text/80">{t('groups.archivedNotice')}</p>}
