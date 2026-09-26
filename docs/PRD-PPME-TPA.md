@@ -1410,7 +1410,7 @@ A group with tracking off otherwise behaves like any other group. It has meeting
 - Like every other notification, it is sent **per child**. The push names the child's first name and the group (e.g. "Aisha: new announcement in Aqidah 7–9 th"). A guardian with two children in the same group therefore receives two, as with homework today. Neither the title nor the body is put in the push payload, following the same rule that keeps homework titles out of pushes (DPIA R6). The full text is read in the app.
 - The author, or an admin, can edit or delete an announcement. An edit does not notify again. An edited announcement is marked **"diubah" / "gewijzigd"** (Resolved Decision 33), so a family who read it before knows it changed.
 - Announcements are listed newest first on the group's page (see FR-007).
-- *Implementation status: **built — release 8b-1** (TAD ADR-045(e)/(g), migration 028).*
+- *Implementation status: **built — release 8b-1** (TAD ADR-045(e)/(g), migration 028) Live in production since 2026-09-26.*
 
 **FR-005: Course Materials**
 - Priority: High
@@ -1442,7 +1442,7 @@ A group with tracking off otherwise behaves like any other group. It has meeting
   - **Work/school Microsoft 365 links (`*.sharepoint.com`) are refused.** Many organisations switch off "Anyone with the link" sharing. Families would then be asked to sign in and could not open the file, and the tutor would not notice when adding the link.
   - All other URLs are refused.
   - Links use no app storage.
-- *Implementation status: **built — release 8b-1** (TAD ADR-045(f)/(g), migration 028).*
+- *Implementation status: **built — release 8b-1** (TAD ADR-045(f)/(g), migration 028) Live in production since 2026-09-26.*
 
 **FR-006: Who Can See a Group's Content**
 - Priority: High
@@ -1489,7 +1489,7 @@ A group with tracking off otherwise behaves like any other group. It has meeting
 - **Report author:** draft generation picks a default author, the first tutor of the student's first group with tracking ticked. If the student has no such group, it picks the first tutor of their first group. **An admin can reassign the author** of any draft report, which covers a student in two tracking groups and any other case where the default is wrong. The author writes the Yanbu'a/Quran/Murajaah part and publishes.
 - This relaxes Feature 6's "one authoring tutor per report" non-goal, for group sections only.
 - A 16+ student assistant is never a report's author or a section's named writer: that name is printed on the family's PDF (Resolved Decision 33).
-- *Implementation status: **built — release 8b-2** (TAD ADR-045(h), migration 029).*
+- *Implementation status: **built — release 8b-2** (TAD ADR-045(h), migration 029) Live in production since 2026-09-26.*
 
 **FR-009: Bulk Enrolment from the Group Screen**
 - Priority: High (release 8a)

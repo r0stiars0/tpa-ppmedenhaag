@@ -896,12 +896,17 @@ Docs: ADR-045 status + findings, PRD implementation-status lines, `openapi.yaml`
 
 **Before 8b-1 goes live — [IT TEAM]:** review the DPIA update (R18: course materials and links, and a compromised tutor account) and the privacy-policy paragraph on announcements and course materials, in both languages (PRD Feature 8 §8.4: the IT team reviews again before 8b).
 
-**Production runbook for 8b-1 (migration 028) — do in this order, by hand:**
-1. A fresh `pg_dump` of production, stored off-platform.
-2. Apply 028 with `supabase db push` from this PR's branch, then merge the PR. 028 is additive and the running app reads none of it, so the order only matters for the notification webhooks: until the merge deploys `notify-group-content`, a post would reach a Function that does not exist yet. Nobody can post until the new app is live, so this is a formality.
-3. Check in the Supabase dashboard that the `group-materials` bucket exists, is private, and has the 20 MB and PDF/PPTX limits.
-4. Smoke-check: a tutor posts an announcement and uploads a PDF to their group; a parent of a child in that group sees both, downloads the PDF and gets the notification; a family with no child in the group does not see them.
-5. Tell the TPA coordinator. Tutors are asked to post their first announcement there instead of in WhatsApp, and to upload the current term's slides (PRD rollout plan).
+**Production runbook for 8b-1 (migration 028) — steps 1–3 done 2026-09-26:**
+1. [x] A fresh `pg_dump` of production (roles, schema, data), stored off-platform on the maintainer's machine.
+2. [x] 028 applied with `supabase db push` from the PR branch, then #21 merged.
+3. [x] Checked in production (by query rather than the dashboard):
+   - the `group-materials` bucket is private, 20 MB, PDF/PPTX only;
+   - 8 policies on the two tables and 3 on the bucket;
+   - both notification webhooks are there;
+   - both new events are in `notification_event`;
+   - Vault holds the webhook configuration.
+4. [ ] Smoke check in the app: a tutor posts and uploads a PDF; a parent sees both, downloads the PDF and gets the notification (the first real-device push of these events); a family with no child in the group sees nothing. Done by the maintainer.
+5. [ ] Tell the TPA coordinator.
 
 **Rollback, 8b-1:** a Netlify rollback to the previous deploy. 028 is additive, so no database rollback is needed.
 
@@ -927,10 +932,14 @@ Docs: ADR-045 status + findings, PRD implementation-status lines, `openapi.yaml`
   - pgTAP 592/592 (RLS-160…169 new), unit 722/722, both typechecks and the build;
   - live: 29 browser checks, from generation to PDF, plus the 36 8b-1 checks again (test-plan §6.w).
 
-**Production runbook for 8b-2 (migration 029) — do in this order, by hand:**
-1. A fresh `pg_dump` of production, stored off-platform.
-2. Apply 029 with `supabase db push` from this PR's branch, then merge the PR. 029 is additive; the running app reads none of it.
-3. Smoke-check: as admin, generate drafts for the year → the Aqidah members' reports have an Aqidah section; as the Aqidah tutor, fill one in; as its author, publish; as the parent, see the section and the PDF.
-4. Tell the TPA coordinator. Year-end drafts are generated in early-to-mid July; the Aqidah tutors fill in their sections before the authors publish.
+**Production runbook for 8b-2 (migration 029) — steps 1–2 done 2026-09-26:**
+1. [x] A fresh `pg_dump` of production (roles, schema, data), stored off-platform on the maintainer's machine.
+2. [x] 029 applied with `supabase db push` from the PR branch, then #22 merged. Checked in production:
+   - 029 is recorded as applied;
+   - `year_end_report_sections` has its three policies, and `grade`/`narrative` are its only client-writable columns;
+   - the five functions exist;
+   - there are no sections yet, since none exist until drafts are generated.
+3. [ ] Smoke check: generate drafts, have the Aqidah tutor fill in a section, publish as the author, and view it as a parent. It creates real drafts, so it is done either at year end (early-to-mid July 2027) or for one group now, deleting the test drafts afterwards. Done by the maintainer.
+4. [ ] Tell the TPA coordinator: Aqidah tutors fill in their sections before the authors publish, and admins can publish.
 
 **Rollback, 8b-2:** a Netlify rollback to the previous deploy. 029 is additive, so no database rollback is needed.
