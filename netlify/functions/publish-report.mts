@@ -1,4 +1,5 @@
 import { authenticateCaller, jsonError, jsonOk } from './lib/callerAuth'
+import { reportGroupName } from './lib/draftPlan'
 import { publishReportFlow } from './lib/publishFlow'
 import { renderReportPdf } from './lib/reportPdf'
 
@@ -56,7 +57,7 @@ export default async (req: Request) => {
     // Kept as one string literal (not concatenated) so supabase-js can
     // infer the row type from it — a `+`-joined select widens to plain
     // `string` and every field access then fails to typecheck.
-    .select('*, student:students(full_name, class:classes(name)), tutor:users!year_end_reports_tutor_id_fkey(full_name)')
+    .select('*, student:students(full_name), tutor:users!year_end_reports_tutor_id_fkey(full_name)')
     .eq('id', reportId)
     .maybeSingle()
   if (reportError) return jsonError(reportError.message, 500)
@@ -77,6 +78,18 @@ export default async (req: Request) => {
   const student = report.student
   const tutor = report.tutor
 
+  // A child can be in several groups (ADR-045); the report names one.
+  const { data: memberships, error: groupsError } = await admin
+    .from('class_members')
+    .select('class:classes!inner(id, name, tracks_progress, archived_at, tutor_ids)')
+    .eq('student_id', report.student_id)
+    .is('class.archived_at', null)
+  if (groupsError) return jsonError(groupsError.message, 500)
+  const className = reportGroupName(
+    (memberships ?? []).map(({ class: c }) => ({ class_id: c.id, name: c.name, tracks_progress: c.tracks_progress, tutor_ids: c.tutor_ids })),
+    report.tutor_id,
+  )
+
   // Normalised through Date so a first publish (JS `toISOString()`) and a
   // re-publish (the value read back from Postgres as `+00:00`) hand the
   // client the same string for the same instant.
@@ -90,7 +103,7 @@ export default async (req: Request) => {
         academic_year: report.academic_year,
         pdf: {
           student_name: student?.full_name ?? '—',
-          class_name: student?.class?.name ?? null,
+          class_name: className,
           academic_year: report.academic_year,
           tutor_name: tutor?.full_name ?? caller.full_name,
           published_date: publishedAt.slice(0, 10),

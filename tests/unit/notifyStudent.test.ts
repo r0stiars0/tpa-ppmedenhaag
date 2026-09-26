@@ -621,21 +621,21 @@ describe('recordNotifications — the in-app half (ADR-017)', () => {
     expect((calls[0].rows[0] as { ref_id: unknown }).ref_id).toBe('session-1')
   })
 
-  it('falls back to the pre-ADR-045 key while the database does not have the new one yet', async () => {
-    // Migration 026 adds `ref_id` but keeps the old unique key; the
-    // contract migration swaps it. Until then Postgres answers 42P10 ("no
-    // unique constraint matching") and the row must still be written.
+  it('no longer falls back to the pre-ADR-045 key: migration 027 swapped it', async () => {
+    // Migration 026 kept the old four-column key, so this code retried on
+    // 42P10. The contract migration (027) made the five-column key the only
+    // one; a 42P10 now means a broken database and is reported, not retried.
     const calls: string[] = []
     const client = {
       from: () => ({
         upsert: async (_rows: unknown[], opts?: { onConflict?: string }) => {
           calls.push(opts?.onConflict ?? '')
-          return calls.length === 1 ? { error: { code: '42P10', message: 'no unique constraint' } } : { error: null }
+          return { error: { code: '42P10', message: 'no unique constraint' } }
         },
       }),
     } as unknown as Parameters<typeof recordNotifications>[0]
-    await expect(recordNotifications(client, [target()], 'absence', '2026-03-10', undefined, 'session-1')).resolves.toBe(1)
-    expect(calls).toEqual(['user_id,student_id,event,event_date,ref_id', 'user_id,student_id,event,event_date'])
+    await expect(recordNotifications(client, [target()], 'absence', '2026-03-10', undefined, 'session-1')).resolves.toBe(0)
+    expect(calls).toEqual(['user_id,student_id,event,event_date,ref_id'])
   })
 
   it('does not retry on any other error', async () => {

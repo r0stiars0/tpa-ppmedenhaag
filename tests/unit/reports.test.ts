@@ -5,7 +5,7 @@ import {
   isValidAcademicYear,
   reportPdfPath,
 } from '../../src/lib/reports'
-import { planDrafts } from '../../netlify/functions/lib/draftPlan'
+import { planDrafts, reportGroupName } from '../../netlify/functions/lib/draftPlan'
 import { computeAttendanceStats } from '../../netlify/functions/lib/reportStats'
 import { publishReportFlow, type PublishDeps } from '../../netlify/functions/lib/publishFlow'
 import { renderReportPdf, type ReportPdfInput } from '../../netlify/functions/lib/reportPdf'
@@ -138,6 +138,33 @@ describe('planDrafts (test-plan §4.4 — duplicate generation)', () => {
       })
       expect(plan.candidates).toEqual([{ student_id: 'stu-1', tutor_id: 'tutor-alpha' }])
     })
+  })
+})
+
+describe('reportGroupName — the "Grup / Groep" line of a published report (ADR-045, migration 027)', () => {
+  const yanbua = { class_id: 'y', name: 'Grup A', tracks_progress: true, tutor_ids: ['ty'] }
+  const quran = { class_id: 'q', name: 'Al-Quran 1', tracks_progress: true, tutor_ids: ['tq'] }
+  const aqidah = { class_id: 'a', name: 'Aqidah 9-11', tracks_progress: false, tutor_ids: ['ta', 'ty'] }
+
+  it('names the group the report author teaches the child in', () => {
+    expect(reportGroupName([yanbua, aqidah], 'ty')).toBe('Grup A')
+    expect(reportGroupName([yanbua, quran, aqidah], 'tq')).toBe('Al-Quran 1')
+  })
+
+  it('prefers a tracking group when the author teaches the child in several', () => {
+    expect(reportGroupName([aqidah, yanbua], 'ty')).toBe('Grup A')
+  })
+
+  it('names the Aqidah group for an Aqidah-only child', () => {
+    expect(reportGroupName([aqidah], 'ta')).toBe('Aqidah 9-11')
+  })
+
+  it('falls back to the default-author order when the author (e.g. reassigned by an admin) teaches none of them', () => {
+    expect(reportGroupName([aqidah, quran, yanbua], 'someone-else')).toBe('Al-Quran 1')
+  })
+
+  it('is null for a child in no active group', () => {
+    expect(reportGroupName([], 'ty')).toBeNull()
   })
 })
 

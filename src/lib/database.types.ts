@@ -687,7 +687,6 @@ export type Database = {
       }
       students: {
         Row: {
-          class_id: string | null
           created_at: string
           current_ayah: number | null
           current_jilid: number | null
@@ -699,7 +698,6 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          class_id?: string | null
           created_at?: string
           current_ayah?: number | null
           current_jilid?: number | null
@@ -711,7 +709,6 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          class_id?: string | null
           created_at?: string
           current_ayah?: number | null
           current_jilid?: number | null
@@ -723,13 +720,6 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "students_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "students_current_jilid_fkey"
             columns: ["current_jilid"]
@@ -1064,7 +1054,6 @@ export type Database = {
     Functions: {
       fn_admin_save_student: {
         Args: {
-          p_class_id?: string
           p_class_ids?: string[]
           p_dob: string
           p_full_name: string

@@ -100,12 +100,17 @@ values
 
 -- students: P1 has 2 in Class A; P2 has 1 in Class B; P3 has 1 (16+, S16) in Class B
 -- `students.parent_id` retired in migration 021 (ADR-040) — guardians below.
-insert into public.students (id, user_id, full_name, class_id, date_of_birth)
+insert into public.students (id, user_id, full_name, date_of_birth)
 values
-  ('d0000000-0000-0000-0000-000000000001', null, 'P1 Child A', 'c0000000-0000-0000-0000-00000000000a', '2015-01-01'),
-  ('d0000000-0000-0000-0000-000000000002', null, 'P1 Child B', 'c0000000-0000-0000-0000-00000000000a', '2016-01-01'),
-  ('d0000000-0000-0000-0000-000000000003', null, 'P2 Child',   'c0000000-0000-0000-0000-00000000000b', '2014-01-01'),
-  ('d0000000-0000-0000-0000-000000000004', '50000000-0000-0000-0000-000000000001', 'P3 Child (S16)', 'c0000000-0000-0000-0000-00000000000b', '2009-01-01');
+  ('d0000000-0000-0000-0000-000000000001', null, 'P1 Child A', '2015-01-01'),
+  ('d0000000-0000-0000-0000-000000000002', null, 'P1 Child B', '2016-01-01'),
+  ('d0000000-0000-0000-0000-000000000003', null, 'P2 Child', '2014-01-01'),
+  ('d0000000-0000-0000-0000-000000000004', '50000000-0000-0000-0000-000000000001', 'P3 Child (S16)', '2009-01-01');
+insert into public.class_members (class_id, student_id) values
+  ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-000000000001'),
+  ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-000000000002'),
+  ('c0000000-0000-0000-0000-00000000000b', 'd0000000-0000-0000-0000-000000000003'),
+  ('c0000000-0000-0000-0000-00000000000b', 'd0000000-0000-0000-0000-000000000004');
 
 -- student_guardians (migration 021, ADR-040). One active link per child,
 -- mirroring the former parent_id, PLUS:
@@ -355,8 +360,8 @@ drop table _rls_check;
 --         (enrollment is admin-only)
 -- ============================================================
 insert into _tap_log(line) select throws_ok(
-  $$ insert into public.students (full_name, class_id, date_of_birth)
-     values ('Illegit Child', 'c0000000-0000-0000-0000-00000000000a', '2018-01-01') $$,
+  $$ insert into public.students (full_name, date_of_birth)
+     values ('Illegit Child', '2018-01-01') $$,
   '42501', null,
   'RLS-11: P1 cannot INSERT a new student'
 );
@@ -1215,17 +1220,22 @@ values
   ('c0000000-0000-0000-0000-00000000000d', 'Class D (dual-role test)', 'Minggu 13:00', '{0,1,2,3,4,5,6}',
    array['70000000-0000-0000-0000-000000000002']::uuid[]);
 
-insert into public.students (id, user_id, full_name, class_id, date_of_birth)
+insert into public.students (id, user_id, full_name, date_of_birth)
 values
   -- taught by TP and TT, child of neither
-  ('d0000000-0000-0000-0000-000000000005', null, 'C Kid',  'c0000000-0000-0000-0000-00000000000c', '2015-05-01'),
+  ('d0000000-0000-0000-0000-000000000005', null, 'C Kid', '2015-05-01'),
   -- TP's own child, in a class TP does not teach
-  ('d0000000-0000-0000-0000-000000000006', null, 'TP Kid', 'c0000000-0000-0000-0000-00000000000d', '2016-05-01'),
+  ('d0000000-0000-0000-0000-000000000006', null, 'TP Kid', '2016-05-01'),
   -- TT's own child, likewise
-  ('d0000000-0000-0000-0000-000000000007', null, 'TT Kid', 'c0000000-0000-0000-0000-00000000000d', '2016-06-01'),
+  ('d0000000-0000-0000-0000-000000000007', null, 'TT Kid', '2016-06-01'),
   -- the hard negative: a classmate of their own children, in a class
   -- neither of them teaches, belonging to neither of them
-  ('d0000000-0000-0000-0000-000000000008', null, 'D Kid',  'c0000000-0000-0000-0000-00000000000d', '2015-07-01');
+  ('d0000000-0000-0000-0000-000000000008', null, 'D Kid', '2015-07-01');
+insert into public.class_members (class_id, student_id) values
+  ('c0000000-0000-0000-0000-00000000000c', 'd0000000-0000-0000-0000-000000000005'),
+  ('c0000000-0000-0000-0000-00000000000d', 'd0000000-0000-0000-0000-000000000006'),
+  ('c0000000-0000-0000-0000-00000000000d', 'd0000000-0000-0000-0000-000000000007'),
+  ('c0000000-0000-0000-0000-00000000000d', 'd0000000-0000-0000-0000-000000000008');
 insert into public.student_guardians (student_id, user_id) values
   ('d0000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000003'),
   ('d0000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000001'),
@@ -1549,8 +1559,10 @@ update public.classes
 
 -- Their own child sits in Class D, which they do not teach — the same
 -- shape as TP and TT, so the comparison with RLS-31/RLS-32 is like for like.
-insert into public.students (id, user_id, full_name, class_id, date_of_birth)
-values ('d0000000-0000-0000-0000-000000000009', null, 'TAP Kid', 'c0000000-0000-0000-0000-00000000000d', '2016-08-01');
+insert into public.students (id, user_id, full_name, date_of_birth)
+values ('d0000000-0000-0000-0000-000000000009', null, 'TAP Kid', '2016-08-01');
+insert into public.class_members (class_id, student_id) values
+  ('c0000000-0000-0000-0000-00000000000d', 'd0000000-0000-0000-0000-000000000009');
 insert into public.student_guardians (student_id, user_id) values
   ('d0000000-0000-0000-0000-000000000009', 'b0000000-0000-0000-0000-000000000004');
 
@@ -1666,8 +1678,10 @@ values ('b0000000-0000-0000-0000-000000000005', 'sa@test.local', 'Student Assist
 
 -- The hybrid account model holds: a student record is always linked to a
 -- guardian (P4 here) even when the student has their own login.
-insert into public.students (id, user_id, full_name, class_id, date_of_birth)
-values ('d0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000005', 'SA Own Record', 'c0000000-0000-0000-0000-00000000000d', '2008-04-01');
+insert into public.students (id, user_id, full_name, date_of_birth)
+values ('d0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000005', 'SA Own Record', '2008-04-01');
+insert into public.class_members (class_id, student_id) values
+  ('c0000000-0000-0000-0000-00000000000d', 'd0000000-0000-0000-0000-00000000000a');
 insert into public.student_guardians (student_id, user_id) values
   ('d0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000003');
 
@@ -1712,8 +1726,8 @@ insert into _tap_log(line) select set_eq(
 -- "my classmates" — being enrolled somewhere never was a grant.
 insert into _tap_log(line) select is(
   (select count(*) from public.students
-   where class_id = 'c0000000-0000-0000-0000-00000000000d'
-     and id <> 'd0000000-0000-0000-0000-00000000000a'),
+   where id in ('d0000000-0000-0000-0000-000000000006', 'd0000000-0000-0000-0000-000000000007',
+                'd0000000-0000-0000-0000-000000000008', 'd0000000-0000-0000-0000-000000000009')),  -- Class D, bar them
   0::bigint,
   'RLS-35: …and none of their own classmates in Class D, though they sit in that class every week'
 );
@@ -2059,29 +2073,36 @@ values
   ('c0000000-0000-0000-0000-00000000000f', 'Class F (second class)', 'Minggu 15:00', '{0,1,2,3,4,5,6}',
    array['b0000000-0000-0000-0000-00000000000a']::uuid[]);  -- MC only
 
-insert into public.students (id, user_id, full_name, class_id, date_of_birth)
+insert into public.students (id, user_id, full_name, date_of_birth)
 values
   -- The overlap itself: OV teaches this class and this is their child.
   ('d0000000-0000-0000-0000-00000000000b', null,
-   'OV Kid E', 'c0000000-0000-0000-0000-00000000000e', '2015-01-01'),
+   'OV Kid E', '2015-01-01'),
   -- The same parent's other child, in a class they do not teach. The
   -- control: whatever the overlap grants, it must not reach here.
   ('d0000000-0000-0000-0000-00000000000c', null,
-   'OV Kid D', 'c0000000-0000-0000-0000-00000000000d', '2017-01-01'),
+   'OV Kid D', '2017-01-01'),
   -- The student assistant's own record, in the class they assist.
   ('d0000000-0000-0000-0000-00000000000d', 'b0000000-0000-0000-0000-000000000007',
-   'OSA Own Record', 'c0000000-0000-0000-0000-00000000000e', '2008-01-01'),
+   'OSA Own Record', '2008-01-01'),
   -- The plain admin-parent's child.
   ('d0000000-0000-0000-0000-00000000000e', null,
-   'AP Kid', 'c0000000-0000-0000-0000-00000000000e', '2016-01-01'),
+   'AP Kid', '2016-01-01'),
   -- An unrelated family in Class E: the child every persona here can
   -- *teach* and none of them may be told about.
   ('d0000000-0000-0000-0000-00000000000f', null,
-   'Plain Kid E', 'c0000000-0000-0000-0000-00000000000e', '2015-02-02'),
+   'Plain Kid E', '2015-02-02'),
   -- Class F exists to give MC a second roster, and everyone else a class
   -- they must not reach.
   ('d0000000-0000-0000-0000-000000000010', null,
-   'F Kid', 'c0000000-0000-0000-0000-00000000000f', '2015-03-03');
+   'F Kid', '2015-03-03');
+insert into public.class_members (class_id, student_id) values
+  ('c0000000-0000-0000-0000-00000000000e', 'd0000000-0000-0000-0000-00000000000b'),
+  ('c0000000-0000-0000-0000-00000000000d', 'd0000000-0000-0000-0000-00000000000c'),
+  ('c0000000-0000-0000-0000-00000000000e', 'd0000000-0000-0000-0000-00000000000d'),
+  ('c0000000-0000-0000-0000-00000000000e', 'd0000000-0000-0000-0000-00000000000e'),
+  ('c0000000-0000-0000-0000-00000000000e', 'd0000000-0000-0000-0000-00000000000f'),
+  ('c0000000-0000-0000-0000-00000000000f', 'd0000000-0000-0000-0000-000000000010');
 insert into public.student_guardians (student_id, user_id) values
   ('d0000000-0000-0000-0000-00000000000b', 'b0000000-0000-0000-0000-000000000006'),
   ('d0000000-0000-0000-0000-00000000000c', 'b0000000-0000-0000-0000-000000000006'),
@@ -2165,7 +2186,7 @@ insert into _tap_log(line) select is(
   'RLS-36: …the overlapping child in particular is returned once, not once per policy'
 );
 insert into _tap_log(line) select is(
-  (select count(*) from public.students where class_id = 'c0000000-0000-0000-0000-00000000000f'),
+  (select count(*) from public.students where id = 'd0000000-0000-0000-0000-000000000010'),  -- F Kid, Class F's only student
   0::bigint,
   'RLS-36: …and Class F, which they neither teach nor have a child in, is invisible'
 );
@@ -2280,7 +2301,8 @@ insert into _tap_log(line) select set_eq(
 -- there the class they sat in was not the class they taught.
 insert into _tap_log(line) select is(
   (select count(*) from public.students
-   where class_id = 'c0000000-0000-0000-0000-00000000000e'),
+   where id in ('d0000000-0000-0000-0000-00000000000b', 'd0000000-0000-0000-0000-00000000000d',
+                'd0000000-0000-0000-0000-00000000000e', 'd0000000-0000-0000-0000-00000000000f')),  -- Class E's roster
   4::bigint,
   'RLS-37: they now see all of their own classmates — not because they are enrolled, but because they teach the class those classmates are in'
 );
@@ -2340,7 +2362,7 @@ insert into _tap_log(line) select is(
 );
 -- The one thing the overlap does not buy them: another class.
 insert into _tap_log(line) select is(
-  (select count(*) from public.students where class_id = 'c0000000-0000-0000-0000-00000000000f'),
+  (select count(*) from public.students where id = 'd0000000-0000-0000-0000-000000000010'),  -- F Kid, Class F's only student
   0::bigint,
   'RLS-37: …and Class F is still invisible — the overlap widens one class, not the school'
 );
@@ -2668,8 +2690,10 @@ values ('12000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated'
 insert into public.users (id, email, full_name, role, locale)
 values ('12000000-0000-0000-0000-000000000001', 'p43@test.local', 'Parent RLS43', 'parent', 'id');
 
-insert into public.students (id, user_id, full_name, class_id, date_of_birth)
-values ('13000000-0000-0000-0000-000000000001', null, 'P43 Child (RLS-43 test)', '11000000-0000-0000-0000-000000000001', '2015-01-01');
+insert into public.students (id, user_id, full_name, date_of_birth)
+values ('13000000-0000-0000-0000-000000000001', null, 'P43 Child (RLS-43 test)', '2015-01-01');
+insert into public.class_members (class_id, student_id) values
+  ('11000000-0000-0000-0000-000000000001', '13000000-0000-0000-0000-000000000001');
 insert into public.student_guardians (student_id, user_id) values
   ('13000000-0000-0000-0000-000000000001', '12000000-0000-0000-0000-000000000001');
 
@@ -3503,9 +3527,8 @@ begin
   -- A plpgsql BEGIN…EXCEPTION block is itself a subtransaction, so the
   -- caught error rolls the stray INSERT back.
   begin
-    insert into public.students (id, full_name, class_id, date_of_birth)
-      values ('d0000000-0000-0000-0000-0000000000fe', 'No Guardian',
-              'c0000000-0000-0000-0000-00000000000a', '2019-01-01');
+    insert into public.students (id, full_name, date_of_birth)
+      values ('d0000000-0000-0000-0000-0000000000fe', 'No Guardian', '2019-01-01');
     set constraints all immediate;
     -- reached only if the check WRONGLY passed
   exception when check_violation then
@@ -3516,9 +3539,8 @@ begin
   -- student + guardian in one transaction → the check passes. Force an
   -- unwind afterwards so the rows do not linger for later assertions.
   begin
-    insert into public.students (id, full_name, class_id, date_of_birth)
-      values ('d0000000-0000-0000-0000-0000000000fd', 'Has Guardian',
-              'c0000000-0000-0000-0000-00000000000a', '2019-01-01');
+    insert into public.students (id, full_name, date_of_birth)
+      values ('d0000000-0000-0000-0000-0000000000fd', 'Has Guardian', '2019-01-01');
     insert into public.student_guardians (student_id, user_id)
       values ('d0000000-0000-0000-0000-0000000000fd', '92000000-0000-0000-0000-000000000001');
     set constraints all immediate;
@@ -3570,7 +3592,7 @@ begin
     'New Student', '2018-04-04',
     '[{"user_id":"90000000-0000-0000-0000-000000000001","relation":"ibu"},
       {"user_id":"92000000-0000-0000-0000-000000000001","relation":"ayah"}]'::jsonb,
-    null, 'c0000000-0000-0000-0000-00000000000a');
+    p_class_ids => array['c0000000-0000-0000-0000-00000000000a']::uuid[]);
   drop table if exists _saved;
   create temp table _saved(id uuid);
   insert into _saved values (new_id);
@@ -3586,7 +3608,8 @@ begin
     'New Student', '2018-04-04',
     '[{"user_id":"90000000-0000-0000-0000-000000000001","relation":"ibu"},
       {"user_id":"90000000-0000-0000-0000-000000000003","relation":"voogd"}]'::jsonb,
-    (select id from _saved), 'c0000000-0000-0000-0000-00000000000a');
+    p_id => (select id from _saved),
+    p_class_ids => array['c0000000-0000-0000-0000-00000000000a']::uuid[]);
 end $$;
 insert into _tap_log(line) select set_eq(
   format($$ select user_id from public.student_guardians
@@ -3818,12 +3841,13 @@ insert into public.classes (id, name, schedule, meeting_days, tutor_ids)
 values ('cd000000-0000-0000-0000-000000000001', 'Directory Class', 'Sabtu 10:00', '{0,1,2,3,4,5,6}',
         array['ad000000-0000-0000-0000-000000000001']::uuid[]);
 
-insert into public.students (id, user_id, full_name, class_id, date_of_birth)
+insert into public.students (id, user_id, full_name, date_of_birth)
 values
-  ('dd000000-0000-0000-0000-000000000001', null, 'Directory Kid One',
-     'cd000000-0000-0000-0000-000000000001', '2015-01-01'),
-  ('dd000000-0000-0000-0000-000000000002', 'ad000000-0000-0000-0000-000000000003', 'Directory Kid Two',
-     'cd000000-0000-0000-0000-000000000001', '2009-01-01');
+  ('dd000000-0000-0000-0000-000000000001', null, 'Directory Kid One', '2015-01-01'),
+  ('dd000000-0000-0000-0000-000000000002', 'ad000000-0000-0000-0000-000000000003', 'Directory Kid Two', '2009-01-01');
+insert into public.class_members (class_id, student_id) values
+  ('cd000000-0000-0000-0000-000000000001', 'dd000000-0000-0000-0000-000000000001'),
+  ('cd000000-0000-0000-0000-000000000001', 'dd000000-0000-0000-0000-000000000002');
 
 insert into public.student_guardians (student_id, user_id, unlinked_at)
 values
@@ -4083,13 +4107,13 @@ insert into _tap_log(line) select ok(
     select 1 from public.students s
     join public.student_guardians g on g.student_id = s.id
     where lower(btrim(s.full_name)) = 'enrol child'
-      and s.class_id is null
+      and not exists (select 1 from public.class_members m where m.student_id = s.id)
       and s.enrollment_date = current_date
       and g.user_id = 'ef000000-0000-0000-0000-000000000001'
       and g.relation = 'ayah'
       and g.unlinked_at is null
   ),
-  'RLS-101: …and the student (class_id null, enrolled today) has one active guardian link'
+  'RLS-101: …and the student (in no group, enrolled today) has one active guardian link'
 );
 
 -- RLS-102: an identical re-submission is idempotent.
@@ -4278,7 +4302,8 @@ insert into _tap_log(line) select ok(
   exists (select 1 from public.students s
     join public.users u on u.id = s.user_id
     where s.full_name = 'Fresh Santri' and u.id = 'ef000000-0000-0000-0000-000000000003'
-      and u.role = 'student' and s.class_id is null),
+      and u.role = 'student'
+      and not exists (select 1 from public.class_members m where m.student_id = s.id)),
   'RLS-111: …the student record is linked to the new role=student account'
 );
 
@@ -4645,26 +4670,11 @@ insert into public.murajaah_assignments (student_id, tutor_id, surah_num, ayah_f
 set local role authenticated;
 set local request.jwt.claim.role to 'authenticated';
 
--- ---- RLS-122: the transitional sync trigger (ADR-045(a0)). Until the
--- contract migration drops students.class_id, a write to it from an old
--- app bundle is mirrored into class_members: set → added, changed →
--- moved.
+-- ---- RLS-122: retired. It asserted migration 026's transitional sync
+-- trigger (students.class_id -> class_members); migration 027, the
+-- contract step of ADR-045(a0), dropped the column and the trigger.
+-- RLS-143 asserts they are gone.
 reset role;
-insert into public.students (id, full_name, date_of_birth, class_id)
-values ('f8ad0000-0000-0000-0000-0000000000cc', 'MG Sync Kid', '2016-01-01', 'f8ac0000-0000-0000-0000-000000000001');
-insert into public.student_guardians (student_id, user_id) values ('f8ad0000-0000-0000-0000-0000000000cc', 'f8a00000-0000-0000-0000-000000000012');
-insert into _tap_log(line) select is(
-  (select array_agg(class_id) from public.class_members where student_id = 'f8ad0000-0000-0000-0000-0000000000cc'),
-  array['f8ac0000-0000-0000-0000-000000000001']::uuid[],
-  'RLS-122: writing students.class_id (old app) adds the matching class_members row'
-);
-update public.students set class_id = 'f8ac0000-0000-0000-0000-000000000003' where id = 'f8ad0000-0000-0000-0000-0000000000cc';
-insert into _tap_log(line) select is(
-  (select array_agg(class_id) from public.class_members where student_id = 'f8ad0000-0000-0000-0000-0000000000cc'),
-  array['f8ac0000-0000-0000-0000-000000000003']::uuid[],
-  'RLS-122: …and changing it moves the membership (old single-group semantics)'
-);
-delete from public.students where id = 'f8ad0000-0000-0000-0000-0000000000cc';
 
 -- ---- RLS-123: who reads class_members; only an admin writes it.
 set local role authenticated;
@@ -5012,8 +5022,8 @@ insert into _tap_log(line) select throws_ok(
 insert into _tap_log(line) select lives_ok(
   $$ select public.fn_admin_save_student('MG K7', date '2016-01-01',
        '[{"user_id":"f8a00000-0000-0000-0000-000000000011"}]'::jsonb,
-       'f8ad0000-0000-0000-0000-000000000007', null, null,
-       array['f8ac0000-0000-0000-0000-00000000000a']::uuid[]) $$,
+       p_id => 'f8ad0000-0000-0000-0000-000000000007',
+       p_class_ids => array['f8ac0000-0000-0000-0000-00000000000a']::uuid[]) $$,
   'RLS-137: an admin saves a student''s group set'
 );
 reset role;
@@ -5032,14 +5042,16 @@ set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- a
 insert into _tap_log(line) select lives_ok(
   $$ select public.fn_admin_save_student('MG K2', date '2016-01-01',
        '[{"user_id":"f8a00000-0000-0000-0000-000000000012"}]'::jsonb,
-       'f8ad0000-0000-0000-0000-000000000002', 'f8ac0000-0000-0000-0000-000000000003', null) $$,
-  'RLS-137: the old single-group call (no p_class_ids) still works during the transition'
+       p_id => 'f8ad0000-0000-0000-0000-000000000002',
+       p_class_ids => array['f8ac0000-0000-0000-0000-000000000003']::uuid[]) $$,
+  'RLS-137: a move to one other group is a one-element p_class_ids'
 );
 reset role;
 insert into _tap_log(line) select is(
-  (select count(*) from public.class_members where student_id = 'f8ad0000-0000-0000-0000-000000000002'
-     and class_id = 'f8ac0000-0000-0000-0000-000000000003'), 1::bigint,
-  'RLS-137: …and its group is mirrored into class_members'
+  (select array_agg(m.class_id) from public.class_members m join public.classes c on c.id = m.class_id
+    where m.student_id = 'f8ad0000-0000-0000-0000-000000000002' and c.archived_at is null),
+  array['f8ac0000-0000-0000-0000-000000000003']::uuid[],
+  'RLS-137: …and the student is now in that group only'
 );
 
 -- ---- RLS-138: a report for a child in no tracking group is authored
@@ -5108,6 +5120,73 @@ insert into _tap_log(line) select is(
   (select tracks_progress::text || '/' || coalesce(archived_at::text, 'active') from public.classes where id = 'f8ac0000-0000-0000-0000-0000000000dd'),
   'true/active', 'RLS-142: a new group starts with tracking on and active'
 );
+
+
+-- ---------- migration 027: the contract step of ADR-045(a0) ----------
+
+-- ---- RLS-143: students.class_id, its sync trigger and index are gone;
+-- class_members is the only record of who is in which group.
+insert into _tap_log(line) select hasnt_column('public', 'students', 'class_id',
+  'RLS-143: students.class_id is dropped');
+insert into _tap_log(line) select is(
+  (select count(*) from pg_trigger where tgname = 'trg_students_class_id_sync'), 0::bigint,
+  'RLS-143: …with its sync trigger');
+insert into _tap_log(line) select hasnt_function('public', 'fn_students_class_id_sync',
+  'RLS-143: …and the trigger function');
+insert into _tap_log(line) select hasnt_index('public', 'students', 'idx_students_class',
+  'RLS-143: …and its index');
+
+-- ---- RLS-144: fn_admin_save_student has one signature, without p_class_id.
+insert into _tap_log(line) select is(
+  (select array_agg(pg_get_function_identity_arguments(p.oid))
+     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'fn_admin_save_student'),
+  array['p_full_name text, p_dob date, p_guardians jsonb, p_id uuid, p_user_id uuid, p_class_ids uuid[]'],
+  'RLS-144: fn_admin_save_student has a single signature, without the legacy p_class_id');
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+do $$
+declare v uuid;
+begin
+  v := public.fn_admin_save_student('MG Contract Kid', date '2016-02-02',
+         '[{"user_id":"f8a00000-0000-0000-0000-000000000012","relation":"ibu"}]'::jsonb,
+         p_class_ids => array['f8ac0000-0000-0000-0000-000000000001','f8ac0000-0000-0000-0000-00000000000a']::uuid[]);
+  perform set_config('mg.contract_kid', v::text, true);
+  -- p_class_ids null leaves the memberships as they are (a guardian-only edit).
+  perform public.fn_admin_save_student('MG Contract Kid', date '2016-02-02',
+         '[{"user_id":"f8a00000-0000-0000-0000-000000000012","relation":"ayah"}]'::jsonb, p_id => v);
+end $$;
+reset role;
+insert into _tap_log(line) select is(
+  (select count(*) from public.class_members where student_id = current_setting('mg.contract_kid')::uuid), 2::bigint,
+  'RLS-144: it enrols through p_class_ids, and a call without p_class_ids leaves the groups alone');
+delete from public.students where id = current_setting('mg.contract_kid')::uuid;
+
+-- ---- RLS-145: the notifications key includes ref_id, nulls not distinct
+-- (AC-011): two same-day events of one kind get two in-app rows when their
+-- ref_id differs, and one row when it is the same — including null.
+insert into _tap_log(line) select is(
+  (select pg_get_constraintdef(c.oid) from pg_constraint c
+    where c.conrelid = 'public.notifications'::regclass and c.contype = 'u'),
+  'UNIQUE NULLS NOT DISTINCT (user_id, student_id, event, event_date, ref_id)',
+  'RLS-145: notifications has the single unique key (user_id, student_id, event, event_date, ref_id), nulls not distinct');
+insert into public.notifications (user_id, student_id, event, event_date, ref_id)
+values ('f8a00000-0000-0000-0000-000000000012', 'f8ad0000-0000-0000-0000-000000000002', 'absence', current_date,
+        'f8a70000-0000-0000-0000-000000000001'),
+       ('f8a00000-0000-0000-0000-000000000012', 'f8ad0000-0000-0000-0000-000000000002', 'absence', current_date,
+        'f8a70000-0000-0000-0000-000000000002');
+insert into _tap_log(line) select is(
+  (select count(*) from public.notifications
+    where user_id = 'f8a00000-0000-0000-0000-000000000012' and event = 'absence' and event_date = current_date), 2::bigint,
+  'RLS-145: two same-day absences in different sessions are two rows');
+insert into public.notifications (user_id, student_id, event, event_date, ref_id)
+values ('f8a00000-0000-0000-0000-000000000012', 'f8ad0000-0000-0000-0000-000000000002', 'assignmentDueTomorrow', current_date, null);
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.notifications (user_id, student_id, event, event_date, ref_id)
+     values ('f8a00000-0000-0000-0000-000000000012', 'f8ad0000-0000-0000-0000-000000000002', 'assignmentDueTomorrow', current_date, null) $$,
+  '23505', null,
+  'RLS-145: …and a second row with the same key and a null ref_id is still refused');
 
 reset role;
 
