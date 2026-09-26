@@ -550,6 +550,102 @@ paths:
         '204': { description: Updated }
         '403': { $ref: '#/components/responses/ForbiddenRLS' }
 
+  /year_end_report_sections:
+    get:
+      tags: [reports]
+      summary: A report's group sections
+      description: |
+        Migration 029 (TAD ADR-045(h), PRD Feature 8 FR-008). One section per
+        group with tracking off the student attended in the year. Readable by
+        a tutor of the section's group (never on their own record), by
+        whoever can read the report (its tutors, and the family once it is
+        published), and by admins. Embed `class:classes(name)`.
+      parameters:
+        - $ref: '#/components/parameters/select'
+        - name: report_id
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Sections
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ReportSection' }
+    patch:
+      tags: [reports]
+      summary: Fill in a section (its group's tutor while the report is a draft, or an admin)
+      description: |
+        Only `grade` and `narrative` are writable by any client (column
+        grants). A tutor of the section's group may update them while the
+        report is a draft; the report's author may not (Resolved Decision
+        34); an admin may at any time, the correction path after
+        publishing. Rows are created only by `generate-year-end-drafts`.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                grade: { type: string, nullable: true, enum: [mumtaz, jayyid_jiddan, jayyid, maqbul, perlu_bimbingan] }
+                narrative: { type: string, nullable: true, maxLength: 2000 }
+      responses:
+        '204': { description: Updated, or no row the caller may edit (a locked section) }
+
+  /rpc/fn_my_report_sections:
+    post:
+      tags: [reports]
+      summary: The report sections of a group the caller teaches
+      description: |
+        Migration 029. `p_class` → each section with the student's name, the
+        academic year, the report's status and the author's name, for a tutor
+        of that group (never their own record) or an admin. An Aqidah tutor
+        cannot read the report of a child who also has a tracking group, so
+        this is how their list is built.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_class]
+              properties:
+                p_class: { type: string, format: uuid }
+      responses:
+        '200': { description: Sections with report context }
+
+  /rpc/fn_admin_set_report_author:
+    post:
+      tags: [admin, reports]
+      summary: Reassign a draft report's author (Admin only)
+      description: |
+        Migration 029, PRD Resolved Decision 21. Admin only; a draft only.
+        The new author must teach one of the student's active groups and must
+        not be a 16+ student assistant (their name would be printed on the
+        family's PDF). `year_end_reports.tutor_id` has no column grant on
+        purpose: a grant would let a co-tutor make themselves the author.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_report, p_tutor]
+              properties:
+                p_report: { type: string, format: uuid }
+                p_tutor: { type: string, format: uuid }
+      responses:
+        '200': { description: Author changed }
+        '400': { description: Not a draft, not a tutor of the student's groups, or a student assistant (23514) }
+        '403': { description: Caller is not an admin }
+
   /rpc/fn_class_tutors:
     post:
       tags: [attendance]
@@ -1421,6 +1517,11 @@ paths:
                     description: >-
                       No class, or a class with no tutor assigned — blocked on
                       enrollment work rather than already done
+                  sections_created:
+                    type: integer
+                    description: >-
+                      Group sections added to draft reports of the year (one per
+                      tracking-off group the student attended or is in; FR-008)
         '400': { description: Missing or malformed academic_year (must be two consecutive years) }
         '403': { description: Caller is not an admin }
 
@@ -1429,20 +1530,17 @@ paths:
       tags: [functions, reports]
       summary: Publish a draft, or regenerate PDF for a published report after edits
       description: |
-        Verifies the caller is the **authoring tutor** for this report —
-        not admin, and not a co-tutor on the same class. This mirrors
-        `yer_tutor_rw`'s WITH CHECK (`tutor_id = auth.uid()`): a co-tutor
-        who cannot edit a report through PostgREST cannot publish it
-        either. See TAD ADR-013.
+        Verifies the caller is the report's **author or an admin** (PRD
+        Feature 8 Resolved Decision 34, TAD ADR-045(h)). Until release
+        8b-2 only the authoring tutor could publish (ADR-013, kept by
+        ADR-014); a co-tutor who is neither still gets 403.
 
-        This is the one report boundary TAD ADR-014 deliberately did not
-        move: admin became a super admin over every other operational
-        surface, including editing this report's narrative and grades,
-        and still gets a 403 here. Publishing is what makes a report
-        visible to a family. The consequence — an admin edit to an
-        already-published report leaves the stored PDF stale until the
-        authoring tutor calls this again — is surfaced to the admin in
-        the report editor rather than hidden.
+        **Group sections (FR-008):** every section needs a grade and a
+        narrative, or the call is refused with 409 and the names of the
+        missing sections. Only an admin may pass
+        `omit_empty_sections: true`, which leaves the empty sections out
+        of the PDF (the family's view shows only complete sections).
+        Sections are printed as titled blocks after the narrative.
 
         The PDF's "Grup / Groep" line names one of the student's active
         groups: the one the report's author teaches them in, tracking
@@ -1479,6 +1577,9 @@ paths:
               required: [report_id]
               properties:
                 report_id: { type: string, format: uuid }
+                omit_empty_sections:
+                  type: boolean
+                  description: Admin only — publish with the empty group sections left out
       responses:
         '200':
           description: Published (or re-published) successfully
@@ -1490,8 +1591,21 @@ paths:
                   report_id: { type: string, format: uuid }
                   pdf_path: { type: string }
                   published_at: { type: string, format: date-time }
+                  omitted_sections:
+                    type: array
+                    items: { type: string }
+                    description: Names of the empty sections an admin left out
         '400': { description: report_id missing, or the report has no narrative yet }
-        '403': { description: Caller is not the authoring tutor }
+        '403': { description: Caller is neither the report's author nor an admin }
+        '409':
+          description: A group section lacks a grade or narrative
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string }
+                  missing_sections: { type: array, items: { type: string } }
         '404': { description: No such report }
         '500': { description: PDF generation or upload failed — status not changed, safe to retry }
 
@@ -2538,6 +2652,21 @@ components:
         class_id: { type: string, format: uuid }
         student_id: { type: string, format: uuid }
         enrolled_at: { type: string, format: date-time }
+
+    ReportSection:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        report_id: { type: string, format: uuid }
+        class_id: { type: string, format: uuid }
+        tutor_id: { type: string, format: uuid, nullable: true, description: The group's first adult tutor when generated }
+        grade: { type: string, nullable: true, enum: [mumtaz, jayyid_jiddan, jayyid, maqbul, perlu_bimbingan] }
+        narrative: { type: string, nullable: true }
+        attendance_present: { type: integer }
+        attendance_absent: { type: integer }
+        attendance_late: { type: integer }
+        attendance_rate: { type: number }
+        updated_at: { type: string, format: date-time }
 
     GroupAnnouncement:
       type: object

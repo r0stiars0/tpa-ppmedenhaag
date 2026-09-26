@@ -381,7 +381,7 @@ Layar ini **hanya untuk melihat** — guru tidak bisa mengonfirmasi murajaah unt
 
 ## 10. Rapor
 
-Rapor akhir tahun merangkum kehadiran, nilai per bidang (Yanbu'a, Al-Quran, Murajaah), dan catatan guru, lalu diterbitkan sebagai PDF yang bisa diunduh keluarga.
+Rapor akhir tahun merangkum kehadiran, nilai per bidang (Yanbu'a, Al-Quran, Murajaah), dan catatan guru, lalu diterbitkan sebagai PDF yang bisa diunduh keluarga. Jika santri juga ikut grup tanpa pencatatan Yanbu'a, seperti grup Aqidah, rapor juga mendapat **bagian per grup** yang diisi oleh guru grup tersebut (lihat §10.1.1).
 
 ### 10.1 Tampilan Guru/Admin — Daftar Rapor
 
@@ -389,9 +389,25 @@ Rapor akhir tahun merangkum kehadiran, nilai per bidang (Yanbu'a, Al-Quran, Mura
 
 | Elemen | Fungsi |
 |---|---|
-| *(Khusus admin)* Panel **"Buat Draf Rapor"** | Admin bisa membuat draf rapor untuk seluruh grup atau satu grup tertentu, untuk satu tahun ajaran (format "2025/2026"). Setelah dibuat, panel menampilkan jumlah draf yang berhasil dibuat serta yang dilewati (karena sudah punya rapor, atau karena grupnya tidak punya guru pengampu). |
+| *(Khusus admin)* Panel **"Buat Draf Rapor"** | Admin bisa membuat draf rapor untuk seluruh grup atau satu grup tertentu, untuk satu tahun ajaran (format "2025/2026"). Setelah dibuat, panel menampilkan jumlah draf yang berhasil dibuat serta yang dilewati (karena sudah punya rapor, atau karena grupnya tidak punya guru pengampu), serta berapa **bagian grup** yang ditambahkan. Membuat ulang hanya menambah bagian yang belum ada, misalnya untuk anak yang baru masuk grup Aqidah. |
 | **Pilih Grup** | Sama seperti layar lain. |
 | Daftar rapor | Nama santri, tahun ajaran, dan lencana status **Draf** (abu-abu) atau **Diterbitkan** (hijau). Tekan salah satu untuk membuka. |
+| *(Guru grup Aqidah)* Baris per bagian | Untuk anak yang juga ikut grup Yanbu'a/Al-Quran, rapornya ditulis oleh guru grup itu. Anda hanya melihat bagian Anda sendiri: nama, tahun ajaran, **penulis rapor**, dan status **Belum diisi**, **Sudah diisi** atau **Diterbitkan · terkunci**. |
+
+#### 10.1.1 Mengisi bagian sebuah grup (mis. Aqidah)
+
+<img src="./screenshots/id/reports-section-list.png" width="360" alt="Rapor — bagian-bagian grup Aqidah">
+
+<img src="./screenshots/id/reports-section-editor.png" width="360" alt="Rapor — mengisi satu bagian">
+
+| Elemen | Fungsi |
+|---|---|
+| **Kehadiran di grup ini saja** | Hadir / Terlambat / Tidak hadir dan persentase, hanya untuk pertemuan grup Anda. |
+| **Nilai** | Lima nilai yang sama seperti di bagian lain rapor. |
+| **Catatan Guru** | Catatan Anda tentang santri di grup ini. |
+| **Simpan** | Menyimpan bagian ini. |
+
+Anda **hanya mengisi bagian grup Anda sendiri**, selama rapor masih draf. Penulis rapor baru menerbitkan rapor setelah semua bagian punya nilai dan catatan. Setelah terbit, bagian Anda **terkunci**; perbaikan melalui admin. Jika anak hanya ikut grup Anda (misalnya hanya Aqidah), Anda sendiri penulis rapornya dan mengisi rapor sekaligus bagian Anda.
 
 ### 10.2 Editor Rapor
 
@@ -406,10 +422,15 @@ Rapor akhir tahun merangkum kehadiran, nilai per bidang (Yanbu'a, Al-Quran, Mura
 | **Nilai Keseluruhan** | Dropdown nilai gabungan, tanpa kolom catatan. |
 | **Catatan Guru** | Kolom teks panjang berisi narasi perkembangan santri — **wajib diisi sebelum rapor bisa diterbitkan**. |
 | **Simpan** | Menyimpan perubahan tanpa menerbitkan — bisa dilakukan kapan saja, baik rapor masih draf maupun sudah diterbitkan. |
-| **Terbitkan Rapor** / **Terbitkan Ulang & Perbarui PDF** | Hanya muncul untuk **guru penulis rapor** (bukan admin). Menampilkan kotak konfirmasi, lalu membuat berkas PDF dan mengubah status menjadi "Diterbitkan" — setelah itu orang tua dan santri bisa melihat & mengunduhnya. Nonaktif sampai kolom Catatan Guru terisi. |
+| **Bagian dari grup lain** | Setiap bagian grup Aqidah dengan gurunya, statusnya (**Sudah diisi** atau **Belum diisi**) dan, bila sudah diisi, nilai dan catatannya. Hanya guru grup itu yang mengisinya; penulis rapor tidak dapat mengubahnya. |
+| *(Khusus admin, pada draf)* **Penulis rapor** | Pilihan guru dari grup-grup santri ini (bukan santri asisten). Penulis mengisi bagian Yanbu'a/Al-Quran/Murajaah dan menerbitkan rapor. |
+| **Terbitkan Rapor** / **Terbitkan Ulang & Perbarui PDF** | Untuk **penulis rapor dan admin**. Menampilkan kotak konfirmasi, lalu membuat berkas PDF dan mengubah status menjadi "Diterbitkan" — setelah itu orang tua dan santri bisa melihat & mengunduhnya. Nonaktif sampai Catatan Guru terisi **dan setiap bagian grup punya nilai dan catatan**; aplikasi menyebut bagian mana yang belum diisi. |
+| *(Khusus admin)* **Terbitkan tanpa bagian kosong…** | Bila guru sebuah grup tidak dapat menyelesaikan bagiannya (sudah tidak aktif, tidak dapat dihubungi). Panel menyebut bagian mana yang tidak dimuat; setelah mencentang konfirmasi, rapor terbit tanpa bagian itu, juga di PDF. |
 | **Unduh PDF** | Muncul jika PDF sudah pernah dibuat. |
 
-**Catatan untuk admin**: admin bisa mengubah nilai/catatan pada rapor apa pun, tetapi **tidak bisa menerbitkannya** — hanya guru penulis asli yang bisa menekan tombol terbit. Jika admin mengubah rapor yang sudah terbit, perubahan langsung tersimpan di aplikasi, tetapi berkas PDF baru menunggu sampai guru yang bersangkutan menerbitkan ulang.
+<img src="./screenshots/id/reports-admin-omit.png" width="360" alt="Rapor — terbitkan tanpa bagian kosong">
+
+**Catatan untuk admin**: admin dapat mengubah rapor dan bagian mana pun, juga setelah terbit, dan **dapat menerbitkan (ulang) rapor**. Begitulah cara memperbaiki bagian yang sudah terkunci bagi gurunya: ubah, lalu pilih **Terbitkan Ulang & Perbarui PDF** agar PDF tetap sama dengan aplikasi.
 
 ### 10.3 Tampilan Keluarga — Melihat & Mengunduh Rapor
 
@@ -421,6 +442,7 @@ Keluarga **hanya bisa melihat rapor yang sudah diterbitkan** — rapor berstatus
 |---|---|
 | **Pilih Anak** | Sama seperti layar lain. |
 | Ringkasan kehadiran, nilai per bidang, dan catatan guru | Sama seperti yang ditulis guru, hanya untuk dibaca. |
+| Bagian per grup (mis. Aqidah) | Nama grup, nilai, kehadiran di grup itu dan catatan guru grup tersebut. Juga ada di PDF. |
 | **Unduh PDF** | Membuka berkas PDF rapor di tab baru. |
 
 Jika belum ada rapor yang diterbitkan untuk anak tersebut, layar menampilkan pesan **"Belum ada rapor tersedia"**.
@@ -698,4 +720,4 @@ Untuk memudahkan komunikasi dua bahasa di lingkungan TPA, berikut padanan istila
 
 ---
 
-*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **13.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026), serta **§5.1 dilengkapi dengan bagian "Kehadiran guru"** dan **§13.4 ditambahkan untuk layar peninjauan "Kehadiran Guru" admin** (ADR-041, September 2026), **§13.5 ditambahkan untuk layar "Pengguna" admin** (ADR-042, September 2026), dan diperbarui untuk **santri yang ikut beberapa grup** (ADR-045, September 2026): §5, §6.2, §7, §12.1, §13.2 (dengan §13.2.1 "Santri dalam grup" yang baru) dan §13.3, serta **§11 ditambahkan untuk "Pengumuman & Materi"** (ADR-045 rilis 8b-1, September 2026; bab-bab sesudahnya bergeser satu nomor). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF dibuat ulang dari teks ini dengan `scripts/gen-manual-pdf.mjs`; layar §13.4 dan §13.5 belum memiliki tangkapan layar.*
+*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **13.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026), serta **§5.1 dilengkapi dengan bagian "Kehadiran guru"** dan **§13.4 ditambahkan untuk layar peninjauan "Kehadiran Guru" admin** (ADR-041, September 2026), **§13.5 ditambahkan untuk layar "Pengguna" admin** (ADR-042, September 2026), dan diperbarui untuk **santri yang ikut beberapa grup** (ADR-045, September 2026): §5, §6.2, §7, §12.1, §13.2 (dengan §13.2.1 "Santri dalam grup" yang baru) dan §13.3, serta **§11 ditambahkan untuk "Pengumuman & Materi"** (ADR-045 rilis 8b-1, September 2026; bab-bab sesudahnya bergeser satu nomor), dan **§10 diperbarui untuk bagian per grup di rapor akhir tahun** (§10.1.1 baru; ADR-045 rilis 8b-2, September 2026). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF dibuat ulang dari teks ini dengan `scripts/gen-manual-pdf.mjs`; layar §13.4 dan §13.5 belum memiliki tangkapan layar.*

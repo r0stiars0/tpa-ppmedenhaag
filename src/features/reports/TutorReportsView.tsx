@@ -111,7 +111,7 @@ export function TutorReportsView() {
             <h2 className="text-base font-semibold text-ppme-text">{selectedSection.student_name}</h2>
             <p className="text-xs text-ppme-text/60">{t('reports.academicYear', { year: selectedSection.academic_year })}</p>
           </div>
-          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_BADGE_CLASS[selectedSection.report_status]}`}>
+          <span className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_BADGE_CLASS[selectedSection.report_status]}`}>
             {t(STATUS_LABEL_KEY[selectedSection.report_status])}
           </span>
         </div>
@@ -213,7 +213,7 @@ export function TutorReportsView() {
                   </span>
                 </span>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_BADGE_CLASS[report.status]}`}
+                  className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_BADGE_CLASS[report.status]}`}
                 >
                   {t(STATUS_LABEL_KEY[report.status])}
                 </span>
@@ -236,7 +236,7 @@ export function TutorReportsView() {
                       {t('reports.authorIs', { name: s.author_name ?? '—' })}
                     </span>
                   </span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${badge.cls}`}>{badge.label}</span>
+                  <span className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${badge.cls}`}>{badge.label}</span>
                 </button>
               </li>
             )

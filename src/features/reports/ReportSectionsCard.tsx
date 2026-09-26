@@ -54,7 +54,7 @@ export function ReportSectionsCard({
             <div className="flex items-center justify-between gap-2">
               <span className="font-semibold text-ppme-text">{section.class?.name ?? '—'}</span>
               <span
-                className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${
                   complete ? 'bg-ppme-primary/10 text-ppme-primary' : 'bg-ppme-bg-alt text-ppme-text/70'
                 }`}
               >
