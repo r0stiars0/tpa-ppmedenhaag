@@ -5190,6 +5190,368 @@ insert into _tap_log(line) select throws_ok(
 
 reset role;
 
+-- ======================================================================
+-- RLS-146…RLS-157: group announcements and course materials (migration
+-- 028, TAD ADR-045(e)–(g), PRD Feature 8 release 8b-1, FR-004–FR-006)
+--
+-- A fresh island (f8b…), because the 8a island's memberships have all
+-- been moved by the time the suite gets here:
+--
+--   Groups   GA  (tracking off — "Aqidah", tutors T1 and SA)
+--            GY  (Yanbu'a, T2)        GX (unrelated, TX)
+--            GARCH (T1, archived at the end of the fixture)
+--   Kids     C1: GY + GA (guardian P1)
+--            C2: GA + GARCH (P2)      C4: GA, own login S16 (guardian P2)
+--            C3: GX (P3)              SAR: SA's own student record, in GX (P3)
+--   SA is a 16+ student assistant who TUTORS GA: no cross-group reads.
+-- ======================================================================
+reset role;
+set local request.jwt.claim.sub to '';
+
+insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous, created_at, updated_at)
+select ('f8b00000-0000-0000-0000-0000000000' || n)::uuid, 'authenticated', 'authenticated', 'f8b' || n || '@test.local', '', now(), '{}', '{}', false, false, now(), now()
+from unnest(array['01','02','03','04','11','12','13','14']) n;
+
+insert into public.users (id, email, full_name, role, locale) values
+  ('f8b00000-0000-0000-0000-000000000001', 'f8b01@test.local', 'GC Tutor Aqidah', 'tutor',   'id'),
+  ('f8b00000-0000-0000-0000-000000000002', 'f8b02@test.local', 'GC Tutor Yanbua', 'tutor',   'id'),
+  ('f8b00000-0000-0000-0000-000000000003', 'f8b03@test.local', 'GC Tutor Other',  'tutor',   'id'),
+  ('f8b00000-0000-0000-0000-000000000004', 'f8b04@test.local', 'GC Assistant',    'student', 'id'),
+  ('f8b00000-0000-0000-0000-000000000011', 'f8b11@test.local', 'GC Parent 1',     'parent',  'id'),
+  ('f8b00000-0000-0000-0000-000000000012', 'f8b12@test.local', 'GC Parent 2',     'parent',  'id'),
+  ('f8b00000-0000-0000-0000-000000000013', 'f8b13@test.local', 'GC Parent 3',     'parent',  'id'),
+  ('f8b00000-0000-0000-0000-000000000014', 'f8b14@test.local', 'GC Santri 16',    'student', 'id');
+
+insert into public.classes (id, name, meeting_days, tutor_ids, tracks_progress) values
+  ('f8bc0000-0000-0000-0000-000000000001', 'GC Aqidah',  '{0,1,2,3,4,5,6}', array['f8b00000-0000-0000-0000-000000000001','f8b00000-0000-0000-0000-000000000004']::uuid[], false),
+  ('f8bc0000-0000-0000-0000-000000000002', 'GC Yanbua',  '{0,1,2,3,4,5,6}', array['f8b00000-0000-0000-0000-000000000002']::uuid[], true),
+  ('f8bc0000-0000-0000-0000-000000000003', 'GC Other',   '{0,1,2,3,4,5,6}', array['f8b00000-0000-0000-0000-000000000003']::uuid[], true),
+  ('f8bc0000-0000-0000-0000-000000000004', 'GC Archive', '{0,1,2,3,4,5,6}', array['f8b00000-0000-0000-0000-000000000001']::uuid[], false);
+
+insert into public.students (id, user_id, full_name, date_of_birth) values
+  ('f8bd0000-0000-0000-0000-000000000001', null, 'GC C1', '2016-01-01'),
+  ('f8bd0000-0000-0000-0000-000000000002', null, 'GC C2', '2016-01-01'),
+  ('f8bd0000-0000-0000-0000-000000000003', null, 'GC C3', '2016-01-01'),
+  ('f8bd0000-0000-0000-0000-000000000004', 'f8b00000-0000-0000-0000-000000000014', 'GC C4 (16+)', '2009-01-01'),
+  ('f8bd0000-0000-0000-0000-000000000005', 'f8b00000-0000-0000-0000-000000000004', 'GC SA (student record)', '2009-01-01');
+insert into public.student_guardians (student_id, user_id) values
+  ('f8bd0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000011'),
+  ('f8bd0000-0000-0000-0000-000000000002', 'f8b00000-0000-0000-0000-000000000012'),
+  ('f8bd0000-0000-0000-0000-000000000004', 'f8b00000-0000-0000-0000-000000000012'),
+  ('f8bd0000-0000-0000-0000-000000000003', 'f8b00000-0000-0000-0000-000000000013'),
+  ('f8bd0000-0000-0000-0000-000000000005', 'f8b00000-0000-0000-0000-000000000013');
+insert into public.class_members (class_id, student_id) values
+  ('f8bc0000-0000-0000-0000-000000000002', 'f8bd0000-0000-0000-0000-000000000001'),  -- C1 GY
+  ('f8bc0000-0000-0000-0000-000000000001', 'f8bd0000-0000-0000-0000-000000000001'),  -- C1 GA
+  ('f8bc0000-0000-0000-0000-000000000001', 'f8bd0000-0000-0000-0000-000000000002'),  -- C2 GA
+  ('f8bc0000-0000-0000-0000-000000000004', 'f8bd0000-0000-0000-0000-000000000002'),  -- C2 GARCH
+  ('f8bc0000-0000-0000-0000-000000000003', 'f8bd0000-0000-0000-0000-000000000003'),  -- C3 GX
+  ('f8bc0000-0000-0000-0000-000000000001', 'f8bd0000-0000-0000-0000-000000000004'),  -- C4 GA
+  ('f8bc0000-0000-0000-0000-000000000003', 'f8bd0000-0000-0000-0000-000000000005');  -- SAR GX
+
+insert into public.group_announcements (id, class_id, author_id, title, body) values
+  ('f8b10000-0000-0000-0000-000000000001', 'f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000001', 'GA news', 'Body'),
+  ('f8b10000-0000-0000-0000-000000000002', 'f8bc0000-0000-0000-0000-000000000002', 'f8b00000-0000-0000-0000-000000000002', 'GY news', 'Body'),
+  ('f8b10000-0000-0000-0000-000000000003', 'f8bc0000-0000-0000-0000-000000000003', 'f8b00000-0000-0000-0000-000000000003', 'GX news', 'Body'),
+  ('f8b10000-0000-0000-0000-000000000004', 'f8bc0000-0000-0000-0000-000000000004', 'f8b00000-0000-0000-0000-000000000001', 'GARCH news', 'Body');
+
+insert into public.group_materials (id, class_id, uploaded_by, title, kind, url) values
+  ('f8b20000-0000-0000-0000-000000000001', 'f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000001',
+   'GA slides', 'link', 'https://docs.google.com/presentation/d/abc/edit');
+insert into public.group_materials (id, class_id, uploaded_by, title, kind, storage_path, file_name, mime_type, size_bytes) values
+  ('f8b20000-0000-0000-0000-000000000002', 'f8bc0000-0000-0000-0000-000000000002', 'f8b00000-0000-0000-0000-000000000002',
+   'GY sheet', 'file', 'f8bc0000-0000-0000-0000-000000000002/f8b20000-0000-0000-0000-000000000002/sheet.pdf', 'sheet.pdf', 'application/pdf', 1000),
+  ('f8b20000-0000-0000-0000-000000000003', 'f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000001',
+   'GA deck', 'file', 'f8bc0000-0000-0000-0000-000000000001/f8b20000-0000-0000-0000-000000000003/deck.pptx', 'deck.pptx',
+   'application/vnd.openxmlformats-officedocument.presentationml.presentation', 2000);
+insert into storage.objects (bucket_id, name, metadata) values
+  ('group-materials', 'f8bc0000-0000-0000-0000-000000000002/f8b20000-0000-0000-0000-000000000002/sheet.pdf', '{"size": 1000}'),
+  ('group-materials', 'f8bc0000-0000-0000-0000-000000000001/f8b20000-0000-0000-0000-000000000003/deck.pptx', '{"size": 2000}');
+
+update public.classes set archived_at = now() where id = 'f8bc0000-0000-0000-0000-000000000004';
+
+create temp table _gc_who (label text, uid uuid);
+insert into _gc_who values
+  ('T1', 'f8b00000-0000-0000-0000-000000000001'), ('T2', 'f8b00000-0000-0000-0000-000000000002'),
+  ('TX', 'f8b00000-0000-0000-0000-000000000003'), ('SA', 'f8b00000-0000-0000-0000-000000000004'),
+  ('P1', 'f8b00000-0000-0000-0000-000000000011'), ('P2', 'f8b00000-0000-0000-0000-000000000012'),
+  ('P3', 'f8b00000-0000-0000-0000-000000000013'), ('S16', 'f8b00000-0000-0000-0000-000000000014');
+grant select on _gc_who to authenticated;
+
+-- ---- RLS-146: who reads a group's announcements (FR-006).
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000001';  -- T1
+insert into _tap_log(line) select set_eq('select title from public.group_announcements where title like ''G%news''',
+  array['GA news', 'GARCH news', 'GY news'], 'RLS-146: a tutor reads their own groups'' announcements (an archived group''s included) and the other group of a pupil (C1''s GY)');
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000002';  -- T2
+insert into _tap_log(line) select set_eq('select title from public.group_announcements where title like ''G%news''',
+  array['GY news', 'GA news'], 'RLS-146: …a tutor also reads the other group of a child they teach (C1: GY + GA)');
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000003';  -- TX
+insert into _tap_log(line) select set_eq('select title from public.group_announcements where title like ''G%news''',
+  array['GX news'], 'RLS-146: …and nothing of a group none of their students is in');
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000011';  -- P1
+insert into _tap_log(line) select set_eq('select title from public.group_announcements where title like ''G%news''',
+  array['GY news', 'GA news'], 'RLS-146: a guardian reads every group their child is in');
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000012';  -- P2
+insert into _tap_log(line) select set_eq('select title from public.group_announcements where title like ''G%news''',
+  array['GA news', 'GARCH news'], 'RLS-146: …including an archived group the child is still a member of');
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000014';  -- S16
+insert into _tap_log(line) select set_eq('select title from public.group_announcements where title like ''G%news''',
+  array['GA news'], 'RLS-146: a 16+ student with their own login reads their own group');
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000004';  -- SA
+insert into _tap_log(line) select set_eq('select title from public.group_announcements where title like ''G%news''',
+  array['GA news', 'GX news'], 'RLS-146: a student assistant reads the group they teach and their own, never a pupil''s other group (GY)');
+set local role anon;
+set local request.jwt.claim.role to 'anon';
+set local request.jwt.claim.sub to '';
+insert into _tap_log(line) select is((select count(*) from public.group_announcements), 0::bigint,
+  'RLS-146: anon reads no announcement');
+
+-- ---- RLS-147: who posts. Only the group's own tutors (assistant
+-- included) or an admin, as themselves; archived groups are frozen.
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000001';  -- T1
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.group_announcements (class_id, author_id, title, body)
+     values ('f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000001', 'T1 post', '') $$,
+  'RLS-147: a tutor posts to their own group');
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.group_announcements (class_id, author_id, title, body)
+     values ('f8bc0000-0000-0000-0000-000000000002', 'f8b00000-0000-0000-0000-000000000001', 'x', '') $$,
+  '42501', null, 'RLS-147: …not to a group they do not teach');
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.group_announcements (class_id, author_id, title, body)
+     values ('f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000002', 'x', '') $$,
+  '42501', null, 'RLS-147: …and never under another person''s name');
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.group_announcements (class_id, author_id, title, body)
+     values ('f8bc0000-0000-0000-0000-000000000004', 'f8b00000-0000-0000-0000-000000000001', 'x', '') $$,
+  '23514', null, 'RLS-147: an archived group takes no new announcement');
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000002';  -- T2
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.group_announcements (class_id, author_id, title, body)
+     values ('f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000002', 'x', '') $$,
+  '42501', null, 'RLS-147: reading another group through a shared child gives no right to post there');
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000011';  -- P1
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.group_announcements (class_id, author_id, title, body)
+     values ('f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000011', 'x', '') $$,
+  '42501', null, 'RLS-147: a guardian cannot post (families cannot reply)');
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000004';  -- SA
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.group_announcements (class_id, author_id, title, body)
+     values ('f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000004', 'SA post', '') $$,
+  'RLS-147: a student assistant posts to the group they teach');
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.group_announcements (class_id, author_id, title, body)
+     values ('f8bc0000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000000', 'Admin post', '') $$,
+  'RLS-147: an admin posts to any group');
+
+-- ---- RLS-148: only the author edits; the author or an admin deletes;
+-- an admin takes down content in an archived group.
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000004';  -- SA, a co-tutor of GA
+update public.group_announcements set title = 'hijacked' where id = 'f8b10000-0000-0000-0000-000000000001';
+delete from public.group_announcements where id = 'f8b10000-0000-0000-0000-000000000001';
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000002';  -- T2, a cross-group reader
+update public.group_announcements set title = 'hijacked' where id = 'f8b10000-0000-0000-0000-000000000001';
+reset role;
+insert into _tap_log(line) select is((select title from public.group_announcements where id = 'f8b10000-0000-0000-0000-000000000001'),
+  'GA news', 'RLS-148: a co-tutor and a cross-group reader can neither edit nor delete another tutor''s announcement');
+set local role authenticated;
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000001';  -- T1, the author
+update public.group_announcements set title = 'GA news (edited)' where id = 'f8b10000-0000-0000-0000-000000000001';
+reset role;
+-- (updated_at moves on a real edit; inside this one test transaction
+-- now() does not, so only the title is asserted here.)
+insert into _tap_log(line) select is((select title from public.group_announcements
+    where id = 'f8b10000-0000-0000-0000-000000000001'),
+  'GA news (edited)', 'RLS-148: the author edits their announcement');
+set local role authenticated;
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+delete from public.group_announcements where id = 'f8b10000-0000-0000-0000-000000000004';
+reset role;
+insert into _tap_log(line) select is((select count(*) from public.group_announcements where id = 'f8b10000-0000-0000-0000-000000000004'),
+  0::bigint, 'RLS-148: an admin takes down an announcement, in an archived group too');
+
+-- ---- RLS-149: an announcement's shape.
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.group_announcements (class_id, author_id, title, body)
+     values ('f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000001', '  ', '') $$,
+  '23514', null, 'RLS-149: a blank title is refused');
+insert into _tap_log(line) select throws_ok(
+  format($$ insert into public.group_announcements (class_id, author_id, title, body)
+     values ('f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000001', %L, '') $$, repeat('x', 201)),
+  '23514', null, 'RLS-149: a title over 200 characters is refused');
+insert into _tap_log(line) select throws_ok(
+  format($$ insert into public.group_announcements (class_id, author_id, title, body)
+     values ('f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000001', 't', %L) $$, repeat('x', 2001)),
+  '23514', null, 'RLS-149: a body over 2,000 characters is refused');
+
+-- ---- RLS-150: materials are read by the same people as announcements.
+set local role authenticated;
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000002';  -- T2
+insert into _tap_log(line) select set_eq('select title from public.group_materials where class_id::text like ''f8bc%''',
+  array['GA slides', 'GY sheet', 'GA deck'], 'RLS-150: a tutor reads their group''s materials and those of their pupil''s other group');
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000013';  -- P3
+insert into _tap_log(line) select is((select count(*) from public.group_materials where class_id::text like 'f8bc%'), 0::bigint,
+  'RLS-150: a family with no child in a group reads none of its materials');
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000004';  -- SA
+insert into _tap_log(line) select set_eq('select title from public.group_materials where class_id::text like ''f8bc%''',
+  array['GA slides', 'GA deck'], 'RLS-150: a student assistant reads no pupil''s other group''s materials');
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.group_materials (class_id, uploaded_by, title, kind, url)
+     values ('f8bc0000-0000-0000-0000-000000000002', 'f8b00000-0000-0000-0000-000000000004', 'x', 'link', 'https://drive.google.com/file/d/x') $$,
+  '42501', null, 'RLS-150: …and cannot add one to a group they do not teach');
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000002';  -- T2
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.group_materials (class_id, uploaded_by, title, kind, url)
+     values ('f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000002', 'x', 'link', 'https://drive.google.com/file/d/x') $$,
+  '42501', null, 'RLS-150: a cross-group reader cannot add a material');
+update public.group_materials set title = 'hijacked' where id = 'f8b20000-0000-0000-0000-000000000001';
+reset role;
+insert into _tap_log(line) select is((select title from public.group_materials where id = 'f8b20000-0000-0000-0000-000000000001'),
+  'GA slides', 'RLS-150: …nor rename one');
+
+-- ---- RLS-151: the link allow-list is enforced in the database.
+create temp table _gc_links (url text, ok boolean);
+insert into _gc_links values
+  ('https://docs.google.com/document/d/abc/edit', true),
+  ('https://docs.google.com/presentation/d/abc/edit?usp=sharing', true),
+  ('https://drive.google.com/file/d/abc/view', true),
+  ('https://onedrive.live.com/edit?id=ABC&cid=123', true),
+  ('https://docs.google.com/forms/d/abc/viewform', false),
+  ('https://docs.google.com/spreadsheets/d/abc/edit', false),
+  ('https://drive.google.com/drive/folders/abc', false),
+  ('https://1drv.ms/p/s!abc', false),
+  ('https://contoso.sharepoint.com/:p:/g/abc', false),
+  ('http://docs.google.com/document/d/abc', false),
+  ('https://docs.google.com.evil.example/document/d/abc', false),
+  ('https://onedrive.live.com.evil.example/x', false),
+  ('javascript:alert(1)', false);
+do $$
+declare r record; accepted boolean; bad text := '';
+begin
+  for r in select * from _gc_links loop
+    begin
+      insert into public.group_materials (class_id, uploaded_by, title, kind, url)
+      values ('f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000001', 'link test', 'link', r.url);
+      accepted := true;
+    exception when check_violation then accepted := false;
+    end;
+    if accepted <> r.ok then bad := bad || r.url || ' '; end if;
+  end loop;
+  delete from public.group_materials where title = 'link test';
+  perform set_config('gc.bad_links', bad, true);
+end $$;
+insert into _tap_log(line) select is(current_setting('gc.bad_links'), '',
+  'RLS-151: Google Docs/Slides, a Drive file and onedrive.live.com are accepted; Forms, Sheets, folders, 1drv.ms, SharePoint, http and look-alike hosts are refused');
+
+-- ---- RLS-152: a material is exactly one file or one link, and a file
+-- lives under its own group and id.
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.group_materials (class_id, uploaded_by, title, kind)
+     values ('f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000001', 'x', 'file') $$,
+  '23514', null, 'RLS-152: a file material without its file is refused');
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.group_materials (id, class_id, uploaded_by, title, kind, url, storage_path, file_name, mime_type, size_bytes)
+     values ('f8b20000-0000-0000-0000-0000000000f1', 'f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000001', 'x', 'link',
+             'https://drive.google.com/file/d/x', 'f8bc0000-0000-0000-0000-000000000001/f8b20000-0000-0000-0000-0000000000f1/a.pdf', 'a.pdf', 'application/pdf', 1) $$,
+  '23514', null, 'RLS-152: a link material carrying a file is refused');
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.group_materials (id, class_id, uploaded_by, title, kind, storage_path, file_name, mime_type, size_bytes)
+     values ('f8b20000-0000-0000-0000-0000000000f2', 'f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000001', 'x', 'file',
+             'f8bc0000-0000-0000-0000-000000000002/f8b20000-0000-0000-0000-0000000000f2/a.pdf', 'a.pdf', 'application/pdf', 1) $$,
+  '23514', null, 'RLS-152: a file row cannot point into another group''s folder');
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.group_materials (id, class_id, uploaded_by, title, kind, storage_path, file_name, mime_type, size_bytes)
+     values ('f8b20000-0000-0000-0000-0000000000f3', 'f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000001', 'x', 'file',
+             'f8bc0000-0000-0000-0000-000000000001/f8b20000-0000-0000-0000-0000000000f3/a.docx', 'a.docx', 'application/msword', 1) $$,
+  '23514', null, 'RLS-152: a file that is not PDF or PPTX is refused');
+insert into _tap_log(line) select throws_ok(
+  format($$ insert into public.group_materials (class_id, uploaded_by, title, description, kind, url)
+     values ('f8bc0000-0000-0000-0000-000000000001', 'f8b00000-0000-0000-0000-000000000001', 'x', %L, 'link', 'https://drive.google.com/file/d/x') $$, repeat('x', 501)),
+  '23514', null, 'RLS-152: a description over 500 characters is refused');
+
+-- ---- RLS-153: the private bucket, and who reaches its objects.
+insert into _tap_log(line) select is(
+  (select public::text || '/' || file_size_limit || '/' || array_to_string(allowed_mime_types, ',')
+     from storage.buckets where id = 'group-materials'),
+  'false/20971520/application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'RLS-153: the group-materials bucket is private, 20 MB, PDF and PPTX only');
+set local role authenticated;
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000001';  -- T1
+insert into _tap_log(line) select lives_ok(
+  $$ insert into storage.objects (bucket_id, name) values ('group-materials', 'f8bc0000-0000-0000-0000-000000000001/f8b20000-0000-0000-0000-0000000000a1/new.pdf') $$,
+  'RLS-153: a tutor uploads into their own group''s folder');
+insert into _tap_log(line) select throws_ok(
+  $$ insert into storage.objects (bucket_id, name) values ('group-materials', 'f8bc0000-0000-0000-0000-000000000002/f8b20000-0000-0000-0000-0000000000a2/x.pdf') $$,
+  '42501', null, 'RLS-153: …not into another group''s');
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000002';  -- T2
+insert into _tap_log(line) select is(
+  (select count(*) from storage.objects where bucket_id = 'group-materials' and name like 'f8bc0000-0000-0000-0000-000000000001/%'),
+  2::bigint, 'RLS-153: a cross-group reader can download a group''s files (signed URLs check this)');
+-- The Storage API sets this before its own DELETE; RLS still applies.
+set local storage.allow_delete_query to 'true';
+delete from storage.objects where bucket_id = 'group-materials' and name like 'f8bc0000-0000-0000-0000-000000000001/%';
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000011';  -- P1
+insert into _tap_log(line) select is(
+  (select count(*) from storage.objects where bucket_id = 'group-materials' and name like 'f8bc%'),
+  3::bigint, 'RLS-153: a guardian reaches the files of their child''s groups (GY + GA), and only those');
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000013';  -- P3
+insert into _tap_log(line) select is(
+  (select count(*) from storage.objects where bucket_id = 'group-materials' and name like 'f8bc%'),
+  0::bigint, 'RLS-153: a family with no child in those groups reaches none of their files');
+reset role;
+insert into _tap_log(line) select is(
+  (select count(*) from storage.objects where bucket_id = 'group-materials' and name like 'f8bc0000-0000-0000-0000-000000000001/%'),
+  2::bigint, 'RLS-153: a cross-group reader''s DELETE removes nothing');
+
+-- ---- RLS-154: the two new notification events.
+insert into _tap_log(line) select ok(
+  enum_range(null::public.notification_event)::text[] @> array['groupAnnouncement', 'newMaterial'],
+  'RLS-154: notification_event has groupAnnouncement and newMaterial');
+
+-- ---- RLS-155: posting notifies (a webhook on INSERT); an edit does not.
+insert into _tap_log(line) select set_eq(
+  $$ select tgrelid::regclass::text || ':' || tgname from pg_trigger
+     where tgname in ('trg_notify_group_announcement', 'trg_notify_group_material')
+       and (tgtype::int & 4) = 4          -- INSERT
+       and (tgtype::int & 16) = 0 $$,      -- not UPDATE
+  array['group_announcements:trg_notify_group_announcement', 'group_materials:trg_notify_group_material'],
+  'RLS-155: a webhook fires on INSERT of an announcement or a material, and not on UPDATE');
+
+-- ---- RLS-156: storage used is visible to admins only.
+set local role authenticated;
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+insert into _tap_log(line) select ok(
+  (select bytes >= 3000 from public.fn_admin_storage_usage() where bucket_id = 'group-materials'),
+  'RLS-156: an admin sees the storage the course materials use');
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000001';  -- T1
+insert into _tap_log(line) select is((select count(*) from public.fn_admin_storage_usage()), 0::bigint,
+  'RLS-156: …and a tutor sees nothing');
+
+-- ---- RLS-157: materials in an archived group are frozen, but an admin
+-- can still take one down; the uploader edits their own.
+insert into _tap_log(line) select lives_ok(
+  $$ update public.group_materials set title = 'GA deck v2' where id = 'f8b20000-0000-0000-0000-000000000003' $$,
+  'RLS-157: the uploader renames their material');
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.group_materials (class_id, uploaded_by, title, kind, url)
+     values ('f8bc0000-0000-0000-0000-000000000004', 'f8b00000-0000-0000-0000-000000000001', 'x', 'link', 'https://drive.google.com/file/d/x') $$,
+  '23514', null, 'RLS-157: an archived group takes no new material');
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+insert into _tap_log(line) select lives_ok(
+  $$ delete from public.group_materials where id = 'f8b20000-0000-0000-0000-000000000002' $$,
+  'RLS-157: an admin takes down any material');
+reset role;
+insert into _tap_log(line) select is((select title from public.group_materials where id = 'f8b20000-0000-0000-0000-000000000003'),
+  'GA deck v2', 'RLS-157: …and the rename stuck');
+
+reset role;
+
 -- ---------- done ----------
 reset role;
 insert into _tap_log(line) select * from finish();
