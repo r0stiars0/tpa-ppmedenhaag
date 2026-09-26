@@ -382,7 +382,7 @@
     "confirmDeleteStudent": "Hapus data santri {{name}}? Semua data kehadiran, progres, dan rapornya ikut terhapus permanen. Gunakan ini hanya untuk membersihkan data ganda.",
     "studentClass": "Grup",
     "studentGroups": "Grup",
-    "noProgressTracking": "Tanpa pencatatan Yanbu'a/Al-Quran/Murajaah",
+    "noProgressTracking": "Tanpa pencatatan Yanbu'a",
     "archivedGroupsOfStudent": "Grup yang sudah diarsipkan (tetap sebagai riwayat): {{groups}}",
     "filterByGroup": "Tampilkan",
     "noGroup": "Belum ada grup",

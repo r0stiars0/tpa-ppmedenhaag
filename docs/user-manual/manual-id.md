@@ -494,7 +494,7 @@ Ada dua jenis grup: **grup Yanbu'a/Al-Quran** (dibagi menurut tingkat bacaan) da
 |---|---|
 | **+ Grup Baru** | Membuka formulir grup baru (lihat gambar di bawah). |
 | **Aktif** / **Diarsipkan** | Menampilkan grup aktif atau grup yang diarsipkan. |
-| Kartu tiap grup | Nama, bila ada lencana **"Tanpa pencatatan Yanbu'a/Al-Quran/Murajaah"** (mis. grup Aqidah) atau **"Diarsipkan"**, jadwal, hari pertemuan (mis. "Rab, Sab"), dan daftar guru pengampu. |
+| Kartu tiap grup | Nama, bila ada lencana **"Tanpa pencatatan Yanbu'a"** (mis. grup Aqidah; lengkapnya: tanpa pencatatan Yanbu'a, Al-Quran dan Murajaah) atau **"Diarsipkan"**, jadwal, hari pertemuan (mis. "Rab, Sab"), dan daftar guru pengampu. |
 | **Anggota (jumlah)** | Membuka daftar anggota grup, tempat menambah dan mengeluarkan santri (lihat [§12.2.1](#1221-anggota-grup)). |
 | **Ubah** | Membuka formulir edit untuk grup tersebut, terisi data yang sudah ada. |
 | **Arsipkan** | Untuk grup tahun ajaran sebelumnya atau grup yang dibubarkan. Grup yang diarsipkan **dibekukan**: tidak bisa lagi diisi sesi, kehadiran, tugas atau anggota baru, oleh siapa pun (termasuk admin). Riwayatnya tetap tersimpan dan terlihat, tetapi grup hilang dari semua pilihan grup, dan guru grup itu tidak lagi melihat data mantan santrinya di luar grup itu sendiri. Jika grup masih bertemu dalam 7 hari terakhir, aplikasi memberi peringatan: guru yang mengisi kehadiran secara offline dan belum terkirim tidak dapat mengirimnya lagi setelah diarsipkan. |
@@ -555,7 +555,7 @@ Formulir Santri:
 | **Nama Lengkap** | Wajib diisi. |
 | **Tanggal Lahir** | Wajib diisi. |
 | **Orang tua / wali** | Wajib — **minimal satu**. Pilih tiap orang tua/wali dari daftar pengguna terdaftar, dan gunakan **"+ Tambah orang tua / wali"** untuk menambah yang kedua (atau lebih) bila perlu. Tiap baris boleh diberi keterangan hubungan opsional (mis. "ibu", "ayah", "wali"). Semua orang tua/wali yang tertaut memperoleh akses **yang sama**: melihat perkembangan, menerima notifikasi, dan mengonfirmasi latihan di rumah — tidak ada orang tua "utama". Tombol hapus **−** nonaktif selama baris tinggal satu; seorang anak harus selalu punya minimal satu orang tua/wali. Melepas tautan orang tua/wali langsung mengakhiri aksesnya; catatan bahwa tautan itu pernah ada tetap disimpan untuk audit. |
-| **Grup** | Daftar centang semua grup aktif — seorang santri bisa ikut **beberapa** grup (mis. grup Yanbu'a/Al-Quran dan grup Aqidah), atau (belum) satu pun. Grup tanpa pencatatan berlencana "Tanpa pencatatan Yanbu'a/Al-Quran/Murajaah". Grup yang diarsipkan tempat santri pernah ikut tampil di bawahnya sebagai riwayat dan tetap dipertahankan saat disimpan. |
+| **Grup** | Daftar centang semua grup aktif — seorang santri bisa ikut **beberapa** grup (mis. grup Yanbu'a/Al-Quran dan grup Aqidah), atau (belum) satu pun. Grup tanpa pencatatan berlencana "Tanpa pencatatan Yanbu'a". Grup yang diarsipkan tempat santri pernah ikut tampil di bawahnya sebagai riwayat dan tetap dipertahankan saat disimpan. |
 | **Tautkan Akun Login Mandiri** | Opsional — hanya muncul jika ada akun bertipe "santri" yang belum tertaut ke santri manapun. Ini cara untuk menghubungkan login Google milik santri (biasanya yang sudah 16+) ke data santri yang sudah ada, misalnya saat santri baru saja membuat akunnya sendiri. |
 | **Simpan** / **Batal** | Menyimpan atau membatalkan. |
 

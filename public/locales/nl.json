@@ -382,7 +382,7 @@
     "confirmDeleteStudent": "Leerlinggegevens van {{name}} verwijderen? Alle aanwezigheids-, voortgangs- en rapportgegevens worden permanent mee verwijderd. Gebruik dit alleen om een dubbele registratie op te ruimen.",
     "studentClass": "Groep",
     "studentGroups": "Groepen",
-    "noProgressTracking": "Geen registratie Yanbu'a/Al-Quran/Murajaah",
+    "noProgressTracking": "Geen registratie Yanbu'a",
     "archivedGroupsOfStudent": "Gearchiveerde groepen (blijven als geschiedenis): {{groups}}",
     "filterByGroup": "Tonen",
     "noGroup": "Nog geen groep",
