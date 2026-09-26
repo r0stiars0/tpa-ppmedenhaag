@@ -1065,6 +1065,73 @@ export type Database = {
           },
         ]
       }
+      year_end_report_sections: {
+        Row: {
+          attendance_absent: number
+          attendance_late: number
+          attendance_present: number
+          attendance_rate: number
+          class_id: string
+          created_at: string
+          grade: Database["public"]["Enums"]["report_grade"] | null
+          id: string
+          narrative: string | null
+          report_id: string
+          tutor_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          attendance_absent?: number
+          attendance_late?: number
+          attendance_present?: number
+          attendance_rate?: number
+          class_id: string
+          created_at?: string
+          grade?: Database["public"]["Enums"]["report_grade"] | null
+          id?: string
+          narrative?: string | null
+          report_id: string
+          tutor_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attendance_absent?: number
+          attendance_late?: number
+          attendance_present?: number
+          attendance_rate?: number
+          class_id?: string
+          created_at?: string
+          grade?: Database["public"]["Enums"]["report_grade"] | null
+          id?: string
+          narrative?: string | null
+          report_id?: string
+          tutor_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "year_end_report_sections_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "year_end_report_sections_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "year_end_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "year_end_report_sections_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       year_end_reports: {
         Row: {
           academic_year: string
@@ -1193,6 +1260,7 @@ export type Database = {
         }[]
       }
       fn_assignment_class: { Args: { p_assignment: string }; Returns: string }
+      fn_can_read_report: { Args: { p_report: string }; Returns: boolean }
       fn_class_tutors: {
         Args: { p_class: string }
         Returns: {
@@ -1300,6 +1368,25 @@ export type Database = {
         Returns: string[]
       }
       fn_my_recordable_students: { Args: never; Returns: string[] }
+      fn_my_report_sections: {
+        Args: { p_class: string }
+        Returns: {
+          academic_year: string
+          attendance_absent: number
+          attendance_late: number
+          attendance_present: number
+          attendance_rate: number
+          author_id: string
+          author_name: string
+          grade: Database["public"]["Enums"]["report_grade"]
+          narrative: string
+          report_id: string
+          report_status: Database["public"]["Enums"]["report_status"]
+          section_id: string
+          student_id: string
+          student_name: string
+        }[]
+      }
       fn_my_report_students: {
         Args: Record<PropertyKey, never>
         Returns: string[]
@@ -1331,6 +1418,8 @@ export type Database = {
         Args: { p_week_start: string }
         Returns: number
       }
+      fn_report_is_draft: { Args: { p_report: string }; Returns: boolean }
+      fn_report_student: { Args: { p_report: string }; Returns: string }
       fn_session_class: { Args: { p_session: string }; Returns: string }
       fn_student_attendance_history: {
         Args: { p_student: string }

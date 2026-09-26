@@ -1,7 +1,8 @@
 import { academicYearWindow, isValidAcademicYear } from '../../src/lib/reports'
 import type { Database } from '../../src/lib/database.types'
-import { authenticateCaller, jsonError, jsonOk } from './lib/callerAuth'
+import { authenticateCaller, jsonError, jsonOk, type ServiceClient } from './lib/callerAuth'
 import { planDrafts, type DraftGroup } from './lib/draftPlan'
+import { planSections, type SectionGroup } from './lib/reportSections'
 import { computeAttendanceStats } from './lib/reportStats'
 
 type AttendanceStatus = Database['public']['Enums']['attendance_status']
@@ -109,16 +110,20 @@ export default async (req: Request) => {
   const { candidates } = plan
   let skippedExisting = plan.skipped_existing
 
+  const { start, end } = academicYearWindow(academicYear)
+
   if (candidates.length === 0) {
+    const sections = await addSections(admin, academicYear, students.map((s) => s.id), start, end)
+    if ('error' in sections) return jsonError(sections.error, 500)
     return jsonOk({
       created_count: 0,
       skipped_existing: skippedExisting,
       skipped_no_tutor: plan.skipped_no_tutor,
+      sections_created: sections.created,
     })
   }
 
   // ---- attendance stats snapshot for the academic year window --------
-  const { start, end } = academicYearWindow(academicYear)
   const { data: attendance, error: attendanceError } = await admin
     .from('attendance')
     .select('student_id, status, sessions!inner(date)')
@@ -160,9 +165,83 @@ export default async (req: Request) => {
   const createdCount = (inserted ?? []).length
   skippedExisting += candidates.length - createdCount
 
+  const sections = await addSections(admin, academicYear, students.map((s) => s.id), start, end)
+  if ('error' in sections) return jsonError(sections.error, 500)
+
   return jsonOk({
     created_count: createdCount,
     skipped_existing: skippedExisting,
     skipped_no_tutor: plan.skipped_no_tutor,
+    sections_created: sections.created,
   })
+}
+
+/**
+ * PRD Feature 8 FR-008, TAD ADR-045(h): each DRAFT report of the year
+ * gains a section per group with tracking off that the student attended
+ * in the year or is in now. Runs on every generation, so a re-run adds
+ * sections that are missing (a child who joined an Aqidah group after
+ * the first run) and never touches existing or published ones.
+ */
+async function addSections(
+  admin: ServiceClient,
+  academicYear: string,
+  studentIds: string[],
+  start: string,
+  end: string,
+): Promise<{ created: number } | { error: string }> {
+  if (studentIds.length === 0) return { created: 0 }
+  const { data: reports, error: reportsError } = await admin
+    .from('year_end_reports')
+    .select('id, student_id, status')
+    .eq('academic_year', academicYear)
+    .eq('status', 'draft')
+    .in('student_id', studentIds)
+  if (reportsError) return { error: reportsError.message }
+  if (!reports || reports.length === 0) return { created: 0 }
+
+  const reportStudentIds = reports.map((r) => r.student_id)
+  const [classes, members, attendance, existing] = await Promise.all([
+    // Archived groups too: a group the child attended may be archived by now.
+    admin.from('classes').select('id, name, tracks_progress, tutor_ids'),
+    admin
+      .from('class_members')
+      .select('student_id, class_id, class:classes!inner(archived_at)')
+      .in('student_id', reportStudentIds)
+      .is('class.archived_at', null),
+    admin
+      .from('attendance')
+      .select('student_id, status, session:sessions!inner(class_id, date)')
+      .in('student_id', reportStudentIds)
+      .gte('session.date', start)
+      .lte('session.date', end),
+    admin.from('year_end_report_sections').select('report_id, class_id').in('report_id', reports.map((r) => r.id)),
+  ])
+  for (const result of [classes, members, attendance, existing]) if (result.error) return { error: result.error.message }
+
+  const groups = new Map<string, SectionGroup>(
+    (classes.data ?? []).map((c) => [c.id, { name: c.name, tracks_progress: c.tracks_progress, tutor_ids: c.tutor_ids ?? [] }]),
+  )
+  const currentMemberships = new Map<string, string[]>()
+  for (const m of members.data ?? []) {
+    const list = currentMemberships.get(m.student_id) ?? []
+    list.push(m.class_id)
+    currentMemberships.set(m.student_id, list)
+  }
+
+  const rows = planSections({
+    reports,
+    groups,
+    currentMemberships,
+    attendance: (attendance.data ?? []).map((a) => ({ student_id: a.student_id, class_id: a.session.class_id, status: a.status })),
+    existing: new Set((existing.data ?? []).map((e) => `${e.report_id}:${e.class_id}`)),
+  })
+  if (rows.length === 0) return { created: 0 }
+
+  const { data: inserted, error } = await admin
+    .from('year_end_report_sections')
+    .upsert(rows, { onConflict: 'report_id,class_id', ignoreDuplicates: true })
+    .select('id')
+  if (error) return { error: error.message }
+  return { created: (inserted ?? []).length }
 }

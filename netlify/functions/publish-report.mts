@@ -1,39 +1,29 @@
 import { authenticateCaller, jsonError, jsonOk } from './lib/callerAuth'
 import { reportGroupName } from './lib/draftPlan'
 import { publishReportFlow } from './lib/publishFlow'
-import { renderReportPdf } from './lib/reportPdf'
+import { renderReportPdf, type ReportPdfSection } from './lib/reportPdf'
+import { publishDecision } from './lib/reportSections'
 
 /**
  * FR-003 / FR-006 — publish a draft report, or regenerate the PDF of an
  * already-published one after a post-publish edit.
  *
- * Authorization: the report's **authoring tutor only**. This is narrower
- * than the RLS policy behind `year_end_reports` (which also grants admin
- * ALL) on purpose — publishing is what makes a report visible to a
- * family, an authoring act rather than an administrative one. ADR-014
- * turned admin into a full super admin over every other operational
- * table *and* over this one's content, and deliberately left this single
- * check exactly where ADR-013 put it. It also matches what the tutor can
- * actually do through PostgREST: the `yer_tutor_rw` policy's WITH CHECK
- * requires `tutor_id = auth.uid()`, so a co-tutor on the same class can
- * read a colleague's report but cannot edit it — and therefore should
- * not be able to publish it either.
+ * Authorization: the report's **author or an admin** (PRD Feature 8
+ * FR-008, Resolved Decision 34, TAD ADR-045(h)). Until release 8b-2 this
+ * was the authoring tutor only (ADR-013, kept by ADR-014); a report now
+ * has sections written by other groups' tutors, and when one of them
+ * cannot finish theirs, an admin has to be able to publish without it —
+ * and to re-publish after correcting a section, which only an admin may
+ * edit once the report is out. A co-tutor who is neither still gets 403.
  *
- * Consequence, handled in the UI rather than here: an admin can edit a
- * published report but cannot regenerate its PDF, so the stored object
- * goes stale until the authoring tutor re-publishes. `ReportEditor`
- * hides the publish button for admin and says whose re-publish the PDF
- * is waiting on.
+ * Sections: every group section must have a grade and a narrative, or
+ * the publish is refused with 409 naming them — unless the caller is an
+ * admin and passes `omit_empty_sections: true`, which leaves the empty
+ * ones out of the PDF (and the family's view shows only complete ones).
  *
  * The status flip is the last step and only runs if the PDF rendered and
  * uploaded — see `publishFlow.ts` for the ordering and why it lives in
  * its own module.
- *
- * FR-007 (report-ready push notification) is deliberately NOT wired up
- * here: no push/notification infrastructure exists anywhere in this
- * project yet, same deferral as the absence push, homework due-date
- * reminders, the Quran milestone celebration and Murajaah's daily
- * reminder. The publish flow is otherwise complete without it.
  */
 export default async (req: Request) => {
   if (req.method !== 'POST') return jsonError('Method not allowed', 405)
@@ -42,9 +32,9 @@ export default async (req: Request) => {
   if ('error' in auth) return auth.error
   const { caller, admin } = auth
 
-  let body: { report_id?: string }
+  let body: { report_id?: string; omit_empty_sections?: boolean }
   try {
-    body = (await req.json()) as { report_id?: string }
+    body = (await req.json()) as { report_id?: string; omit_empty_sections?: boolean }
   } catch {
     return jsonError('Invalid JSON body', 400)
   }
@@ -63,8 +53,32 @@ export default async (req: Request) => {
   if (reportError) return jsonError(reportError.message, 500)
   if (!report) return jsonError('Report not found', 404)
 
-  if (report.tutor_id !== caller.id) {
-    return jsonError('Only the authoring tutor can publish this report', 403)
+  const { data: sectionRows, error: sectionsError } = await admin
+    .from('year_end_report_sections')
+    .select('grade, narrative, attendance_present, attendance_absent, attendance_late, attendance_rate, class:classes(name), tutor:users(full_name)')
+    .eq('report_id', report.id)
+  if (sectionsError) return jsonError(sectionsError.message, 500)
+  const sections: ReportPdfSection[] = (sectionRows ?? [])
+    .map((row) => ({
+      class_name: row.class?.name ?? '—',
+      tutor_name: row.tutor?.full_name ?? null,
+      grade: row.grade,
+      narrative: row.narrative,
+      attendance_present: row.attendance_present,
+      attendance_absent: row.attendance_absent,
+      attendance_late: row.attendance_late,
+      attendance_rate: Number(row.attendance_rate),
+    }))
+    .sort((a, b) => a.class_name.localeCompare(b.class_name))
+
+  const decision = publishDecision({
+    isAuthor: report.tutor_id === caller.id,
+    isAdmin: caller.role === 'admin',
+    sections,
+    omitEmpty: body.omit_empty_sections === true,
+  })
+  if (!decision.ok && decision.status === 403) {
+    return jsonError('Only the report author or an admin can publish this report', 403)
   }
 
   // A report with no tutor narrative is by definition unfinished (PRD
@@ -73,6 +87,12 @@ export default async (req: Request) => {
   // shouldn't need a fabricated Murajaah grade to get their report.
   if (!report.narrative?.trim()) {
     return jsonError('Add a narrative before publishing this report', 400)
+  }
+  if (!decision.ok) {
+    return new Response(
+      JSON.stringify({ error: 'Every group section needs a grade and a narrative', missing_sections: decision.missing }),
+      { status: 409, headers: { 'content-type': 'application/json' } },
+    )
   }
 
   const student = report.student
@@ -119,6 +139,7 @@ export default async (req: Request) => {
           murajaah_notes: report.murajaah_notes,
           overall_grade: report.overall_grade,
           narrative: report.narrative,
+          sections: decision.include,
         },
       },
       {
@@ -150,7 +171,7 @@ export default async (req: Request) => {
       },
     )
 
-    return jsonOk(result)
+    return jsonOk({ ...result, omitted_sections: decision.omitted })
   } catch (err) {
     // Nothing was committed — status is untouched, so a retry is safe.
     const message = err instanceof Error ? err.message : String(err)
