@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ReportGrade } from '../../lib/reports'
-import type { YearEndReport } from './api'
+import { fetchReportSections, type ReportSection, type YearEndReport } from './api'
+import { isSectionComplete } from './SectionForm'
 import { AttendanceSummaryCard } from './AttendanceSummaryCard'
 import { DownloadPdfButton } from './DownloadPdfButton'
 import { GRADE_BADGE_CLASS, GRADE_LABEL_KEY, STATUS_BADGE_CLASS, STATUS_LABEL_KEY } from './grade'
@@ -13,6 +15,18 @@ import { GRADE_BADGE_CLASS, GRADE_LABEL_KEY, STATUS_BADGE_CLASS, STATUS_LABEL_KE
  */
 export function ReportCard({ report }: { report: YearEndReport }) {
   const { t } = useTranslation()
+  // A family reads sections of a published report only (RLS); the empty
+  // ones an admin left out are not shown (PRD Feature 8 FR-008).
+  const [sections, setSections] = useState<ReportSection[]>([])
+  useEffect(() => {
+    let active = true
+    fetchReportSections(report.id)
+      .then((rows) => active && setSections(rows.filter(isSectionComplete)))
+      .catch(() => active && setSections([]))
+    return () => {
+      active = false
+    }
+  }, [report.id])
 
   return (
     <article className="space-y-4">
@@ -57,6 +71,28 @@ export function ReportCard({ report }: { report: YearEndReport }) {
           {report.narrative?.trim() || '—'}
         </p>
       </section>
+
+      {sections.map((section) => (
+        <section key={section.id} className="space-y-2 rounded-lg bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="font-semibold text-ppme-text">{section.class?.name ?? '—'}</h3>
+            {section.grade && (
+              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${GRADE_BADGE_CLASS[section.grade]}`}>
+                {t(GRADE_LABEL_KEY[section.grade])}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-ppme-text/60">
+            {t('reports.sectionAttendanceLine', {
+              present: section.attendance_present,
+              late: section.attendance_late,
+              absent: section.attendance_absent,
+              rate: Math.round(Number(section.attendance_rate)),
+            })}
+          </p>
+          <p className="whitespace-pre-line text-sm text-ppme-text">{section.narrative}</p>
+        </section>
+      ))}
 
       {report.status === 'published' && report.pdf_path ? (
         <DownloadPdfButton reportId={report.id} />

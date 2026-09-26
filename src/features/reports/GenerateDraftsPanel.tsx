@@ -41,7 +41,7 @@ export function GenerateDraftsPanel({ classes, onGenerated }: GenerateDraftsPane
     try {
       const next = await generateDrafts({ academic_year: academicYear, class_id: classId || null })
       setResult(next)
-      if (next.created_count > 0) onGenerated()
+      if (next.created_count > 0 || (next.sections_created ?? 0) > 0) onGenerated()
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {
@@ -117,6 +117,11 @@ export function GenerateDraftsPanel({ classes, onGenerated }: GenerateDraftsPane
               <p className="text-sm text-ppme-text/70">
                 {t('reports.skippedExisting', { count: result.skipped_existing })}
               </p>
+              {(result.sections_created ?? 0) > 0 && (
+                <p className="text-sm text-ppme-text/70">
+                  {t('reports.sectionsCreated', { count: result.sections_created })}
+                </p>
+              )}
               {result.skipped_no_tutor > 0 && (
                 <p className="text-sm text-ppme-danger">
                   {t('reports.skippedNoTutor', { count: result.skipped_no_tutor })}

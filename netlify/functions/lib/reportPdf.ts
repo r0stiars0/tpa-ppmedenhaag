@@ -20,6 +20,23 @@ export interface ReportPdfInput {
   murajaah_notes: string | null
   overall_grade: ReportGrade | null
   narrative: string | null
+  /**
+   * One block per group with tracking off (e.g. Aqidah), after the main
+   * grades (PRD Feature 8 FR-008). Only complete sections are passed in;
+   * an admin's "publish without empty sections" leaves the rest out.
+   */
+  sections?: ReportPdfSection[]
+}
+
+export interface ReportPdfSection {
+  class_name: string
+  tutor_name: string | null
+  grade: ReportGrade | null
+  narrative: string | null
+  attendance_present: number
+  attendance_absent: number
+  attendance_late: number
+  attendance_rate: number
 }
 
 /** PPME brand palette (checklist §0 / ADR-007). */
@@ -141,7 +158,31 @@ function draw(doc: PDFKit.PDFDocument, input: ReportPdfInput, logo: Buffer | nul
     .fontSize(10.5)
     .text(input.narrative?.trim() || '—', left, doc.y, { width, align: 'left', lineGap: 2 })
 
+  // ---- group sections (FR-008) ----------------------------------------
+  for (const section of input.sections ?? []) {
+    // Keep a section's title with its table: start a fresh page when
+    // fewer than ~180pt remain above the footer.
+    if (doc.y > doc.page.height - PAGE_MARGIN - 40 - 180) doc.addPage()
+    sectionTitle(doc, left, section.class_name)
+    table(doc, left, width, [
+      ['Guru / Docent', section.tutor_name ?? '—'],
+      ['Nilai / Cijfer', gradeCell(section.grade, null)],
+      [
+        'Kehadiran / Aanwezigheid',
+        `${section.attendance_present} · ${section.attendance_late} · ${section.attendance_absent} (${formatRate(section.attendance_rate)}%)`,
+      ],
+    ])
+    doc.moveDown(0.4)
+    doc
+      .fillColor(BRAND.text)
+      .font('Helvetica')
+      .fontSize(10.5)
+      .text(section.narrative?.trim() || '—', left, doc.y, { width, align: 'left', lineGap: 2 })
+  }
+
   // ---- footer ----------------------------------------------------------
+  // On the last page; a new page when the content has reached it.
+  if (doc.y > doc.page.height - PAGE_MARGIN - 40) doc.addPage()
   const footerY = doc.page.height - PAGE_MARGIN - 28
   doc
     .moveTo(left, footerY - 10)

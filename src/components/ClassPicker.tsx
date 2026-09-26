@@ -7,11 +7,26 @@ interface ClassPickerProps {
   onChange: (classId: string) => void
 }
 
-/** Select control for a tutor/admin with more than one assigned class. */
+/**
+ * Select control for a tutor/admin with more than one assigned class.
+ * With exactly one it names that group: every screen puts the picker in a
+ * card, and a one-group tutor (an Aqidah-only tutor, common since PRD
+ * Feature 8) otherwise saw an empty white card.
+ */
 export function ClassPicker({ classes, value, onChange }: ClassPickerProps) {
   const { t } = useTranslation()
 
-  if (classes.length <= 1) return null
+  if (classes.length === 0) return null
+  if (classes.length === 1) {
+    const only = classes[0]
+    return (
+      <p className="text-sm font-medium text-ppme-text">
+        <span className="block text-xs font-normal text-ppme-text/60">{t('common.group')}</span>
+        {only.name}
+        {only.schedule ? ` — ${only.schedule}` : ''}
+      </p>
+    )
+  }
 
   return (
     <label className="block text-sm font-medium text-ppme-text">

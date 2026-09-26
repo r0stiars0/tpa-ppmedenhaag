@@ -6,7 +6,8 @@ import { ClassPicker } from '../../components/ClassPicker'
 import { fetchRecordableRoster, type RosterStudent } from '../../lib/roster'
 import { useViewScope } from '../../context/ViewScopeContext'
 import { getErrorMessage } from '../../lib/errors'
-import { fetchReportsForStudents, fetchTutorNames, type YearEndReport } from './api'
+import { fetchMyReportSections, fetchReportsForStudents, type MyReportSection, type YearEndReport } from './api'
+import { SectionForm, isSectionComplete } from './SectionForm'
 import { GenerateDraftsPanel } from './GenerateDraftsPanel'
 import { ReportEditor } from './ReportEditor'
 import { STATUS_BADGE_CLASS, STATUS_LABEL_KEY } from './grade'
@@ -23,10 +24,12 @@ import { STATUS_BADGE_CLASS, STATUS_LABEL_KEY } from './grade'
  *   - admin can edit any report in any class, where a tutor can only
  *     edit the ones they authored (`yer_tutor_rw`'s WITH CHECK pins
  *     `tutor_id = auth.uid()`, so a co-tutor is read-only);
- *   - admin can never publish. Publishing is what makes a report visible
- *     to a family — an authoring act, kept with the authoring tutor, and
- *     `publish-report` still 403s anyone else. That combination is why
- *     admin edits carry a warning about the stored PDF; see ReportEditor.
+ *   - admin can also publish (PRD Feature 8 Resolved Decision 34; until
+ *     release 8b-2 only the authoring tutor could).
+ *
+ * A group with tracking off (an Aqidah group) also lists the SECTIONS its
+ * tutors write on reports they cannot open themselves — a child who is
+ * in a Yanbu'a group too has their report authored there (FR-008).
  *
  * Reports are never created by hand here. Generation stays a bulk,
  * enrollment-wide operation, which only admin can trigger — from the
@@ -43,7 +46,8 @@ export function TutorReportsView() {
   const [classId, setClassId] = useState<string | null>(null)
   const [roster, setRoster] = useState<RosterStudent[]>([])
   const [reports, setReports] = useState<YearEndReport[]>([])
-  const [tutorNames, setTutorNames] = useState<Map<string, string>>(new Map())
+  const [sections, setSections] = useState<MyReportSection[]>([])
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -59,17 +63,17 @@ export function TutorReportsView() {
     setLoading(true)
     setError(null)
     setSelectedId(null)
+    setSelectedSectionId(null)
     fetchRecordableRoster(classId, selfStudentId)
       .then(async (students) => {
-        const data = await fetchReportsForStudents(students.map((s) => s.id))
-        // Only admin can resolve another user's name (`users_self_read`
-        // is self-or-admin), and only admin needs to: it's the role that
-        // has to be told whose re-publish a stale PDF is waiting on.
-        const names = isAdmin ? await fetchTutorNames(data.map((r) => r.tutor_id)) : new Map<string, string>()
+        const [data, groupSections] = await Promise.all([
+          fetchReportsForStudents(students.map((s) => s.id)),
+          fetchMyReportSections(classId),
+        ])
         if (!active) return
         setRoster(students)
         setReports(data)
-        setTutorNames(names)
+        setSections(groupSections)
       })
       .catch((err) => {
         if (active) setError(getErrorMessage(err))
@@ -80,7 +84,7 @@ export function TutorReportsView() {
     return () => {
       active = false
     }
-  }, [classId, isAdmin, reloadToken, selfStudentId])
+  }, [classId, reloadToken, selfStudentId])
 
   const handleGenerated = useCallback(() => setReloadToken((n) => n + 1), [])
 
@@ -93,6 +97,44 @@ export function TutorReportsView() {
 
   if (classesLoading) return <p className="text-ppme-text/60">{t('common.loading')}</p>
   if (classes.length === 0) return <p className="text-ppme-text/60">{t('common.noClassesAssigned')}</p>
+
+  const selectedSection = sections.find((s) => s.section_id === selectedSectionId) ?? null
+  if (selectedSection) {
+    const locked = selectedSection.report_status !== 'draft' && !isAdmin
+    return (
+      <div className="space-y-4">
+        <button type="button" onClick={() => setSelectedSectionId(null)} className="min-h-11 text-sm font-medium text-ppme-primary">
+          ← {t('common.back')}
+        </button>
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-semibold text-ppme-text">{selectedSection.student_name}</h2>
+            <p className="text-xs text-ppme-text/60">{t('reports.academicYear', { year: selectedSection.academic_year })}</p>
+          </div>
+          <span className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_BADGE_CLASS[selectedSection.report_status]}`}>
+            {t(STATUS_LABEL_KEY[selectedSection.report_status])}
+          </span>
+        </div>
+        <section className="space-y-3 rounded-lg bg-white p-4 shadow-sm">
+          <h3 className="font-semibold text-ppme-text">
+            {t('reports.sectionOf', { group: classes.find((c) => c.id === classId)?.name ?? '' })}
+          </h3>
+          <SectionForm
+            section={{ id: selectedSection.section_id, ...selectedSection, attendance_rate: Number(selectedSection.attendance_rate) }}
+            editable={!locked}
+            onSaved={(value) =>
+              setSections((prev) => prev.map((s) => (s.section_id === selectedSection.section_id ? { ...s, ...value } : s)))
+            }
+          />
+        </section>
+        <p className="rounded-lg bg-ppme-primary/10 p-3 text-sm text-ppme-text">
+          {locked
+            ? t('reports.sectionLockedNote')
+            : t('reports.sectionOnlyYours', { author: selectedSection.author_name ?? t('reports.authoringTutor') })}
+        </p>
+      </div>
+    )
+  }
 
   if (selected) {
     const isAuthoringTutor = selected.tutor_id === profile?.id
@@ -109,13 +151,26 @@ export function TutorReportsView() {
           report={selected}
           studentName={nameById.get(selected.student_id) ?? '—'}
           canEdit={isAdmin || isAuthoringTutor}
-          canPublish={isAuthoringTutor}
-          authoringTutorName={tutorNames.get(selected.tutor_id) ?? null}
+          canPublish={isAuthoringTutor || isAdmin}
+          isAdmin={isAdmin}
+          myClassIds={classes.map((c) => c.id)}
+          selfStudentId={selfStudentId}
           onSaved={handleSaved}
         />
       </div>
     )
   }
+
+  // Sections on reports this tutor can open are edited inside the report;
+  // the rest are listed on their own (screen "Bagian Aqidah").
+  const readableReportIds = new Set(reports.map((r) => r.id))
+  const sectionRows = isAdmin ? [] : sections.filter((s) => !readableReportIds.has(s.report_id))
+  const sectionBadge = (s: MyReportSection) =>
+    s.report_status !== 'draft'
+      ? { label: t('reports.sectionPublishedLocked'), cls: 'bg-ppme-success/10 text-ppme-success' }
+      : isSectionComplete(s)
+        ? { label: t('reports.sectionFilled'), cls: 'bg-ppme-primary/10 text-ppme-primary' }
+        : { label: t('reports.sectionEmpty'), cls: 'bg-ppme-bg-alt text-ppme-text/70' }
 
   const sorted = [...reports].sort((a, b) => {
     const byName = (nameById.get(a.student_id) ?? '').localeCompare(nameById.get(b.student_id) ?? '')
@@ -136,7 +191,7 @@ export function TutorReportsView() {
 
       {loading ? (
         <p className="text-ppme-text/60">{t('common.loading')}</p>
-      ) : sorted.length === 0 ? (
+      ) : sorted.length === 0 && sectionRows.length === 0 ? (
         <p className="rounded-lg bg-white p-6 text-center text-ppme-text/60 shadow-sm">
           {t('reports.noDraftsForClass')}
         </p>
@@ -158,13 +213,34 @@ export function TutorReportsView() {
                   </span>
                 </span>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_BADGE_CLASS[report.status]}`}
+                  className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_BADGE_CLASS[report.status]}`}
                 >
                   {t(STATUS_LABEL_KEY[report.status])}
                 </span>
               </button>
             </li>
           ))}
+          {sectionRows.map((s) => {
+            const badge = sectionBadge(s)
+            return (
+              <li key={s.section_id}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedSectionId(s.section_id)}
+                  className="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg bg-white p-4 text-left shadow-sm hover:bg-ppme-bg-alt"
+                >
+                  <span>
+                    <span className="block font-medium text-ppme-text">{s.student_name}</span>
+                    <span className="block text-xs text-ppme-text/60">
+                      {t('reports.academicYear', { year: s.academic_year })} ·{' '}
+                      {t('reports.authorIs', { name: s.author_name ?? '—' })}
+                    </span>
+                  </span>
+                  <span className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${badge.cls}`}>{badge.label}</span>
+                </button>
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>

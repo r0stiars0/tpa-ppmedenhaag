@@ -506,6 +506,30 @@ Storage refuses a direct SQL `DELETE` unless `storage.allow_delete_query` is set
 
 *Total after migration 028: 566 (verified on a stack built from `supabase/migrations`, PASS). That is 512 plus RLS-146…159's 54.*
 
+### 3.11 Year-end report sections (RLS-160…169, migration 029, TAD ADR-045(h), PRD Feature 8 release 8b-2)
+
+A fresh island (`f8c…`): a Yanbu'a group GY (TY), an Aqidah group GA (TA and a 16+ student assistant SA) and an unrelated group GX (TX). Children: C1 in GY + GA (P1), C2 in GY (P2), and SA's own record in GA (guardian P2). Reports: R1 (C1, draft, author TY), R1P (C1, published) and R3 (SA's record, draft, author TA), each with a GA section.
+
+- [x] RLS-160 — **A section is read by its group's tutors**, who cannot read the report of a child who also has a tracking group. A tutor of another group reads none.
+- [x] RLS-161 — **The group's tutor fills in the section of a draft**, and cannot change it once the report is published.
+- [x] RLS-162 — **Only grade and narrative are writable.** Attendance figures, group and report are refused (`42501`).
+- [x] RLS-163 — **The report's author reads every section and edits none** (Resolved Decision 34).
+- [x] RLS-164 — **A family reads sections of a published report only**, and another family reads none.
+- [x] RLS-165 — **A student assistant neither reads nor writes the section on their own report.**
+- [x] RLS-166 — **Tutors cannot add or remove sections** (`42501`); only draft generation does.
+- [x] RLS-167 — **An admin corrects a section of a published report.**
+- [x] RLS-168 — **`fn_my_report_sections`** lists the group's sections with student, year, status and author; never an assistant's own; nothing for a guardian.
+- [x] RLS-169 — **`fn_admin_set_report_author`.** Refused:
+  - a plain UPDATE of `tutor_id`, by anyone;
+  - a tutor calling it;
+  - an author who teaches none of the child's groups;
+  - a published report;
+  - a student assistant as author.
+
+  An admin reassigns a draft to the Aqidah tutor.
+
+*Total after migration 029: 592 (verified on a stack built from `supabase/migrations`, PASS). That is 566 plus RLS-160…169's 26.*
+
 ## 4. Unit tests (Vitest)
 
 ### 4.1 Streak logic
@@ -833,6 +857,21 @@ the `student_guardians` `ON DELETE RESTRICT` invariant is in §3.8 RLS-116.
 - [x] `tests/unit/notifications.test.ts`: both new events always name the group in the push, in both languages, first name only.
 - [x] `tests/unit/notificationEvents.test.ts`: in-app copy uses the `…InGroup` key for both events. The enum, copy, route, tone and icon coverage extends to them automatically.
 
+### 4.5p Year-end report sections (TAD ADR-045(h), release 8b-2)
+
+- [x] `tests/unit/reportSections.test.ts`:
+  - `planSections`:
+    - one section per tracking-off group attended in the year or joined now, including a group left mid-year and a current group with no attendance yet;
+    - never a tracking group;
+    - per-group attendance figures;
+    - on a re-run, only missing sections, and only on drafts.
+  - `sectionComplete` needs a grade and a narrative.
+  - `publishDecision`:
+    - the author or an admin, nobody else (403);
+    - 409 naming the empty sections;
+    - only an admin may omit them.
+- [x] `tests/unit/reports.test.ts`: the PDF prints each section as a titled block (group, tutor, grade, attendance, narrative), and no block without sections.
+
 ### 4.6 Access control and delivery inside the Functions
 
 The three modules that decide who may make a Function act, and what
@@ -936,8 +975,13 @@ Run against Preview deploys with fixture data; auth mocked via Supabase test JWT
 | E2E-33 | Parent opens the page → picks a child → sees that child's groups with counts → opens the Aqidah group → reads the announcement with its author, downloads the file under its original name, and has no post/edit/delete actions (FR-006, FR-007) | Parent |
 | E2E-34 | A Yanbu'a tutor's list shows only their own groups; opening a pupil's Aqidah group by its link shows it read-only. A 16+ student and a student assistant with no share in that group get "not found" (FR-006) | Tutor / Student |
 | E2E-35 | Admin sees the materials' storage on Beheer → Grup and takes down a tutor's material (FR-005) | Admin |
+| E2E-36 | Admin generates drafts → each Aqidah member's report gets an Aqidah section with that group's attendance; a re-run adds none (FR-008) | Admin |
+| E2E-37 | The author opens a report with an empty Aqidah section → it is read-only for him and publishing is blocked, naming the section; the Function refuses too (409) | Tutor |
+| E2E-38 | The Aqidah tutor lists her group's sections (author and status per child) → fills one in → after the author publishes, it shows as published and locked, corrections through an admin | Tutor |
+| E2E-39 | The family sees the Aqidah section in the report and in the PDF | Parent |
+| E2E-40 | Admin: the author picker lists the adult tutors of the child's groups, not a student assistant; an admin publishes with an empty section left out after ticking a confirmation, and corrects a published section and re-publishes | Admin |
 
-*E2E-15…E2E-35 are specified but not implemented (E2E-25…35 were run as scripted browser checks against a local stack, §6.x and §6.z) — this project has no
+*E2E-15…E2E-40 are specified but not implemented (E2E-25…40 were run as scripted browser checks against a local stack, §6.x, §6.z and §6.w) — this project has no
 authenticated Playwright harness yet (`e2e/sign-in.spec.ts` documents
 why the E2E-01…E2E-14 suite is also still unbuilt). The flows are
 covered at the unit layer (§4.5d, §4.5e, §4.5g, §4.5i, §4.5j, §4.5k,
@@ -1261,6 +1305,32 @@ Run on 2026-09-26 on the separate local stack, rebuilt from this branch's migrat
 - **Not verified here:**
   - delivery to a real device (no subscribed device; the push payloads are covered by the unit tests);
   - the database-to-Function webhook call itself, since the local stack has no webhook settings in Vault. RLS-155 asserts the trigger, which uses the same `fn_post_webhook` as the webhooks already live in production.
+
+### 6.w Year-end report sections — live verification (release 8b-2, migration 029)
+
+Run on 2026-09-26 on the local stack rebuilt from migrations 001–029, with `dev-fixture.sql` and `dev-seed-multigroup.sql`. The demo server served the Netlify Functions by bundling them as Netlify does, so every step went through the real screens and Functions.
+
+- **29 browser checks, all passing, with no unexpected console errors or failed requests.** The only failed requests were two deliberate calls to `publish-report` that must return 409.
+  - **Generation:** sections for exactly the five Aqidah members, Hana (Aqidah only) included; none for a tracking group; Ali's section counts only the Aqidah sessions; a re-run adds none.
+  - **Author (Ustadz Ahmad):**
+    - "Bagian dari grup lain" is read-only for him;
+    - publishing is blocked with the section named, and the button is disabled;
+    - the Function refuses him with 409 and `missing_sections`, even with `omit_empty_sections`.
+  - **Aqidah tutor (Ustadzah Maryam):**
+    - her list shows all five with author and section status;
+    - she fills in Ali's section;
+    - after the author publishes, it is published and locked for her.
+  - **Parent:** sees the Aqidah section, and the PDF carries it (read back with `pdftotext`).
+  - **Admin:**
+    - the author picker lists the adult tutors of the child's groups, not the student assistant, and reassigns the author;
+    - an admin can't publish normally with an empty section;
+    - the omit panel names the section and needs a tick, and the PDF then leaves the section out;
+    - an admin corrects a published section and re-publishes, and the PDF carries the correction.
+- **Found and fixed during the run:**
+  - the author picker's update was refused (403): `tutor_id` has no column grant. That is now an admin-only function; a plain grant would have let a co-tutor make themselves author.
+  - The picker also offered a 16+ student assistant; the function, the picker and draft generation now exclude them.
+- **Also found and fixed:** a tutor with a single group (an Aqidah-only tutor) saw an empty white card at the top of every tutor screen, because `ClassPicker` rendered nothing inside it. It now names that group. Checked in the browser for Ustadzah Maryam (one group: named) and Ustadz Ahmad (two: dropdown) on Hadir, Tugas and Rapor, with no console errors.
+- **The 36 8b-1 checks** were rerun afterwards: all pass.
 
 ## 7. i18n completeness (automated)
 

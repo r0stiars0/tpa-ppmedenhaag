@@ -381,7 +381,7 @@ Dit scherm is **alleen om te bekijken** — een docent kan geen murajaah bevesti
 
 ## 10. Rapport
 
-Het jaarrapport vat de aanwezigheid, cijfers per vak (Yanbu'a, Al-Quran, Murajaah) en de opmerking van de docent samen, en wordt vervolgens gepubliceerd als PDF die het gezin kan downloaden.
+Het jaarrapport vat de aanwezigheid, cijfers per vak (Yanbu'a, Al-Quran, Murajaah) en de opmerking van de docent samen, en wordt vervolgens gepubliceerd als PDF die het gezin kan downloaden. Zit een leerling ook in een groep zonder Yanbu'a-registratie, zoals een Aqidah-groep, dan krijgt het rapport daarnaast een **onderdeel per groep**, dat de docent van die groep invult (zie §10.1.1).
 
 ### 10.1 Docent-/beheerderweergave — Rapportenlijst
 
@@ -389,9 +389,25 @@ Het jaarrapport vat de aanwezigheid, cijfers per vak (Yanbu'a, Al-Quran, Murajaa
 
 | Element | Functie |
 |---|---|
-| *(Alleen beheerder)* Paneel **"Conceptrapporten aanmaken"** | De beheerder kan conceptrapporten aanmaken voor alle groepen of voor één specifieke groep, voor één schooljaar (formaat "2025/2026"). Na het aanmaken toont het paneel het aantal succesvol aangemaakte concepten, plus het aantal overgeslagen (omdat er al een rapport bestond, of omdat de groep geen docent heeft). |
+| *(Alleen beheerder)* Paneel **"Conceptrapporten aanmaken"** | De beheerder kan conceptrapporten aanmaken voor alle groepen of voor één specifieke groep, voor één schooljaar (formaat "2025/2026"). Na het aanmaken toont het paneel het aantal succesvol aangemaakte concepten, plus het aantal overgeslagen (omdat er al een rapport bestond, of omdat de groep geen docent heeft), en hoeveel **groepsonderdelen** er zijn toegevoegd. Opnieuw aanmaken voegt alleen ontbrekende onderdelen toe, bijvoorbeeld voor een kind dat later in een Aqidah-groep kwam. |
 | **Kies groep** | Zoals bij andere schermen. |
 | Rapportenlijst | Naam van de leerling, schooljaar, en statuslabel **Concept** (grijs) of **Gepubliceerd** (groen). Tik op een rij om te openen. |
+| *(Docent van een Aqidah-groep)* Rij per onderdeel | Voor een kind dat ook in een Yanbu'a/Al-Quran-groep zit, schrijft de docent van die groep het rapport. U ziet dan alleen uw eigen onderdeel: naam, schooljaar, **schrijver van het rapport** en de status **Nog niet ingevuld**, **Ingevuld** of **Gepubliceerd · vergrendeld**. |
+
+#### 10.1.1 Onderdeel van een groep invullen (bijv. Aqidah)
+
+<img src="./screenshots/nl/reports-section-list.png" width="360" alt="Rapport — onderdelen van een Aqidah-groep">
+
+<img src="./screenshots/nl/reports-section-editor.png" width="360" alt="Rapport — een onderdeel invullen">
+
+| Element | Functie |
+|---|---|
+| **Aanwezigheid in alleen deze groep** | Aanwezig / Te laat / Afwezig en het percentage, alleen voor de lessen van uw groep. |
+| **Cijfer** | Dezelfde vijf cijfers als in de rest van het rapport. |
+| **Opmerking van de docent** | Uw opmerking over de leerling in deze groep. |
+| **Opslaan** | Slaat het onderdeel op. |
+
+U vult **alleen het onderdeel van uw eigen groep** in, zolang het rapport een concept is. De schrijver van het rapport publiceert het pas als alle onderdelen een cijfer en een opmerking hebben. Na publicatie is uw onderdeel **vergrendeld**; een correctie gaat via een beheerder. Is het kind alleen in uw groep (bijvoorbeeld alleen Aqidah), dan bent u zelf de schrijver van het rapport en vult u zowel het rapport als uw onderdeel in.
 
 ### 10.2 Rapporteditor
 
@@ -406,10 +422,15 @@ Het jaarrapport vat de aanwezigheid, cijfers per vak (Yanbu'a, Al-Quran, Murajaa
 | **Eindcijfer** | Keuzelijst voor het gecombineerde eindcijfer, zonder notitieveld. |
 | **Opmerking van de docent** | Lang tekstveld met een verhaal over de voortgang van de leerling — **verplicht in te vullen voordat het rapport gepubliceerd kan worden**. |
 | **Opslaan** | Slaat wijzigingen op zonder te publiceren — kan altijd, zowel bij een concept als bij een al gepubliceerd rapport. |
-| **Rapport publiceren** / **Opnieuw publiceren & PDF bijwerken** | Alleen zichtbaar voor de **docent die het rapport heeft geschreven** (niet voor de beheerder). Toont een bevestigingsvak, maakt daarna een PDF-bestand aan en verandert de status in "Gepubliceerd" — daarna kunnen ouder en leerling het bekijken en downloaden. Niet actief totdat het veld Opmerking van de docent is ingevuld. |
+| **Onderdelen van andere groepen** | Elk onderdeel van een Aqidah-groep met de docent, de status (**Ingevuld** of **Nog niet ingevuld**) en, als het is ingevuld, het cijfer en de opmerking. Alleen de docenten van die groep vullen het in; de schrijver van het rapport kan het niet wijzigen. |
+| *(Alleen beheerder, bij een concept)* **Schrijver van het rapport** | Keuzelijst met de docenten van de groepen van de leerling (geen leerling-assistenten). De schrijver vult het deel Yanbu'a/Al-Quran/Murajaah in en publiceert. |
+| **Rapport publiceren** / **Opnieuw publiceren & PDF bijwerken** | Voor de **schrijver van het rapport en de beheerder**. Toont een bevestigingsvak, maakt daarna een PDF-bestand aan en verandert de status in "Gepubliceerd" — daarna kunnen ouder en leerling het bekijken en downloaden. Niet actief totdat de Opmerking van de docent is ingevuld **en elk onderdeel een cijfer en een opmerking heeft**; de app noemt dan welk onderdeel nog ontbreekt. |
+| *(Alleen beheerder)* **Publiceren zonder lege onderdelen…** | Voor als de docent van een groep zijn of haar onderdeel niet kan afmaken (niet meer actief, niet bereikbaar). Het paneel noemt welke onderdelen wegvallen; na het aanvinken van de bevestiging publiceert u het rapport zonder die onderdelen, ook niet in de PDF. |
 | **PDF downloaden** | Verschijnt zodra er al eens een PDF is aangemaakt. |
 
-**Opmerking voor beheerders**: een beheerder kan de cijfers/opmerkingen van elk rapport wijzigen, maar **kan het niet publiceren** — alleen de oorspronkelijke docent kan op de publiceerknop drukken. Als een beheerder een al gepubliceerd rapport wijzigt, wordt de wijziging direct in de app opgeslagen, maar het PDF-bestand blijft verouderd totdat de betreffende docent het opnieuw publiceert.
+<img src="./screenshots/nl/reports-admin-omit.png" width="360" alt="Rapport — publiceren zonder leeg onderdeel">
+
+**Opmerking voor beheerders**: een beheerder kan elk rapport en elk onderdeel wijzigen, ook na publicatie, en **kan het rapport (opnieuw) publiceren**. Zo corrigeert u een onderdeel dat na publicatie vergrendeld is voor de docent: wijzig het en kies **Opnieuw publiceren & PDF bijwerken**, zodat de PDF gelijk blijft aan de app.
 
 ### 10.3 Gezinsweergave — Rapport bekijken & downloaden
 
@@ -421,6 +442,7 @@ Een gezin **kan alleen gepubliceerde rapporten zien** — een rapport met de sta
 |---|---|
 | **Kies kind** | Zoals bij andere schermen. |
 | Aanwezigheidsoverzicht, cijfers per vak en opmerking van de docent | Zoals door de docent geschreven, alleen om te lezen. |
+| Onderdeel per groep (bijv. Aqidah) | Naam van de groep, cijfer, de aanwezigheid in die groep en de opmerking van de docent van die groep. Ook in de PDF. |
 | **PDF downloaden** | Opent het PDF-bestand van het rapport in een nieuw tabblad. |
 
 Als er nog geen rapport is gepubliceerd voor dat kind, toont het scherm het bericht **"Nog geen rapporten beschikbaar"**.
@@ -698,4 +720,4 @@ Om tweetalige communicatie binnen de TPA te vergemakkelijken, hier de belangrijk
 
 ---
 
-*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **13.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026), met **§5.1 aangevuld voor de sectie "Aanwezigheid docenten"** en **§13.4 toegevoegd voor het beheerdersscherm "Aanwezigheid docenten"** (ADR-041, september 2026), met **§13.5 toegevoegd voor het beheerdersscherm "Gebruikers"** (ADR-042, september 2026), en bijgewerkt voor **leerlingen in meerdere groepen** (ADR-045, september 2026): §5, §6.2, §7, §12.1, §13.2 (met het nieuwe §13.2.1 "Leerlingen van een groep") en §13.3, en met **§11 toegevoegd voor "Mededelingen & lesmateriaal"** (ADR-045 release 8b-1, september 2026; de latere hoofdstukken schoven één nummer op). De indeling kan in latere app-versies licht afwijken. De PDF-versie is uit deze tekst opnieuw gegenereerd met `scripts/gen-manual-pdf.mjs`; de schermen van §13.4 en §13.5 hebben nog geen schermafbeelding.*
+*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **13.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026), met **§5.1 aangevuld voor de sectie "Aanwezigheid docenten"** en **§13.4 toegevoegd voor het beheerdersscherm "Aanwezigheid docenten"** (ADR-041, september 2026), met **§13.5 toegevoegd voor het beheerdersscherm "Gebruikers"** (ADR-042, september 2026), en bijgewerkt voor **leerlingen in meerdere groepen** (ADR-045, september 2026): §5, §6.2, §7, §12.1, §13.2 (met het nieuwe §13.2.1 "Leerlingen van een groep") en §13.3, en met **§11 toegevoegd voor "Mededelingen & lesmateriaal"** (ADR-045 release 8b-1, september 2026; de latere hoofdstukken schoven één nummer op), en met **§10 bijgewerkt voor de onderdelen per groep in het jaarrapport** (§10.1.1 nieuw; ADR-045 release 8b-2, september 2026). De indeling kan in latere app-versies licht afwijken. De PDF-versie is uit deze tekst opnieuw gegenereerd met `scripts/gen-manual-pdf.mjs`; de schermen van §13.4 en §13.5 hebben nog geen schermafbeelding.*

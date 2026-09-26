@@ -904,3 +904,33 @@ Docs: ADR-045 status + findings, PRD implementation-status lines, `openapi.yaml`
 5. Tell the TPA coordinator. Tutors are asked to post their first announcement there instead of in WhatsApp, and to upload the current term's slides (PRD rollout plan).
 
 **Rollback, 8b-1:** a Netlify rollback to the previous deploy. 028 is additive, so no database rollback is needed.
+
+**Feature 8 release 8b-2: year-end report sections (TAD ADR-045(h), migration 029).** Wireframes were reviewed first, as the PRD requires for the report-section editor. Decided with them (PRD Resolved Decision 34): an admin can publish any report, and each tutor edits only their own group's section.
+- [x] **Migration 029:**
+  - `year_end_report_sections`, with RLS and column grants: tutors write only `grade` and `narrative`, in their own group, only on a draft, never on their own record;
+  - the author reads sections and edits none; families read them once published; an admin edits any;
+  - `fn_my_report_sections` for the section tutor's list;
+  - `fn_admin_set_report_author` for the author picker.
+- [x] **Functions:**
+  - `generate-year-end-drafts` adds the missing sections to draft reports and never picks a 16+ student assistant as author or writer.
+  - `publish-report`:
+    - accepts the author or an admin;
+    - refuses with 409 while a section is empty;
+    - only an admin may omit empty sections;
+    - prints the sections in the PDF.
+- [x] **Screens:**
+  - Rapor: an Aqidah tutor's section list and section editor.
+  - The report editor gains a sections card, the blocked-publish message, the admin's "publish without empty sections" with a confirmation tick, and the admin's author picker.
+  - The family's report shows its sections.
+- [x] **Superseded:** ADR-013's publishing half and ADR-014(e) ("publish no"), recorded in the TAD rather than deleted.
+- [x] **Verified:**
+  - pgTAP 592/592 (RLS-160…169 new), unit 722/722, both typechecks and the build;
+  - live: 29 browser checks, from generation to PDF, plus the 36 8b-1 checks again (test-plan §6.w).
+
+**Production runbook for 8b-2 (migration 029) — do in this order, by hand:**
+1. A fresh `pg_dump` of production, stored off-platform.
+2. Apply 029 with `supabase db push` from this PR's branch, then merge the PR. 029 is additive; the running app reads none of it.
+3. Smoke-check: as admin, generate drafts for the year → the Aqidah members' reports have an Aqidah section; as the Aqidah tutor, fill one in; as its author, publish; as the parent, see the section and the PDF.
+4. Tell the TPA coordinator. Year-end drafts are generated in early-to-mid July; the Aqidah tutors fill in their sections before the authors publish.
+
+**Rollback, 8b-2:** a Netlify rollback to the previous deploy. 029 is additive, so no database rollback is needed.

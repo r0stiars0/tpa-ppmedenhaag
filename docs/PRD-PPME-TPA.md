@@ -1484,9 +1484,12 @@ A group with tracking off otherwise behaves like any other group. It has meeting
 - The existing Yanbu'a/Quran/Murajaah grades and narrative are unchanged. A tutor of the student's group with tracking ticked writes them, as today.
 - The report is **published once every section is filled in**, by the report's author or an admin.
 - **An admin can publish with a section left empty** when its tutor cannot complete it (they left, or cannot be reached). The empty section is left out of the report and PDF, and the admin confirms this explicitly. One missing section can never block a report forever.
-- **After publishing, sections are locked** for their tutors. A correction goes through the report's author or an admin, whose edit regenerates the PDF (Feature 6 FR-006). This keeps the PDF and the in-app report identical.
+- **Each tutor edits only their own group's section** (Resolved Decision 34): the report's author reads the sections and edits none of them.
+- **After publishing, sections are locked** for their tutors. A correction to a section goes through an admin, who edits it and re-publishes, which regenerates the PDF (Feature 6 FR-006). This keeps the PDF and the in-app report identical.
 - **Report author:** draft generation picks a default author, the first tutor of the student's first group with tracking ticked. If the student has no such group, it picks the first tutor of their first group. **An admin can reassign the author** of any draft report, which covers a student in two tracking groups and any other case where the default is wrong. The author writes the Yanbu'a/Quran/Murajaah part and publishes.
 - This relaxes Feature 6's "one authoring tutor per report" non-goal, for group sections only.
+- A 16+ student assistant is never a report's author or a section's named writer: that name is printed on the family's PDF (Resolved Decision 33).
+- *Implementation status: **built — release 8b-2** (TAD ADR-045(h), migration 029).*
 
 **FR-009: Bulk Enrolment from the Group Screen**
 - Priority: High (release 8a)
@@ -1782,6 +1785,7 @@ sequenceDiagram
 | 31 | Aqidah participation and ownership (Feature 8) | Aqidah is optional, and nothing assumes every student is in an Aqidah group. KPI 6 measures the app roster against the Aqidah tutors' actual attendance. The TPA coordinator (rollout) and the TPA admin role (Beheer tasks) may be the same person or different people, and the PRD assigns tasks to each role explicitly. |
 | 32 | Final review (Feature 8) | Murajaah targets can be kept only if another active tracking group still covers the student; archiving a tracking group triggers the same prompt. 8a admin screens are built from existing patterns and reviewed at the click-through; the 8b family page and section editor are wireframed first. Archived groups run no reminders or digests. Guardian contact details stay within each active group. KPIs state how they are measured, including a weekly push-subscriber count started before 8a. |
 | 33 | Release 8b split and page details (Feature 8) | 8b ships as **8b-1** (announcements, materials, the "Pengumuman & Materi" page; migration 028) and **8b-2** (year-end report sections; migration 029, needed by July). The page shows no unread badges; read rate stays measured from the notification centre (KPI 8). A tutor's list shows only the groups they teach. Edited announcements and materials are labelled "diubah". Student assistants are not named as a group's tutor or as an author to families. |
+| 34 | Who edits and publishes a report with sections (Feature 8) | An admin can publish any report, not only the author (supersedes the authoring-tutor-only rule of TAD ADR-013/ADR-014). Each tutor edits only their own group's section, while the report is a draft; the author does not edit other groups' sections. After publishing, an admin corrects a section and re-publishes. |
 
 ### Remaining Open Questions
 

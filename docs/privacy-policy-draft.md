@@ -179,7 +179,11 @@ van 16+ die ook lesgeeft) ziet alleen wat bij de groep hoort die hij of
 zij lesgeeft. Het indelen van leerlingen in groepen doet alleen een
 beheerder, en elke toevoeging of verwijdering wordt vastgelegd (wie,
 wat, wanneer), omdat het bepaalt welke docenten de gegevens van een kind
-kunnen zien.
+kunnen zien. In het jaarrapport schrijft de docent van zo'n tweede groep
+(bijvoorbeeld Aqidah) een eigen onderdeel met een cijfer en een
+opmerking; de docent die het rapport schrijft en het gezin (na
+publicatie) lezen dat onderdeel, en de docent van die tweede groep ziet
+de rest van het rapport niet.
 
 **Mededelingen en lesmateriaal.** Docenten kunnen in de app mededelingen
 en lesmateriaal delen met hun groep: een PDF- of PowerPoint-bestand, of
@@ -456,7 +460,10 @@ lagi melihat apa pun tentang mantan santrinya di luar grup lama itu, dan
 berkaitan dengan grup yang ia ajar. Pembagian santri ke dalam grup hanya
 dilakukan oleh admin, dan setiap penambahan atau pengeluaran dicatat
 (siapa, apa, kapan), karena hal itu menentukan guru mana yang dapat
-melihat data seorang anak.
+melihat data seorang anak. Dalam rapor akhir tahun, guru grup kedua itu
+(misalnya Aqidah) menulis bagian sendiri berisi nilai dan catatan; guru
+penulis rapor dan keluarga (setelah rapor terbit) membaca bagian itu,
+dan guru grup kedua tidak melihat bagian rapor lainnya.
 
 **Pengumuman dan materi.** Guru dapat membagikan pengumuman dan materi
 pelajaran kepada grupnya di aplikasi: berkas PDF atau PowerPoint, atau

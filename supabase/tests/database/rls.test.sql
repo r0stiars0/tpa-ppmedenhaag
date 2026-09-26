@@ -5576,6 +5576,199 @@ reset role;
 
 reset role;
 
+-- ======================================================================
+-- RLS-160…RLS-168: year-end report sections (migration 029, TAD
+-- ADR-045(h), PRD Feature 8 release 8b-2, FR-008, Resolved Decision 34)
+--
+-- A fresh island (f8c…):
+--   Groups   GY (tracking on, TY)   GA (tracking off — "Aqidah", TA and
+--            the 16+ student assistant SA)   GX (tracking off, TX)
+--   Kids     C1: GY + GA (guardian P1)   C2: GY (P2)
+--            SAR: SA's own student record, in GA (guardian P2)
+--   Reports  R1  C1 2026/2027 draft, author TY, section S1 (GA)
+--            R1P C1 2025/2026 published, author TY, section S1P (GA)
+--            R3  SAR 2026/2027 draft, author TA, section S3 (GA)
+-- Decisions: each tutor edits only their own group's section, only while
+-- the report is a draft; the author reads sections but does not edit
+-- them; an admin edits any section and may publish.
+-- ======================================================================
+reset role;
+set local request.jwt.claim.sub to '';
+
+insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous, created_at, updated_at)
+select ('f8c00000-0000-0000-0000-0000000000' || n)::uuid, 'authenticated', 'authenticated', 'f8c' || n || '@test.local', '', now(), '{}', '{}', false, false, now(), now()
+from unnest(array['01','02','03','04','11','12']) n;
+
+insert into public.users (id, email, full_name, role, locale) values
+  ('f8c00000-0000-0000-0000-000000000001', 'f8c01@test.local', 'RS Tutor Yanbua', 'tutor',   'id'),
+  ('f8c00000-0000-0000-0000-000000000002', 'f8c02@test.local', 'RS Tutor Aqidah', 'tutor',   'id'),
+  ('f8c00000-0000-0000-0000-000000000003', 'f8c03@test.local', 'RS Tutor Other',  'tutor',   'id'),
+  ('f8c00000-0000-0000-0000-000000000004', 'f8c04@test.local', 'RS Assistant',    'student', 'id'),
+  ('f8c00000-0000-0000-0000-000000000011', 'f8c11@test.local', 'RS Parent 1',     'parent',  'id'),
+  ('f8c00000-0000-0000-0000-000000000012', 'f8c12@test.local', 'RS Parent 2',     'parent',  'id');
+
+insert into public.classes (id, name, meeting_days, tutor_ids, tracks_progress) values
+  ('f8cc0000-0000-0000-0000-000000000001', 'RS Yanbua', '{0,1,2,3,4,5,6}', array['f8c00000-0000-0000-0000-000000000001']::uuid[], true),
+  ('f8cc0000-0000-0000-0000-000000000002', 'RS Aqidah', '{0,1,2,3,4,5,6}', array['f8c00000-0000-0000-0000-000000000002','f8c00000-0000-0000-0000-000000000004']::uuid[], false),
+  ('f8cc0000-0000-0000-0000-000000000003', 'RS Other',  '{0,1,2,3,4,5,6}', array['f8c00000-0000-0000-0000-000000000003']::uuid[], false);
+
+insert into public.students (id, user_id, full_name, date_of_birth) values
+  ('f8cd0000-0000-0000-0000-000000000001', null, 'RS C1', '2016-01-01'),
+  ('f8cd0000-0000-0000-0000-000000000002', null, 'RS C2', '2016-01-01'),
+  ('f8cd0000-0000-0000-0000-000000000003', 'f8c00000-0000-0000-0000-000000000004', 'RS SA (student record)', '2009-01-01');
+insert into public.student_guardians (student_id, user_id) values
+  ('f8cd0000-0000-0000-0000-000000000001', 'f8c00000-0000-0000-0000-000000000011'),
+  ('f8cd0000-0000-0000-0000-000000000002', 'f8c00000-0000-0000-0000-000000000012'),
+  ('f8cd0000-0000-0000-0000-000000000003', 'f8c00000-0000-0000-0000-000000000012');
+insert into public.class_members (class_id, student_id) values
+  ('f8cc0000-0000-0000-0000-000000000001', 'f8cd0000-0000-0000-0000-000000000001'),
+  ('f8cc0000-0000-0000-0000-000000000002', 'f8cd0000-0000-0000-0000-000000000001'),
+  ('f8cc0000-0000-0000-0000-000000000001', 'f8cd0000-0000-0000-0000-000000000002'),
+  ('f8cc0000-0000-0000-0000-000000000002', 'f8cd0000-0000-0000-0000-000000000003');
+
+insert into public.year_end_reports (id, student_id, academic_year, tutor_id, status, narrative) values
+  ('f8ce0000-0000-0000-0000-000000000001', 'f8cd0000-0000-0000-0000-000000000001', '2026/2027', 'f8c00000-0000-0000-0000-000000000001', 'draft', null),
+  ('f8ce0000-0000-0000-0000-00000000000f', 'f8cd0000-0000-0000-0000-000000000001', '2025/2026', 'f8c00000-0000-0000-0000-000000000001', 'published', 'x'),
+  ('f8ce0000-0000-0000-0000-000000000003', 'f8cd0000-0000-0000-0000-000000000003', '2026/2027', 'f8c00000-0000-0000-0000-000000000002', 'draft', null);
+insert into public.year_end_report_sections (id, report_id, class_id, tutor_id, attendance_present) values
+  ('f8cf0000-0000-0000-0000-000000000001', 'f8ce0000-0000-0000-0000-000000000001', 'f8cc0000-0000-0000-0000-000000000002', 'f8c00000-0000-0000-0000-000000000002', 10),
+  ('f8cf0000-0000-0000-0000-00000000000f', 'f8ce0000-0000-0000-0000-00000000000f', 'f8cc0000-0000-0000-0000-000000000002', 'f8c00000-0000-0000-0000-000000000002', 12),
+  ('f8cf0000-0000-0000-0000-000000000003', 'f8ce0000-0000-0000-0000-000000000003', 'f8cc0000-0000-0000-0000-000000000002', 'f8c00000-0000-0000-0000-000000000002', 9);
+update public.year_end_report_sections set grade = 'jayyid', narrative = 'Published text' where id = 'f8cf0000-0000-0000-0000-00000000000f';
+
+-- ---- RLS-160: a section is read by its group's tutors — who cannot
+-- read the report itself when the child has a tracking group.
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to 'f8c00000-0000-0000-0000-000000000002';  -- TA
+insert into _tap_log(line) select set_eq('select id from public.year_end_report_sections where class_id::text like ''f8cc%''',
+  array['f8cf0000-0000-0000-0000-000000000001', 'f8cf0000-0000-0000-0000-00000000000f', 'f8cf0000-0000-0000-0000-000000000003']::uuid[],
+  'RLS-160: the Aqidah tutor reads her group''s sections in every report');
+insert into _tap_log(line) select is((select count(*) from public.year_end_reports where student_id = 'f8cd0000-0000-0000-0000-000000000001'), 0::bigint,
+  'RLS-160: …but not the report of a child who has a tracking group (Yanbu''a tutor authors it)');
+set local request.jwt.claim.sub to 'f8c00000-0000-0000-0000-000000000003';  -- TX
+insert into _tap_log(line) select is((select count(*) from public.year_end_report_sections where class_id::text like 'f8cc%'), 0::bigint,
+  'RLS-160: a tutor of another group reads no section');
+
+-- ---- RLS-161: she edits her section while the report is a draft, not
+-- after it is published.
+set local request.jwt.claim.sub to 'f8c00000-0000-0000-0000-000000000002';  -- TA
+update public.year_end_report_sections set grade = 'mumtaz', narrative = 'Hafal rukun iman' where id = 'f8cf0000-0000-0000-0000-000000000001';
+update public.year_end_report_sections set narrative = 'changed after publish' where id = 'f8cf0000-0000-0000-0000-00000000000f';
+reset role;
+insert into _tap_log(line) select is((select grade::text || '/' || narrative from public.year_end_report_sections where id = 'f8cf0000-0000-0000-0000-000000000001'),
+  'mumtaz/Hafal rukun iman', 'RLS-161: the group''s tutor fills in her section of a draft report');
+insert into _tap_log(line) select is((select narrative from public.year_end_report_sections where id = 'f8cf0000-0000-0000-0000-00000000000f'),
+  'Published text', 'RLS-161: …and cannot change it once the report is published (it locks)');
+
+-- ---- RLS-162: only grade and narrative are writable by a tutor.
+set local role authenticated;
+set local request.jwt.claim.sub to 'f8c00000-0000-0000-0000-000000000002';  -- TA
+insert into _tap_log(line) select throws_ok(
+  $$ update public.year_end_report_sections set attendance_present = 99 where id = 'f8cf0000-0000-0000-0000-000000000001' $$,
+  '42501', null, 'RLS-162: a tutor cannot change a section''s attendance figures');
+insert into _tap_log(line) select throws_ok(
+  $$ update public.year_end_report_sections set class_id = 'f8cc0000-0000-0000-0000-000000000003' where id = 'f8cf0000-0000-0000-0000-000000000001' $$,
+  '42501', null, 'RLS-162: …nor move it to another group or report');
+
+-- ---- RLS-163: the report's author reads every section but edits none
+-- (Resolved Decision 34).
+set local request.jwt.claim.sub to 'f8c00000-0000-0000-0000-000000000001';  -- TY, author of R1
+insert into _tap_log(line) select set_eq('select id from public.year_end_report_sections where report_id = ''f8ce0000-0000-0000-0000-000000000001''',
+  array['f8cf0000-0000-0000-0000-000000000001']::uuid[], 'RLS-163: the report''s author reads its sections');
+update public.year_end_report_sections set narrative = 'author edit' where id = 'f8cf0000-0000-0000-0000-000000000001';
+reset role;
+insert into _tap_log(line) select is((select narrative from public.year_end_report_sections where id = 'f8cf0000-0000-0000-0000-000000000001'),
+  'Hafal rukun iman', 'RLS-163: …and cannot edit another group''s section');
+
+-- ---- RLS-164: a family reads sections of a published report only.
+set local role authenticated;
+set local request.jwt.claim.sub to 'f8c00000-0000-0000-0000-000000000011';  -- P1
+insert into _tap_log(line) select set_eq('select id from public.year_end_report_sections where class_id::text like ''f8cc%''',
+  array['f8cf0000-0000-0000-0000-00000000000f']::uuid[], 'RLS-164: a guardian reads the section of the published report, not of the draft');
+set local request.jwt.claim.sub to 'f8c00000-0000-0000-0000-000000000012';  -- P2
+insert into _tap_log(line) select is((select count(*) from public.year_end_report_sections where report_id in
+  ('f8ce0000-0000-0000-0000-000000000001', 'f8ce0000-0000-0000-0000-00000000000f')), 0::bigint,
+  'RLS-164: another family reads no section of that child');
+
+-- ---- RLS-165: a student assistant tutoring the group edits the group's
+-- sections, but never one on their own record.
+set local request.jwt.claim.sub to 'f8c00000-0000-0000-0000-000000000004';  -- SA
+insert into _tap_log(line) select is((select count(*) from public.year_end_report_sections where id = 'f8cf0000-0000-0000-0000-000000000003'), 0::bigint,
+  'RLS-165: a student assistant does not read the section on their own report');
+update public.year_end_report_sections set narrative = 'self-graded' where id = 'f8cf0000-0000-0000-0000-000000000003';
+reset role;
+insert into _tap_log(line) select is((select narrative from public.year_end_report_sections where id = 'f8cf0000-0000-0000-0000-000000000003'),
+  null, 'RLS-165: …nor write it');
+
+-- ---- RLS-166: sections are created and removed only by draft
+-- generation (service role) or an admin.
+set local role authenticated;
+set local request.jwt.claim.sub to 'f8c00000-0000-0000-0000-000000000002';  -- TA
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.year_end_report_sections (report_id, class_id) values ('f8ce0000-0000-0000-0000-000000000001', 'f8cc0000-0000-0000-0000-000000000003') $$,
+  '42501', null, 'RLS-166: a tutor cannot add a section');
+insert into _tap_log(line) select throws_ok(
+  $$ delete from public.year_end_report_sections where id = 'f8cf0000-0000-0000-0000-000000000001' $$,
+  '42501', null, 'RLS-166: …nor remove one');
+reset role;
+
+-- ---- RLS-167: an admin corrects a section after publishing.
+set local role authenticated;
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+update public.year_end_report_sections set narrative = 'Corrected by admin' where id = 'f8cf0000-0000-0000-0000-00000000000f';
+reset role;
+insert into _tap_log(line) select is((select narrative from public.year_end_report_sections where id = 'f8cf0000-0000-0000-0000-00000000000f'),
+  'Corrected by admin', 'RLS-167: an admin edits a section of a published report (the correction path)');
+
+-- ---- RLS-168: fn_my_report_sections — the section tutor's list, with
+-- what they cannot read from the report itself.
+set local role authenticated;
+set local request.jwt.claim.sub to 'f8c00000-0000-0000-0000-000000000002';  -- TA
+insert into _tap_log(line) select set_eq(
+  $$ select student_name || '|' || academic_year || '|' || report_status || '|' || author_name
+       from public.fn_my_report_sections('f8cc0000-0000-0000-0000-000000000002') $$,
+  array['RS C1|2026/2027|draft|RS Tutor Yanbua', 'RS C1|2025/2026|published|RS Tutor Yanbua', 'RS SA (student record)|2026/2027|draft|RS Tutor Aqidah'],
+  'RLS-168: the Aqidah tutor lists her group''s sections with student, year, report status and author');
+set local request.jwt.claim.sub to 'f8c00000-0000-0000-0000-000000000004';  -- SA
+insert into _tap_log(line) select is((select count(*) from public.fn_my_report_sections('f8cc0000-0000-0000-0000-000000000002')
+  where student_name = 'RS SA (student record)'), 0::bigint, 'RLS-168: …a student assistant never sees their own');
+set local request.jwt.claim.sub to 'f8c00000-0000-0000-0000-000000000011';  -- P1
+insert into _tap_log(line) select is((select count(*) from public.fn_my_report_sections('f8cc0000-0000-0000-0000-000000000002')), 0::bigint,
+  'RLS-168: …and a guardian gets nothing from it');
+
+-- ---- RLS-169: fn_admin_set_report_author — an admin reassigns a draft's
+-- author to a tutor of one of the child's active groups. `tutor_id` has
+-- no column grant, so nobody can do it through a plain UPDATE: a grant
+-- would let a co-tutor name themselves author of a colleague's report.
+set local role authenticated;
+set local request.jwt.claim.sub to 'f8c00000-0000-0000-0000-000000000002';  -- TA, a tutor of C1's Aqidah group
+insert into _tap_log(line) select throws_ok(
+  $$ update public.year_end_reports set tutor_id = 'f8c00000-0000-0000-0000-000000000002' where id = 'f8ce0000-0000-0000-0000-000000000001' $$,
+  '42501', null, 'RLS-169: nobody changes a report''s author with a plain UPDATE');
+insert into _tap_log(line) select throws_ok(
+  $$ select public.fn_admin_set_report_author('f8ce0000-0000-0000-0000-000000000001', 'f8c00000-0000-0000-0000-000000000002') $$,
+  '42501', null, 'RLS-169: …and a tutor cannot call the admin function');
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+insert into _tap_log(line) select throws_ok(
+  $$ select public.fn_admin_set_report_author('f8ce0000-0000-0000-0000-000000000001', 'f8c00000-0000-0000-0000-000000000003') $$,
+  '23514', null, 'RLS-169: an admin cannot make someone author who teaches none of the child''s groups');
+insert into _tap_log(line) select throws_ok(
+  $$ select public.fn_admin_set_report_author('f8ce0000-0000-0000-0000-00000000000f', 'f8c00000-0000-0000-0000-000000000002') $$,
+  '23514', null, 'RLS-169: …nor change the author of a published report');
+insert into _tap_log(line) select throws_ok(
+  $$ select public.fn_admin_set_report_author('f8ce0000-0000-0000-0000-000000000001', 'f8c00000-0000-0000-0000-000000000004') $$,
+  '23514', null, 'RLS-169: …nor make a 16+ student assistant the author (their name would be on a family''s PDF)');
+insert into _tap_log(line) select lives_ok(
+  $$ select public.fn_admin_set_report_author('f8ce0000-0000-0000-0000-000000000001', 'f8c00000-0000-0000-0000-000000000002') $$,
+  'RLS-169: an admin makes the Aqidah tutor author of C1''s draft');
+reset role;
+insert into _tap_log(line) select is((select tutor_id from public.year_end_reports where id = 'f8ce0000-0000-0000-0000-000000000001'),
+  'f8c00000-0000-0000-0000-000000000002'::uuid, 'RLS-169: …and the author is changed');
+reset role;
+
+reset role;
+
 -- ---------- done ----------
 reset role;
 insert into _tap_log(line) select * from finish();
