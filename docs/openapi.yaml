@@ -73,20 +73,14 @@ paths:
         `or=(parent_id.eq.{uuid},user_id.eq.{uuid})` filter — `students.parent_id`
         no longer exists. See TAD ADR-019, ADR-040.
 
-        **Groups (migration 026, TAD ADR-045):** a student can be in several
-        groups, so a group's roster is read through `class_members` — e.g.
+        **Groups (migrations 026–027, TAD ADR-045):** a student can be in
+        several groups, so a group's roster is read through `class_members`
+        (`students.class_id` was dropped in migration 027) — e.g.
         `select=id,full_name,member:class_members!inner(class_id)&member.class_id=eq.{uuid}`.
         A tutor reads the names of the members of any of their groups,
         archived included (`fn_my_roster_students()`).
       parameters:
         - $ref: '#/components/parameters/select'
-        - name: class_id
-          in: query
-          schema: { type: string }
-          deprecated: true
-          description: >-
-            Pre-ADR-045 single group. The column survives only until the
-            contract migration; filter via `class_members` instead.
       responses:
         '200':
           description: Filtered list of students
@@ -709,10 +703,9 @@ paths:
         student's ACTIVE groups, any number. The call removes active
         memberships not in the set and adds missing ones; memberships in
         **archived** groups are history and are left untouched. Each change
-        is written to `class_member_changes` by trigger. `p_class_id` is the
-        pre-ADR-045 single group, still accepted without `p_class_ids`
-        during the transition (mirrored into `class_members` by a sync
-        trigger) and removed with the contract migration.
+        is written to `class_member_changes` by trigger. Omit `p_class_ids`
+        (or pass null) to leave the groups as they are. The pre-ADR-045
+        single-group `p_class_id` was removed in migration 027.
       requestBody:
         required: true
         content:
@@ -733,12 +726,6 @@ paths:
                       user_id: { type: string, format: uuid }
                       relation: { type: string, nullable: true }
                 p_id: { type: string, format: uuid, nullable: true }
-                p_class_id:
-                  type: string
-                  format: uuid
-                  nullable: true
-                  deprecated: true
-                  description: Pre-ADR-045 single group; ignored when `p_class_ids` is given.
                 p_user_id: { type: string, format: uuid, nullable: true }
                 p_class_ids:
                   type: array
@@ -1221,6 +1208,11 @@ paths:
         authoring tutor calls this again — is surfaced to the admin in
         the report editor rather than hidden.
 
+        The PDF's "Grup / Groep" line names one of the student's active
+        groups: the one the report's author teaches them in, tracking
+        groups first, else the group the default-author rule would pick
+        (TAD ADR-045(i), migration 027).
+
         Renders the PDF via pdfkit (ADR-011), uploads it to the private
         `reports` Storage bucket, and only then flips
         `status: draft → published` and sets `pdf_path`/`published_at`.
@@ -1435,7 +1427,7 @@ paths:
         against it.
 
         The only sender that fans out across a **class**: the roster is read
-        from the database (`students.class_id`), and each student resolves to
+        from the database (`class_members`), and each student resolves to
         their own parent plus, for a 16+ self-login student, themselves. Sends
         run in parallel up to a fixed concurrency — sequentially a large class
         could run the Function into its timeout with half the families

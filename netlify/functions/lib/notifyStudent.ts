@@ -379,17 +379,10 @@ function contextFor(input: ContextInput | undefined, studentId: string): Notific
  * a corrected context (a re-titled assignment) is not stuck at its
  * first value.
  *
- * ── The fallback, and when it goes away (ADR-045(a0)/(g)) ───────────
- * `ref_id` exists from migration 026, but the unique key that includes it
- * only arrives with the contract migration: swapping the key in 026 would
- * have broken the *old* Functions' upsert in the window before this code
- * deployed. Until then Postgres answers 42P10 ("no unique or exclusion
- * constraint matching the ON CONFLICT specification") and the row is
- * written against the old four-column key instead — two same-day events
- * of one kind then share a row, exactly as before ADR-045.
+ * The key includes `ref_id` since migration 027, so two same-day events
+ * of one kind (two absences in two groups) are two rows (ADR-045(g)).
  */
 const CONFLICT_KEY = 'user_id,student_id,event,event_date,ref_id'
-const LEGACY_CONFLICT_KEY = 'user_id,student_id,event,event_date'
 
 export async function recordNotifications(
   client: ServiceClient,
@@ -411,11 +404,7 @@ export async function recordNotifications(
   )
   if (rows.length === 0) return 0
 
-  const notifications = client.from('notifications')
-  let { error } = await notifications.upsert(rows, { onConflict: CONFLICT_KEY })
-  if (error?.code === '42P10') {
-    ;({ error } = await client.from('notifications').upsert(rows, { onConflict: LEGACY_CONFLICT_KEY }))
-  }
+  const { error } = await client.from('notifications').upsert(rows, { onConflict: CONFLICT_KEY })
   if (error) {
     // Never fatal to the send. A family losing the in-app copy of a
     // notification they still received on their phone is worse handled

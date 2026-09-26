@@ -433,7 +433,7 @@ unlinked `role = student` account named "Unlinked Santri").
 
 An isolated fixture island (`f8a…`): two tracking groups (GY1, GY3), an Aqidah group with tracking off (GAQ, taught by an adult TQ **and** a 16+ student assistant SA), a group archived part-way through (GY2), and an empty group. Children: K1 in GY1+GAQ, K3 leaves GAQ, K4 in the archived GY2 + GY1, K5 in GAQ only, K6 in GAQ+GY3, K7 in GY1+GY2.
 
-- [x] RLS-122 — **Transitional sync.** Writing `students.class_id` (an old app bundle) adds the matching membership; changing it moves the membership.
+- [x] ~~RLS-122 — **Transitional sync.** Writing `students.class_id` (an old app bundle) adds the matching membership; changing it moves the membership.~~ **Retired by migration 027**, which dropped the column and the trigger; RLS-143 asserts they are gone.
 - [x] RLS-123 — **Memberships are read by the group's tutors, the child's family and the student; written only by an admin.** A tutor sees their own group's 5 memberships and none of another group; a guardian sees only their child's; a tutor INSERT is `42501` and a tutor DELETE matches nothing.
 - [x] RLS-124 — **Tracking off means no progress writes.** An Aqidah-only tutor's Yanbu'a, Quran and Murajaah-target inserts are `42501`, even for a child in no tracking group; the tracking group's tutor still records.
 - [x] RLS-125 — **Any current tutor reads the child's progress history** (Yanbu'a + Murajaah targets via the new `massign_tutor_read`), and nothing for a child they do not teach.
@@ -448,14 +448,24 @@ An isolated fixture island (`f8a…`): two tracking groups (GY1, GY3), an Aqidah
 - [x] RLS-134 — **Archiving freezes a group for every role:** no new session, attendance change, tutor attendance, homework, completion change or member, even by an admin (`23514`), and the group's own tutor cannot change its register.
 - [x] RLS-135 — **An archived group stops counting as "teaching".** The former tutor gets 0 guardian details, 0 progress history and 0 cross-group attendance for a former member, while still reading the archived register, session and member names. A current tutor still sees that archived-group attendance, without a reason.
 - [x] RLS-136 — **Enrolment is audited.** A removal and an archive are logged with the admin as `changed_by`; a tutor reads no audit rows; an admin reads them but cannot write them.
-- [x] RLS-137 — **`fn_admin_save_student(p_class_ids)`** replaces the active set, keeps the archived membership, logs both changes; the old six-argument call still works and is mirrored.
+- [x] RLS-137 — **`fn_admin_save_student(p_class_ids)`** replaces the active set, keeps the archived membership, logs both changes; a move to one other group is a one-element `p_class_ids`. *(Until migration 027 this also asserted the old six-argument call; that path is gone.)*
 - [x] RLS-138 — **Reports for an Aqidah-only child** are authorable by an Aqidah tutor (`fn_my_report_students`), but not for a child who has a Yanbu'a/Quran group.
 - [x] RLS-139 — **Erasure still cascades through a frozen group** (admin deletes a student with records in an archived group; attendance and memberships go with them).
 - [x] RLS-140 — **A group with history cannot be deleted** (`23503`, restrict); an empty group can.
 - [x] RLS-141 — **Unarchiving restores writes**, and is logged.
 - [x] RLS-142 — **The tracking switch is admin-only; a new group defaults to tracking on and active.**
 
-*Total after these: 505 pgTAP assertions (verified: `supabase test db` reports `Tests=505`, PASS). The 427 earlier assertions pass unchanged against migration 026 — they seed students through `students.class_id`, so they also exercise the transitional sync trigger and show every earlier persona's access is exactly what it was.*
+**The contract step (migration 027, TAD ADR-045(a0)):**
+
+- [x] RLS-143 — **`students.class_id` is gone**, with its sync trigger, trigger function and index.
+- [x] RLS-144 — **`fn_admin_save_student` has one signature, without `p_class_id`**. It enrols through `p_class_ids`, and a call without `p_class_ids` leaves the groups alone (a guardian-only edit).
+- [x] RLS-145 — **The notification key includes `ref_id`, nulls not distinct.** It is the table's only unique key. Two same-day absences in two sessions are two rows (AC-011), and a second row with the same key and a null `ref_id` is still refused (`23505`).
+
+Every earlier fixture that seeded students through `students.class_id` now enrols them with explicit `class_members` rows. Three assertions that counted students by `class_id` (RLS-35, RLS-36, RLS-37) now name the students, and RLS-101/111 test "in no group" through `class_members`. RLS-75 now calls `fn_admin_save_student` with named arguments: positionally, its old fifth argument (`p_class_id`) would now land in `p_user_id`.
+
+*Total after these: 505 pgTAP assertions at migration 026 (verified: `supabase test db` reported `Tests=505`, PASS). The 427 earlier assertions passed unchanged against 026: they seeded students through `students.class_id`, so they also exercised the transitional sync trigger and showed every earlier persona's access was exactly what it had been.*
+
+*Total after migration 027: 512 (verified on a stack built from `supabase/migrations`, PASS). That is 505, less RLS-122's two assertions, plus RLS-143…145's nine.*
 
 ## 4. Unit tests (Vitest)
 
@@ -759,9 +769,13 @@ the `student_guardians` `ON DELETE RESTRICT` invariant is in §3.8 RLS-116.
   - The push copy may carry `{{group}}` only in the two `…InGroup` strings (the DPIA R6 guard, deliberately widened).
   - The group variant is used only when a group is given.
   - The dedup tag gains the session/group reference.
-- [x] `tests/unit/notifyStudent.test.ts`: in-app rows carry `ref_id`, upsert on the five-column key, fall back to the four-column key on `42P10` (until the contract migration), and do not retry any other error.
+- [x] `tests/unit/notifyStudent.test.ts`: in-app rows carry `ref_id` and upsert on the five-column key. Since migration 027 a `42P10` is reported, not retried on the old four-column key (the fallback existed only while 026 was live). No other error is retried either.
 - [x] `tests/unit/notificationEvents.test.ts`: in-app copy uses the `…InGroup` key only when the row names a group; old rows keep their copy.
-- [x] `tests/unit/reports.test.ts`: default report author across groups (a tracking-group tutor before an Aqidah tutor, an Aqidah tutor for an Aqidah-only child, first by name, skipping a group with no tutor).
+- [x] `tests/unit/reports.test.ts`: default report author across groups (a tracking-group tutor before an Aqidah tutor, an Aqidah tutor for an Aqidah-only child, first by name, skipping a group with no tutor). `reportGroupName` (migration 027) picks the group a published report names:
+  - the group the author teaches the child in, a tracking group first;
+  - the Aqidah group for an Aqidah-only child;
+  - the default-author order when an admin reassigned the report to someone who teaches none of them;
+  - null for a child in no group.
 - [x] `tests/unit/reportAccess.test.ts`: the PDF gate mirrors `fn_my_report_students`. An Aqidah tutor is refused when the child has a tracking group and allowed when not; an archived group no longer counts; a student assistant is refused their own report.
 - [x] `tests/unit/capabilities.test.ts`: pickers never offer an archived group; tracking-only for progress screens; the tutor count ignores archived groups.
 - [x] `tests/unit/roster.test.ts`: a roster is read through `class_members`.
@@ -1143,12 +1157,24 @@ Run on 2026-09-26 against a **separate** local Supabase stack (its own project i
   - **Another family:** `fn_student_attendance_history` for Ali returns nothing.
 - **Functions, driven for real** (bundled as Netlify does, called with webhook-shaped requests):
   - `notify-absence` writes the group name and the session as `ref_id`.
-  - Before the contract migration, two same-day absences in two groups share one in-app row via the legacy-key fallback. After a simulated key swap, one row per group, and a re-run does not duplicate.
+  - Before the contract migration, two same-day absences in two groups share one in-app row via the legacy-key fallback. After a simulated key swap, one row per group, and a re-run does not duplicate. (Re-verified against the real migration 027 in §6.y.)
   - `notify-assignment` fans out over the Aqidah group's members only, and a wrong secret gets `401`.
   - `send-murajaah-reminders` reminds for Ali's target and not for an Aqidah-only child's.
   - `homework-due-reminders` skips homework in an archived group and reaches the Aqidah group through memberships.
   - `generate-year-end-drafts` authors: Ali → Ustadz Ahmad (tracking group), Hana and Umar → Ustadzah Maryam (Aqidah-only).
 - **Real devices:** not run for 8a. The push payloads changed only by an optional group name in two strings, which is covered by the unit tests; the device rows of the matrix above are unchanged.
+
+### 6.y The contract migration — live verification (027, TAD ADR-045(a0))
+
+Run on 2026-09-26 on the same separate local stack, reset and rebuilt from this branch's migrations (001–027), then loaded with `dev-fixture.sql` (and `dev-seed-multigroup.sql` for the Functions run). Production was then running 026 and the 8a app.
+
+- **Functions, driven for real:**
+  - `students.class_id` is gone.
+  - `notify-absence`, sent twice for each of two same-day absences in two groups: **two** in-app rows, one per group, each naming it. The re-send refreshed them rather than adding rows.
+  - `homework-due-reminders`, run twice through `scripts/invoke-scheduled.mjs`: one row per child per day, as designed. Its `ref_id` is null, and nulls-not-distinct keeps the re-run from adding a row.
+  - `publish-report` as the authoring tutor, for Ali (Grup A + Aqidah, author Ustadz Ahmad) and for Hana (Aqidah only, author Ustadzah Maryam): `200` for both. The stored PDFs, read back with `pdftotext`, name "Grup A" and "Aqidah 9–11 th" respectively. **This is the defect 027 would have caused.** Before the fix, `publish-report` embedded the group through `students.class_id`, and the embed fails once the column is dropped.
+- **New app, browser-driven:** the same 35 checks as §6.x (two runs, 21 + 14), with **zero console errors and zero failed requests**. Three harness selectors were updated first, for copy renamed after 8a: "Tanpa pencatatan Yanbu'a", "Tambahkan (2)" and "Santri tanpa grup: 1".
+- **Production order:** apply 027 before merging its PR. The 8a app in production already upserts on the five-column key, and nothing it runs reads `students.class_id` except `publish-report`. Until the merge, publishing a report fails, so apply and merge back to back. Year-end reports are not published in September.
 
 ## 7. i18n completeness (automated)
 

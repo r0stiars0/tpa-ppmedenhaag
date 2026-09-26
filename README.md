@@ -36,7 +36,7 @@ npm run build                  # production build
 
 ## Database
 
-Migrations live in `supabase/migrations/` (001–026, applied in order; see the development checklist for the hand-applied order of 026, the multi-group migration). The
+Migrations live in `supabase/migrations/` (001–027, applied in order; see the development checklist for the hand-applied order of 026 and 027, the multi-group migration and its contract step). The
 project is already linked (`supabase/config.toml` + `supabase link`); to apply
 a new migration:
 

@@ -58,6 +58,25 @@ export function defaultAuthor(groups: readonly DraftGroup[], tutorByClass: Map<s
   return undefined
 }
 
+/**
+ * The group a published report names on its "Grup / Groep" line. Before
+ * migration 027 this was the student's single `students.class_id`; a
+ * child now has several groups. It is the group the report's author
+ * teaches the child in — tracking groups first, then by name, as in
+ * `defaultAuthor` — or, when an admin reassigned the report to someone
+ * who teaches the child in none of them, the group `defaultAuthor` would
+ * have taken the author from. `groups` is the ACTIVE groups only.
+ */
+export function reportGroupName(
+  groups: readonly (DraftGroup & { tutor_ids: readonly string[] })[],
+  authorId: string,
+): string | null {
+  const ordered = [...groups].sort(
+    (a, b) => Number(b.tracks_progress) - Number(a.tracks_progress) || a.name.localeCompare(b.name),
+  )
+  return (ordered.find((g) => g.tutor_ids.includes(authorId)) ?? ordered[0])?.name ?? null
+}
+
 export function planDrafts(input: {
   students: { id: string; groups: DraftGroup[] }[]
   tutorByClass: Map<string, string>

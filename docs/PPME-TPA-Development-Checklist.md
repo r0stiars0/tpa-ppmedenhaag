@@ -848,13 +848,28 @@ Docs: ADR-045 status + findings, PRD implementation-status lines, `openapi.yaml`
 
 **Before 8a goes live — [IT TEAM]:** review DPIA R17 and the privacy-policy paragraph "Leerlingen in meer dan één groep" / "Santri yang ikut lebih dari satu grup" (PRD Feature 8 §8.4: families must be told before cross-group reading goes live).
 
-**Production runbook for 8a (ADR-045(a0)) — do in this order, by hand:**
-1. `pg_dump` the production database and store the dump off-platform. The Supabase free plan's own backups are not relied on.
-2. Apply migration 026 only: `supabase db push` from `main` *before* merging the 8a PR, i.e. from a checkout of this branch. The old app keeps working against it; this was verified by replaying its queries.
-3. Smoke-check the **old** app in production: a tutor opens the register and a parent opens attendance. Both must load without errors.
-4. Merge the 8a PR. Netlify deploys the new app.
-5. Smoke-check the **new** app: Beheer → Grup shows the tracking badges; a parent's attendance screen shows its groups.
-6. Tell the TPA coordinator 8a is live. The admin bulk-enrols the Aqidah groups *before* their first digital session (PRD Feature 8 §8.10).
-7. **Later, a separate PR — the contract migration**, once 8a is verified in production: drop `trg_students_class_id_sync`, `students.class_id` and the six-argument `fn_admin_save_student` compatibility path; swap `notifications`' unique key to `(user_id, student_id, event, event_date, ref_id) nulls not distinct`; and move `dev-fixture.sql` and `rls.test.sql` off `students.class_id`. The swap is what gives two same-day absences separate in-app rows (AC-011).
+**Production runbook for 8a (ADR-045(a0)) — done 2026-09-26:**
+1. [x] `pg_dump` of production (roles, schema, data), stored off-platform on the maintainer's machine.
+2. [x] Migrations 025 and 026 applied with `supabase db push` from the 8a branch, before merging. The backfill was checked in production: every student with a group got exactly one `class_members` row, and none was missing.
+3. [x] The **old** app was smoke-checked in production: a tutor's register and a parent's attendance.
+4. [x] #17 (025) and #18 (8a) merged. Netlify deployed the new app.
+5. [x] The **new** app was smoke-checked: Beheer → Grup, a parent's attendance, a tutor's register.
+6. [x] The TPA coordinator was told 8a is live.
+7. [x] **The contract migration, 027**: built in its own PR (below).
 
-**Rollback before step 7:** a Netlify rollback to the previous deploy. Migration 026 is backward-compatible, so no database rollback is needed. Restoring the dump from step 1 is the last resort.
+**Rollback, 8a:** a Netlify rollback to the previous deploy, as long as 027 is not applied. Migration 026 is backward-compatible, so no database rollback is needed. Restoring the dump from step 1 is the last resort.
+
+**Feature 8 contract step (TAD ADR-045(a0), migration 027).** Migration 026 kept `students.class_id` so the old app and the new one could both run against it. With 8a live and verified, 027 removes what only the old app needed:
+- [x] It drops `students.class_id`, with its sync trigger, trigger function, index and foreign key. Dropping the column fails loudly if anything still depends on it.
+- [x] It re-creates `fn_admin_save_student` without `p_class_id`. `p_class_ids` null now means "leave the groups as they are".
+- [x] It swaps `notifications`' unique key to `(user_id, student_id, event, event_date, ref_id)` nulls not distinct. Two same-day absences in two groups now get two in-app rows (AC-011). The Functions' `42P10` fallback to the old key is removed.
+- [x] **A defect missed in 8a, found while writing 027:** `publish-report` read the report's group through `students.class_id`. Against 026 it printed the group the student had before 8a; against 027 publishing would have failed. It now reads `class_members` and names the group the author teaches the child in (`reportGroupName`).
+- [x] The pgTAP fixtures and `dev-fixture.sql` are off `students.class_id`. RLS-122 is retired; RLS-143…145 are new.
+- [x] Verified: pgTAP 512/512; unit 672/672; both typechecks and the build; live against 027 (Functions, including `publish-report` with the PDF read back, and the 35 browser checks with zero console errors and failed requests). See test-plan §6.y.
+
+**Production runbook for 027 — do in this order, by hand:**
+1. A fresh `pg_dump` of production, stored off-platform.
+2. Apply 027 with `supabase db push` from this PR's branch, **then merge the PR straight away.** The 8a app already in production works against 027, with one exception: `publish-report`, which is fixed in this PR. Year-end reports are not published in September, so the minutes between the two steps do not matter in practice.
+3. Smoke-check: an admin saves a student's groups; a tutor records attendance; a parent opens attendance and notifications.
+
+**Rollback after 027:** a Netlify rollback can go back only as far as the 8a deploy, because a pre-8a bundle reads `students.class_id`. Undoing 027 itself means restoring the dump.
