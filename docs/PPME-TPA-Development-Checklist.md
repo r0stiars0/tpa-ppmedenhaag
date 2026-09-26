@@ -819,3 +819,14 @@ in the TAD (+ pointers on ADR-043's superseded consent statements), PRD
 consent item reopened as an [IT TEAM] confirmation), both privacy-policy
 §4 halves + the form paragraph, openapi (`consent` off the `required`
 list), test-plan §4.5j, the bilingual user manual §2.
+
+**Feature 8 preliminary change (TAD ADR-045, migration 025): the weekly push-subscriber baseline.** PRD Feature 8 KPI 10 (the push opt-out guardrail) compares the 8 weeks before release 8a with the 8 weeks after, and the app kept no history of opt-outs. It now does:
+- `push_subscriber_counts` holds one aggregate number per week, recorded every Friday by `weekly-progress-digest` through the service-role-only `fn_record_push_subscriber_count`. It is admin-read-only, and no client can write it, admins included.
+- A recording failure never stops the digest.
+
+Verified:
+- `typecheck`, `typecheck:functions`, `test` (613, incl. `pushSubscriberCount.test.ts`) and `build` are green;
+- pgTAP RLS-117…121 pass (427 total);
+- a live run against a local stack at 025 with the dev fixture: correct count, same-week re-run corrects rather than duplicates, admin-only REST read, and the digest survives a missing function (test-plan §4.5m).
+
+Docs: ADR-045 status, TAD RLS table + Scheduler row, `openapi.yaml` (`/push_subscriber_counts`), test-plan §3 + §4.5m. No DPIA change: the data is an aggregate count with no personal data. **Post-merge ops:** apply migration 025 to production (`supabase db push`) so counting starts; until then, the digest runs normally and reports `subscriberCountError`.

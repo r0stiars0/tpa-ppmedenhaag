@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { amsterdamDate } from './lib/notifications'
 import { notifyStudents, reportable } from './lib/notifyStudent'
+import { recordPushSubscriberCount } from './lib/pushSubscriberCount'
 import { HOURLY, scheduledHandler } from './lib/scheduled'
 import { weekStart } from '../../src/lib/murajaah'
 import { fetchWeeklyActivity, hasActivity } from '../../src/lib/weeklySummary'
@@ -35,12 +36,22 @@ import { fetchWeeklyActivity, hasActivity } from '../../src/lib/weeklySummary'
  * the report or new homework there is nothing here for a 16+ student to
  * act on — it is the summary a parent would otherwise have to go
  * looking for.
+ *
+ * ── It also records the push-subscriber baseline ────────────────────
+ * Once a week, before anything else and whatever the week held, it
+ * records how many families have push switched on (migration 025, PRD
+ * Feature 8 KPI 10). This job is the natural home: it already runs
+ * weekly, and a quiet week is exactly when the count must still be
+ * taken. A failure to record never stops the digest (see
+ * `recordPushSubscriberCount`); it is reported alongside the digest's
+ * own numbers.
  */
 export default scheduledHandler({
   hour: 8,
   onWeekday: 5, // Friday, in Amsterdam
   run: async (client, today) => {
-    const empty = { sent: 0, expired: 0, failed: 0 }
+    const baseline = await recordPushSubscriberCount(client, today)
+    const empty = { sent: 0, expired: 0, failed: 0, ...baseline }
 
     const { data: students, error } = await client.from('students').select('id')
     if (error) throw new Error(error.message)
@@ -60,14 +71,17 @@ export default scheduledHandler({
       return { ...empty, skipped: 'no activity to summarise this week' }
     }
 
-    return reportable(
-      await notifyStudents(client, {
-        studentIds: worthSending,
-        event: 'weeklyDigest',
-        audience: 'parent',
-        date: today,
-      }),
-    )
+    return {
+      ...reportable(
+        await notifyStudents(client, {
+          studentIds: worthSending,
+          event: 'weeklyDigest',
+          audience: 'parent',
+          date: today,
+        }),
+      ),
+      ...baseline,
+    }
   },
 })
 

@@ -419,7 +419,15 @@ unlinked `role = student` account named "Unlinked Santri").
 - [ ] RLS-115 — **Admin can delete a student; a tutor cannot.** A `students` row + a `student_guardians` link seeded; T1's `DELETE` on `students` matches nothing (no delete policy); the admin's `DELETE` removes the row and the guardian link cascades away. Backs the `deleteStudent` action.
 - [ ] RLS-116 — **A guardian's `users` row is `ON DELETE RESTRICT` behind `student_guardians`.** A bogus `parent` + a `student_guardians` link seeded; `DELETE FROM users` → `23503`; after the linked student is deleted, the `users` delete succeeds. Backs the `delete-user` Function's `409`.
 
-*Total after these: 413 pgTAP assertions (verified: `supabase test db` reports `1..413` on a clean `supabase db reset`).*
+**Weekly push-subscriber count (migration 025, TAD ADR-045, PRD Feature 8 KPI 10).** The baseline for the push opt-out guardrail. It is recorded ahead of release 8a so the eight weeks before it exist.
+
+- [x] RLS-117 — **Only the service role can record.** An authenticated caller, even an admin, calling `fn_record_push_subscriber_count` is refused `42501`.
+- [x] RLS-118 — **The count is right.** With exactly P1 (guardian of two children), S16 (self-login), G2 (second active guardian), GX (removed guardian only) and T1 (childless tutor) subscribed, the recorder returns **3**: P1 once, S16, G2. The same number is stored against the week.
+- [x] RLS-119 — **Idempotent per week.** After G2 opts out, a re-run for the same week returns 2 and leaves exactly one row for that week; a different week gets its own row.
+- [x] RLS-120 — **Admin-read-only.** An admin reads the rows; a tutor, a guardian, a 16+ student and anon read 0.
+- [x] RLS-121 — **No client writes, not even an admin.** An admin `INSERT` is refused `42501`; an admin `UPDATE` and `DELETE` match nothing (the baseline cannot be rewritten).
+
+*Total after these: 427 pgTAP assertions (verified: `supabase test db` reports `Tests=427`, PASS, on a stack built from `supabase/migrations`).*
 
 ## 4. Unit tests (Vitest)
 
@@ -691,6 +699,20 @@ the `student_guardians` `ON DELETE RESTRICT` invariant is in §3.8 RLS-116.
 - [x] a `parent` (and a junk 16+ `student`) with no links → `deleteUser(id)` called, `{ ok: true, id }`
 - [x] a GoTrue `deleteUser` error → `400`
 - [x] client: POSTs `{ id }` with the bearer token to `/.netlify/functions/delete-user`; throws the Function error body on non-OK; throws "Not signed in" with no session
+
+### 4.5m Weekly push-subscriber count (migration 025, TAD ADR-045)
+
+`tests/unit/pushSubscriberCount.test.ts`, against `recordPushSubscriberCount` in `netlify/functions/lib/pushSubscriberCount.ts`. The count itself is proven in pgTAP (RLS-117…121).
+
+- [x] Records against the **Monday** of the digest's Friday (`2026-10-02` → `p_week_start: '2026-09-28'`), not the Friday itself
+- [x] A database error is **returned, not thrown** (`{ subscriberCountError }`), and logged, so the weekly digest still goes out
+- [x] A thrown client error (network) is reported the same way
+
+**Verified live against a local stack at migration 025**, with `supabase/dev-fixture.sql` loaded and the real Function driven by `scripts/invoke-scheduled.mjs` at Friday 08:00 CEST:
+- It records **3** in a quiet week: two guardians, one of them a tutor, plus one self-login student. A childless tutor is excluded.
+- A same-week re-run after an opt-out corrects the count to 2 and does not add a row. A Thursday run is skipped.
+- Over REST with minted JWTs, an admin reads the rows; a parent and a tutor read `[]`. An admin `POST` gets `403`, and the admin RPC gets `42501`.
+- With the SQL function missing, simulating the app deploying before the migration is applied, the digest still returns `200` and reports `subscriberCountError`.
 
 ### 4.6 Access control and delivery inside the Functions
 

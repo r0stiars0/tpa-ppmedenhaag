@@ -752,6 +752,35 @@ paths:
                 items: { $ref: '#/components/schemas/StudentGuardian' }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
+  /push_subscriber_counts:
+    get:
+      tags: [admin]
+      summary: Weekly push-subscriber counts (Admin only)
+      description: |
+        Added in migration 025 (TAD ADR-045, PRD Feature 8 KPI 10). One
+        row per week: how many family recipients (active guardians and
+        16+ self-login students) had Web Push switched on. It is the baseline
+        for the push opt-out guardrail. Aggregate only, no personal data.
+        RLS is admin-only SELECT (`push_subscriber_counts_admin_read`); a
+        tutor, parent, student or anon caller gets an empty array. No
+        client can write it, admins included. Rows are written only by
+        `fn_record_push_subscriber_count`, which is service_role only and
+        called by the `weekly-progress-digest` scheduled Function.
+      parameters:
+        - $ref: '#/components/parameters/select'
+        - name: order
+          in: query
+          schema: { type: string }
+          description: 'e.g. `week_start.desc`'
+      responses:
+        '200':
+          description: Weekly counts (empty array for non-admin callers)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PushSubscriberCount' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /user_role_changes:
     get:
       tags: [admin]
@@ -2158,6 +2187,20 @@ components:
         tutor_id: { type: string, format: uuid }
         status: { $ref: '#/components/schemas/AttendanceStatusEnum' }
         reason: { type: string }
+
+    PushSubscriberCount:
+      type: object
+      description: >-
+        One week's count of family recipients with Web Push on (TAD ADR-045,
+        migration 025). Admin-only read; written only by
+        `fn_record_push_subscriber_count`.
+      properties:
+        week_start:
+          type: string
+          format: date
+          description: Monday of the counted week.
+        subscribed: { type: integer, minimum: 0 }
+        recorded_at: { type: string, format: date-time }
 
     UserRoleChange:
       type: object
