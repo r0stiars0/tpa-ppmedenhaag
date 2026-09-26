@@ -1397,7 +1397,7 @@ A group with tracking off otherwise behaves like any other group. It has meeting
   - The attendance summary shows **one percentage per group**, plus the overall figure. A single combined figure would hide a child who misses only one group.
   - The weekly digest's attendance line is also per group.
   - The meeting days shown (Feature 1 FR-007) are listed per group.
-- *Implementation status: **built — release 8a** (TAD ADR-045, migration 026).* The per-group split of two same-day absence notifications in the *in-app list* is built in the contract migration, 027 (ADR-045(g)). It takes effect when 027 is applied in production. Both pushes already arrive separately, each naming its group.
+- *Implementation status: **built — release 8a** (TAD ADR-045, migration 026).* The per-group split of two same-day absence notifications in the *in-app list* is built in the contract migration, 027 (ADR-045(g)), applied in production on 2026-09-26. Both pushes already arrive separately, each naming its group.
 
 **FR-004: Group Announcements**
 - Priority: High
@@ -1614,7 +1614,7 @@ A group with tracking off otherwise behaves like any other group. It has meeting
 - **When:** an admin opens Beheer
 - **Then:** the no-group count includes them, and the Santri "No group" filter lists them
 
-**AC-011:** Per-group absence notification *(pushes: met in 8a; the in-app list: built in migration 027, which swaps the notification key, and met once 027 is applied in production — ADR-045(g))*
+**AC-011:** Per-group absence notification *(met: pushes since 8a; the in-app list since migration 027 swapped the notification key, applied in production on 2026-09-26 — ADR-045(g))*
 - **Given:** a child absent from both "Kelas A" and "Aqidah 7–9 th" on the same day
 - **When:** both registers are saved
 - **Then:** the guardians receive two notifications, each naming its group
