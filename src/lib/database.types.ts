@@ -1238,6 +1238,10 @@ export type Database = {
         }
         Returns: string
       }
+      fn_admin_set_report_author: {
+        Args: { p_report: string; p_tutor: string }
+        Returns: undefined
+      }
       fn_admin_storage_usage: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1376,10 +1380,10 @@ export type Database = {
           attendance_late: number
           attendance_present: number
           attendance_rate: number
-          author_id: string
-          author_name: string
-          grade: Database["public"]["Enums"]["report_grade"]
-          narrative: string
+          author_id: string | null
+          author_name: string | null
+          grade: Database["public"]["Enums"]["report_grade"] | null
+          narrative: string | null
           report_id: string
           report_status: Database["public"]["Enums"]["report_status"]
           section_id: string

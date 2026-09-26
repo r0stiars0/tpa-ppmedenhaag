@@ -5737,6 +5737,36 @@ set local request.jwt.claim.sub to 'f8c00000-0000-0000-0000-000000000011';  -- P
 insert into _tap_log(line) select is((select count(*) from public.fn_my_report_sections('f8cc0000-0000-0000-0000-000000000002')), 0::bigint,
   'RLS-168: …and a guardian gets nothing from it');
 
+-- ---- RLS-169: fn_admin_set_report_author — an admin reassigns a draft's
+-- author to a tutor of one of the child's active groups. `tutor_id` has
+-- no column grant, so nobody can do it through a plain UPDATE: a grant
+-- would let a co-tutor name themselves author of a colleague's report.
+set local role authenticated;
+set local request.jwt.claim.sub to 'f8c00000-0000-0000-0000-000000000002';  -- TA, a tutor of C1's Aqidah group
+insert into _tap_log(line) select throws_ok(
+  $$ update public.year_end_reports set tutor_id = 'f8c00000-0000-0000-0000-000000000002' where id = 'f8ce0000-0000-0000-0000-000000000001' $$,
+  '42501', null, 'RLS-169: nobody changes a report''s author with a plain UPDATE');
+insert into _tap_log(line) select throws_ok(
+  $$ select public.fn_admin_set_report_author('f8ce0000-0000-0000-0000-000000000001', 'f8c00000-0000-0000-0000-000000000002') $$,
+  '42501', null, 'RLS-169: …and a tutor cannot call the admin function');
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+insert into _tap_log(line) select throws_ok(
+  $$ select public.fn_admin_set_report_author('f8ce0000-0000-0000-0000-000000000001', 'f8c00000-0000-0000-0000-000000000003') $$,
+  '23514', null, 'RLS-169: an admin cannot make someone author who teaches none of the child''s groups');
+insert into _tap_log(line) select throws_ok(
+  $$ select public.fn_admin_set_report_author('f8ce0000-0000-0000-0000-00000000000f', 'f8c00000-0000-0000-0000-000000000002') $$,
+  '23514', null, 'RLS-169: …nor change the author of a published report');
+insert into _tap_log(line) select throws_ok(
+  $$ select public.fn_admin_set_report_author('f8ce0000-0000-0000-0000-000000000001', 'f8c00000-0000-0000-0000-000000000004') $$,
+  '23514', null, 'RLS-169: …nor make a 16+ student assistant the author (their name would be on a family''s PDF)');
+insert into _tap_log(line) select lives_ok(
+  $$ select public.fn_admin_set_report_author('f8ce0000-0000-0000-0000-000000000001', 'f8c00000-0000-0000-0000-000000000002') $$,
+  'RLS-169: an admin makes the Aqidah tutor author of C1''s draft');
+reset role;
+insert into _tap_log(line) select is((select tutor_id from public.year_end_reports where id = 'f8ce0000-0000-0000-0000-000000000001'),
+  'f8c00000-0000-0000-0000-000000000002'::uuid, 'RLS-169: …and the author is changed');
+reset role;
+
 reset role;
 
 -- ---------- done ----------

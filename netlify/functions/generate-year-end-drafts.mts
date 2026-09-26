@@ -72,12 +72,18 @@ export default async (req: Request) => {
     .is('class.archived_at', null)
   if (membersError) return jsonError(membersError.message, 500)
 
+  // A 16+ student assistant never becomes a report's author or a
+  // section's writer: that name is printed on the family's PDF, and
+  // assistants are not named to families (PRD Resolved Decision 33).
+  const assistants = await fetchAssistantIds(admin)
+  if ('error' in assistants) return jsonError(assistants.error, 500)
+
   const tutorByClass = new Map<string, string>()
   const groupsByStudent = new Map<string, DraftGroup[]>()
   for (const row of memberRows ?? []) {
     const cls = row.class
     if (!cls) continue
-    const tutorId = (cls.tutor_ids ?? [])[0]
+    const tutorId = (cls.tutor_ids ?? []).find((id) => !assistants.ids.has(id))
     if (tutorId) tutorByClass.set(row.class_id, tutorId)
     const groups = groupsByStudent.get(row.student_id) ?? []
     groups.push({ class_id: row.class_id, name: cls.name, tracks_progress: cls.tracks_progress })
@@ -199,6 +205,8 @@ async function addSections(
     .in('student_id', studentIds)
   if (reportsError) return { error: reportsError.message }
   if (!reports || reports.length === 0) return { created: 0 }
+  const assistants = await fetchAssistantIds(admin)
+  if ('error' in assistants) return { error: assistants.error }
 
   const reportStudentIds = reports.map((r) => r.student_id)
   const [classes, members, attendance, existing] = await Promise.all([
@@ -220,7 +228,10 @@ async function addSections(
   for (const result of [classes, members, attendance, existing]) if (result.error) return { error: result.error.message }
 
   const groups = new Map<string, SectionGroup>(
-    (classes.data ?? []).map((c) => [c.id, { name: c.name, tracks_progress: c.tracks_progress, tutor_ids: c.tutor_ids ?? [] }]),
+    (classes.data ?? []).map((c) => [
+      c.id,
+      { name: c.name, tracks_progress: c.tracks_progress, tutor_ids: (c.tutor_ids ?? []).filter((id) => !assistants.ids.has(id)) },
+    ]),
   )
   const currentMemberships = new Map<string, string[]>()
   for (const m of members.data ?? []) {
@@ -244,4 +255,11 @@ async function addSections(
     .select('id')
   if (error) return { error: error.message }
   return { created: (inserted ?? []).length }
+}
+
+/** Users who are also a student (16+ student assistants when they tutor). */
+async function fetchAssistantIds(admin: ServiceClient): Promise<{ ids: Set<string> } | { error: string }> {
+  const { data, error } = await admin.from('students').select('user_id').not('user_id', 'is', null)
+  if (error) return { error: error.message }
+  return { ids: new Set((data ?? []).map((s) => s.user_id as string)) }
 }

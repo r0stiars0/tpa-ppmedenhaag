@@ -133,3 +133,38 @@ $$;
 
 revoke all on function public.fn_my_report_sections(uuid) from public, anon;
 grant execute on function public.fn_my_report_sections(uuid) to authenticated;
+
+-- ---------- the admin's author picker (Resolved Decision 21) ----------
+-- `year_end_reports.tutor_id` has no column grant, and must not get one:
+-- `yer_tutor_rw` lets a co-tutor update a colleague's report row as long
+-- as the result has `tutor_id = auth.uid()`, so a grant would let them
+-- make themselves the author. Reassigning goes through this instead:
+-- admin only, a draft only, and the new author must teach one of the
+-- child's active groups, and not a 16+ student assistant.
+create or replace function public.fn_admin_set_report_author(p_report uuid, p_tutor uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.fn_is_admin() then
+    raise exception 'admin only' using errcode = 'insufficient_privilege';
+  end if;
+  if not exists (select 1 from public.year_end_reports where id = p_report and status = 'draft') then
+    raise exception 'only a draft report can change author' using errcode = 'check_violation';
+  end if;
+  if not exists (
+    select 1 from public.year_end_reports r
+    join public.class_members m on m.student_id = r.student_id
+    join public.classes c on c.id = m.class_id
+    where r.id = p_report and c.archived_at is null and p_tutor = any (c.tutor_ids)
+  ) then
+    raise exception 'the author must teach one of the student''s groups' using errcode = 'check_violation';
+  end if;
+  -- Not a 16+ student assistant: the author's name is printed on the
+  -- family's PDF, and assistants are not named to families (RD 33).
+  if exists (select 1 from public.students where user_id = p_tutor) then
+    raise exception 'a student assistant cannot author a report' using errcode = 'check_violation';
+  end if;
+  update public.year_end_reports set tutor_id = p_tutor where id = p_report;
+end $$;
+
+revoke all on function public.fn_admin_set_report_author(uuid, uuid) from public, anon;
+grant execute on function public.fn_admin_set_report_author(uuid, uuid) to authenticated;

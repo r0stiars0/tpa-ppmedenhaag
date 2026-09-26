@@ -1,8 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { REPORT_GRADE_OPTIONS, type ReportGrade } from '../../lib/reports'
 import { getErrorMessage } from '../../lib/errors'
-import { publishReport, updateReport, type ReportEdit, type YearEndReport } from './api'
+import {
+  fetchAuthorCandidates,
+  fetchReportSections,
+  publishReport,
+  updateReport,
+  updateReportAuthor,
+  type ReportEdit,
+  type ReportSection,
+  type YearEndReport,
+} from './api'
+import { ReportSectionsCard } from './ReportSectionsCard'
+import { isSectionComplete } from './SectionForm'
 import { AttendanceSummaryCard } from './AttendanceSummaryCard'
 import { DownloadPdfButton } from './DownloadPdfButton'
 import { ProgressContextCard } from './ProgressContextCard'
@@ -22,24 +33,18 @@ interface ReportEditorProps {
    */
   canEdit: boolean
   /**
-   * The authoring tutor only. Deliberately narrower than `canEdit`:
-   * `publish-report` accepts nobody else, admin included, because
-   * publishing is what makes a report visible to a family rather than an
-   * administrative act (ADR-013's boundary, kept by ADR-014).
-   *
-   * `canEdit && !canPublish` is therefore the admin case, and it has a
-   * sharp edge worth naming: editing a report does not regenerate its
-   * PDF — the client calls `publish-report` afterwards to do that, and
-   * that call 403s for admin. So an admin edit to a *published* report
-   * leaves the stored PDF disagreeing with what the app shows until the
-   * authoring tutor re-publishes. Rather than silently producing that
-   * mismatch (or blocking an edit RLS explicitly permits), the edit goes
-   * through and the notice below says plainly whose re-publish it is
-   * waiting on.
+   * The report's author or an admin (PRD Feature 8 Resolved Decision 34,
+   * TAD ADR-045(h)). Until release 8b-2 this was the authoring tutor
+   * only (ADR-013, kept by ADR-014); `publish-report` now accepts an
+   * admin too, so an admin's edit can regenerate the PDF itself.
    */
   canPublish: boolean
-  /** Resolved for admin only — see `fetchTutorNames`. */
-  authoringTutorName?: string | null
+  /** Admin: may leave empty sections out and change the author. */
+  isAdmin: boolean
+  /** Groups the caller teaches: a section of one of them is theirs to write. */
+  myClassIds: readonly string[]
+  /** The caller's own student record, if any: never theirs to grade. */
+  selfStudentId: string | null
   onSaved: (report: YearEndReport) => void
 }
 
@@ -49,7 +54,9 @@ export function ReportEditor({
   studentName,
   canEdit,
   canPublish,
-  authoringTutorName,
+  isAdmin,
+  myClassIds,
+  selfStudentId,
   onSaved,
 }: ReportEditorProps) {
   const { t } = useTranslation()
@@ -71,6 +78,41 @@ export function ReportEditor({
 
   const isPublished = report.status === 'published'
   const hasNarrative = Boolean(form.narrative?.trim())
+
+  const [sections, setSections] = useState<ReportSection[]>([])
+  const [authors, setAuthors] = useState<{ id: string; name: string; group: string }[]>([])
+  const [omitOpen, setOmitOpen] = useState(false)
+  const [omitConfirmed, setOmitConfirmed] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    fetchReportSections(report.id)
+      .then((rows) => active && setSections(rows))
+      .catch((err) => active && setError(getErrorMessage(err)))
+    if (isAdmin && report.status === 'draft') {
+      fetchAuthorCandidates(report.student_id)
+        .then((rows) => active && setAuthors(rows))
+        .catch(() => undefined)
+    }
+    return () => {
+      active = false
+    }
+  }, [report.id, report.student_id, report.status, isAdmin])
+
+  const emptySections = sections.filter((s) => !isSectionComplete(s))
+  const canEditSection = (section: ReportSection) =>
+    isAdmin ||
+    (report.status === 'draft' && myClassIds.includes(section.class_id) && report.student_id !== selfStudentId)
+
+  async function handleAuthorChange(tutorId: string) {
+    setError(null)
+    try {
+      onSaved(await updateReportAuthor(report.id, tutorId))
+      setMessage(t('reports.authorChanged'))
+    } catch (err) {
+      setError(getErrorMessage(err))
+    }
+  }
 
   function set<K extends keyof ReportEdit>(key: K, value: ReportEdit[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -100,15 +142,16 @@ export function ReportEditor({
    * on an already-published report the same button regenerates the PDF in
    * place after an edit.
    */
-  async function handlePublish() {
-    if (!window.confirm(t('reports.confirmPublish'))) return
+  async function handlePublish(omitEmptySections = false) {
+    if (!omitEmptySections && !window.confirm(t('reports.confirmPublish'))) return
     const saved = await handleSave()
     if (!saved) return
 
     setPublishing(true)
     setError(null)
     try {
-      const result = await publishReport(report.id)
+      const result = await publishReport(report.id, { omitEmptySections })
+      setOmitOpen(false)
       onSaved({
         ...saved,
         status: 'published',
@@ -144,18 +187,28 @@ export function ReportEditor({
         </span>
       </div>
 
+      {isAdmin && report.status === 'draft' && authors.length > 0 && (
+        <label className="block rounded-lg bg-white p-4 text-sm font-semibold text-ppme-text shadow-sm">
+          {t('reports.author')}
+          <select
+            value={report.tutor_id}
+            onChange={(e) => void handleAuthorChange(e.target.value)}
+            className="mt-1 min-h-11 w-full rounded-lg border border-black/10 px-2 text-sm font-normal text-ppme-text"
+          >
+            {!authors.some((a) => a.id === report.tutor_id) && <option value={report.tutor_id}>—</option>}
+            {authors.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name} — {a.group}
+              </option>
+            ))}
+          </select>
+          <span className="mt-1 block text-xs font-normal text-ppme-text/60">{t('reports.authorHint')}</span>
+        </label>
+      )}
+
       {!canEdit && (
         <p className="rounded-lg bg-ppme-bg-alt p-3 text-sm text-ppme-text/70">
           {t('reports.readOnlyOtherTutor')}
-        </p>
-      )}
-      {/* Informational, not an achievement — the gold accent stays
-          reserved for milestone moments (checklist §5). */}
-      {canEdit && !canPublish && (
-        <p className="rounded-lg border border-ppme-primary/20 bg-ppme-primary/5 p-3 text-sm text-ppme-text/80">
-          {t(isPublished ? 'reports.adminEditPdfStale' : 'reports.adminCannotPublish', {
-            name: authoringTutorName || t('reports.authoringTutor'),
-          })}
         </p>
       )}
       {error && <p className="rounded-lg bg-ppme-danger/10 p-3 text-sm text-ppme-danger">{error}</p>}
@@ -220,6 +273,12 @@ export function ReportEditor({
         </label>
       </section>
 
+      <ReportSectionsCard
+        sections={sections}
+        canEditSection={canEditSection}
+        onChanged={(id, value) => setSections((prev) => prev.map((s) => (s.id === id ? { ...s, ...value } : s)))}
+      />
+
       {canEdit && (
         <div className="space-y-2">
           <button
@@ -233,11 +292,16 @@ export function ReportEditor({
           {/* Hidden rather than disabled for a non-publisher: the call
               would 403 in the Function, so offering the button at all
               would be an invitation to a failure. */}
+          {canPublish && emptySections.length > 0 && (
+            <p role="alert" className="rounded-lg bg-ppme-danger/10 p-3 text-sm text-ppme-danger">
+              {t('reports.sectionsMissing', { names: emptySections.map((s) => s.class?.name ?? '—').join(', ') })}
+            </p>
+          )}
           {canPublish && (
             <button
               type="button"
               onClick={() => void handlePublish()}
-              disabled={busy || !hasNarrative}
+              disabled={busy || !hasNarrative || emptySections.length > 0}
               className="min-h-11 w-full rounded-lg bg-ppme-primary px-4 font-semibold text-white shadow-sm hover:bg-ppme-primary-dark disabled:opacity-60"
             >
               {publishing
@@ -249,6 +313,59 @@ export function ReportEditor({
           )}
           {canPublish && !hasNarrative && (
             <p className="text-xs text-ppme-text/60">{t('reports.narrativeRequired')}</p>
+          )}
+          {/* Admin only: publish with the empty sections left out, for a
+              tutor who cannot finish theirs (Resolved Decision 27). */}
+          {isAdmin && emptySections.length > 0 && !omitOpen && (
+            <button
+              type="button"
+              onClick={() => setOmitOpen(true)}
+              disabled={busy || !hasNarrative}
+              className="min-h-11 w-full rounded-lg border border-ppme-primary px-4 font-semibold text-ppme-primary disabled:opacity-60"
+            >
+              {t('reports.publishWithoutEmpty')}
+            </button>
+          )}
+          {isAdmin && omitOpen && (
+            <div className="space-y-3 rounded-lg border-2 border-ppme-danger bg-white p-4">
+              <p className="font-semibold text-ppme-text">{t('reports.omitTitle')}</p>
+              <p className="text-sm text-ppme-text">{t('reports.omitBody')}</p>
+              <ul className="list-disc rounded-lg bg-ppme-bg-alt py-2 pl-8 pr-3 text-sm">
+                {emptySections.map((s) => (
+                  <li key={s.id}>{s.class?.name ?? '—'}</li>
+                ))}
+              </ul>
+              <p className="text-sm text-ppme-text/70">{t('reports.omitWhen')}</p>
+              <label className="flex min-h-11 items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={omitConfirmed}
+                  onChange={(e) => setOmitConfirmed(e.target.checked)}
+                  className="mt-0.5 h-5 w-5"
+                />
+                <span>{t('reports.omitConfirm')}</span>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handlePublish(true)}
+                  disabled={busy || !omitConfirmed}
+                  className="min-h-11 rounded-lg bg-ppme-primary font-semibold text-white disabled:opacity-60"
+                >
+                  {publishing ? t('reports.generatingPdf') : t('reports.publish')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOmitOpen(false)
+                    setOmitConfirmed(false)
+                  }}
+                  className="min-h-11 rounded-lg border border-black/15 bg-white font-semibold"
+                >
+                  {t('common.cancel')}
+                </button>
+              </div>
+            </div>
           )}
         </div>
       )}
