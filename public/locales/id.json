@@ -214,6 +214,10 @@
     "assignmentDueTomorrowMany": "Pengingat: {{count}} tugas {{name}} deadline besok",
     "reportReady": "Rapor akhir tahun {{name}} sudah siap dibuka",
     "weeklyDigest": "Ringkasan mingguan {{name}} sudah siap",
+    "groupAnnouncement": "Pengumuman baru untuk {{name}}: {{title}}",
+    "groupAnnouncementInGroup": "Pengumuman baru untuk {{name}} di grup {{group}}: {{title}}",
+    "newMaterial": "Materi baru untuk {{name}}",
+    "newMaterialInGroup": "Materi baru untuk {{name}} di grup {{group}}",
     "empty": "Belum ada notifikasi",
     "push": {
       "absence": "{{name}} tidak hadir hari ini di TPA",
@@ -225,7 +229,11 @@
       "surahMemorized": "Alhamdulillah! {{name}} hafal satu surah baru",
       "murajaahReminder": "Waktunya murajaah bersama {{name}}",
       "reportReady": "Rapor akhir tahun {{name}} sudah siap",
-      "weeklyDigest": "Ringkasan mingguan {{name}} sudah siap"
+      "weeklyDigest": "Ringkasan mingguan {{name}} sudah siap",
+      "groupAnnouncement": "Ada pengumuman baru untuk {{name}}",
+      "groupAnnouncementInGroup": "Ada pengumuman baru untuk {{name}} di grup {{group}}",
+      "newMaterial": "Ada materi baru untuk {{name}}",
+      "newMaterialInGroup": "Ada materi baru untuk {{name}} di grup {{group}}"
     },
     "settings": {
       "title": "Pengaturan notifikasi",

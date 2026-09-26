@@ -109,6 +109,18 @@ describe('DPIA risk R6 — lock-screen content limits', () => {
     }
   })
 
+  it('announcements and materials always name the group, never the title, file or link (FR-004/FR-005)', () => {
+    expect([...PUSH_GROUP_VARIANTS].sort()).toEqual(['absence', 'groupAnnouncement', 'newAssignment', 'newMaterial'])
+    for (const event of ['groupAnnouncement', 'newMaterial'] as const) {
+      for (const locale of ['id', 'nl'] as const) {
+        const body = pushBody(event, locale, 'Aisha Putri', 'Aqidah 7–9 th')
+        expect(body, `${event}/${locale}`).toContain('Aisha')
+        expect(body, `${event}/${locale}`).toContain('Aqidah 7–9 th')
+        expect(body, `${event}/${locale}`).not.toContain('Putri')
+      }
+    }
+  })
+
   it('ignores a group for an event with no group variant', () => {
     expect(pushBody('jilidMilestone', 'id', 'Yusuf', 'Aqidah 7-9')).toBe(pushBody('jilidMilestone', 'id', 'Yusuf'))
   })
@@ -285,6 +297,10 @@ describe('event coverage', () => {
       // table's Friday digest, which had no notification defined for it
       // because the copy it describes cannot go on a lock screen. ADR-016.
       'weeklyDigest',
+      // PRD Feature 8 FR-004/FR-005, TAD ADR-045(g): a group's
+      // announcements and course materials (release 8b-1).
+      'groupAnnouncement',
+      'newMaterial',
     ]
     expect([...NOTIFICATION_EVENTS]).toEqual(expected)
   })

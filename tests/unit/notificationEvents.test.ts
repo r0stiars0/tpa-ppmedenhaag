@@ -102,6 +102,11 @@ describe('copyKeyFor', () => {
     expect(copyKeyFor('newAssignment', { title: 'x', date: '2026-03-10' })).toBe('notifications.newAssignment')
   })
 
+  it('names the group for announcements and materials (PRD Feature 8 FR-004/FR-005)', () => {
+    expect(copyKeyFor('groupAnnouncement', { group: 'Aqidah', title: 'x' })).toBe('notifications.groupAnnouncementInGroup')
+    expect(copyKeyFor('newMaterial', { group: 'Aqidah' })).toBe('notifications.newMaterialInGroup')
+  })
+
   it('leaves every other event on its own key', () => {
     expect(copyKeyFor('absence', {})).toBe('notifications.absence')
     expect(copyKeyFor('jilidMilestone', { number: 3 })).toBe('notifications.jilidMilestone')

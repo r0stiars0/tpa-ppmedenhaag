@@ -214,6 +214,10 @@
     "assignmentDueTomorrowMany": "Herinnering: {{count}} huiswerkopdrachten van {{name}} moeten morgen af zijn",
     "reportReady": "Het jaarrapport van {{name}} staat klaar",
     "weeklyDigest": "Het weekoverzicht van {{name}} staat klaar",
+    "groupAnnouncement": "Nieuwe mededeling voor {{name}}: {{title}}",
+    "groupAnnouncementInGroup": "Nieuwe mededeling voor {{name}} in groep {{group}}: {{title}}",
+    "newMaterial": "Nieuw lesmateriaal voor {{name}}",
+    "newMaterialInGroup": "Nieuw lesmateriaal voor {{name}} in groep {{group}}",
     "empty": "Nog geen meldingen",
     "push": {
       "absence": "{{name}} was vandaag niet aanwezig bij TPA",
@@ -225,7 +229,11 @@
       "surahMemorized": "Alhamdulillah! {{name}} heeft een nieuwe surah gememoriseerd",
       "murajaahReminder": "Tijd voor murajaah met {{name}}",
       "reportReady": "Jaarrapport van {{name}} is klaar",
-      "weeklyDigest": "Het weekoverzicht van {{name}} staat klaar"
+      "weeklyDigest": "Het weekoverzicht van {{name}} staat klaar",
+      "groupAnnouncement": "Er is een nieuwe mededeling voor {{name}}",
+      "groupAnnouncementInGroup": "Er is een nieuwe mededeling voor {{name}} in groep {{group}}",
+      "newMaterial": "Er is nieuw lesmateriaal voor {{name}}",
+      "newMaterialInGroup": "Er is nieuw lesmateriaal voor {{name}} in groep {{group}}"
     },
     "settings": {
       "title": "Meldingsinstellingen",

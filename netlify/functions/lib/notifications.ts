@@ -29,6 +29,8 @@ export const NOTIFICATION_EVENTS = [
   'murajaahReminder',
   'reportReady',
   'weeklyDigest',
+  'groupAnnouncement',
+  'newMaterial',
 ] as const
 
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[number]
@@ -41,7 +43,13 @@ export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[number]
  * and only those strings may carry `{{group}}` — a group's name is
  * teaching metadata, not something about the child (DPIA R6).
  */
-export const PUSH_GROUP_VARIANTS = ['absence', 'newAssignment'] as const satisfies readonly NotificationEvent[]
+export const PUSH_GROUP_VARIANTS = [
+  'absence',
+  'newAssignment',
+  // Always sent with the group: the group is what the news is about (FR-004/FR-005).
+  'groupAnnouncement',
+  'newMaterial',
+] as const satisfies readonly NotificationEvent[]
 
 function hasGroupVariant(event: NotificationEvent): boolean {
   return (PUSH_GROUP_VARIANTS as readonly NotificationEvent[]).includes(event)
@@ -67,6 +75,9 @@ const EVENT_URL: Record<NotificationEvent, string> = {
   // — which means that somewhere has to exist. See ADR-016 and
   // `src/features/dashboard/WeeklySummary.tsx`.
   weeklyDigest: '/',
+  // The "Pengumuman & Materi" page (PRD Feature 8 FR-007).
+  groupAnnouncement: '/groups',
+  newMaterial: '/groups',
 }
 
 const COPY: Record<Locale, { app: { name: string }; notifications: { push: Record<string, string> } }> = {

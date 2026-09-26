@@ -45,6 +45,8 @@ export const EVENT_TONE: Record<NotificationEventName, NotificationTone> = {
   murajaahReminder: 'info',
   reportReady: 'info',
   weeklyDigest: 'info',
+  groupAnnouncement: 'info',
+  newMaterial: 'info',
 }
 
 /**
@@ -75,4 +77,8 @@ export const EVENT_ICON_PATH: Record<NotificationEventName, string> = {
   reportReady: 'M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5ZM14 3v5h5M9 13h6M9 17h4',
   // bar chart — the week in summary
   weeklyDigest: 'M4 20h16M8 20v-6M12 20V8M16 20v-9',
+  // megaphone — a group announcement
+  groupAnnouncement: 'M3 11v3a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1ZM15 9a3 3 0 0 1 0 6M18 6a7 7 0 0 1 0 12',
+  // paper with a folded corner and a download arrow — course material
+  newMaterial: 'M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5ZM14 3v5h5M12 11v6M9.5 14.5 12 17l2.5-2.5',
 }

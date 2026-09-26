@@ -350,6 +350,114 @@ export type Database = {
           },
         ]
       }
+      group_announcements: {
+        Row: {
+          author_id: string
+          body: string
+          class_id: string
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body?: string
+          class_id: string
+          created_at?: string
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          class_id?: string
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_announcements_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_announcements_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_materials: {
+        Row: {
+          class_id: string
+          created_at: string
+          description: string | null
+          file_name: string | null
+          id: string
+          kind: string
+          mime_type: string | null
+          size_bytes: number | null
+          storage_path: string | null
+          title: string
+          updated_at: string
+          uploaded_by: string
+          url: string | null
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          description?: string | null
+          file_name?: string | null
+          id?: string
+          kind: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path?: string | null
+          title: string
+          updated_at?: string
+          uploaded_by: string
+          url?: string | null
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          description?: string | null
+          file_name?: string | null
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path?: string | null
+          title?: string
+          updated_at?: string
+          uploaded_by?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_materials_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_materials_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       murajaah_assignments: {
         Row: {
           active: boolean
@@ -1063,6 +1171,14 @@ export type Database = {
         }
         Returns: string
       }
+      fn_admin_storage_usage: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          bucket_id: string
+          bytes: number
+          objects: number
+        }[]
+      }
       fn_admin_update_user: {
         Args: { p_full_name: string; p_new_role: Database["public"]["Enums"]["user_role"]; p_user: string }
         Returns: undefined
@@ -1129,6 +1245,10 @@ export type Database = {
       }
       fn_my_class_students: { Args: never; Returns: string[] }
       fn_my_classes: { Args: never; Returns: string[] }
+      fn_my_content_classes: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
       fn_my_family_assignment_ids: {
         Args: Record<PropertyKey, never>
         Returns: string[]
@@ -1243,6 +1363,8 @@ export type Database = {
         | "murajaahReminder"
         | "reportReady"
         | "weeklyDigest"
+        | "groupAnnouncement"
+        | "newMaterial"
       quran_quality:
         | "mumtaz"
         | "jayyid_jiddan"
@@ -1402,6 +1524,8 @@ export const Constants = {
         "murajaahReminder",
         "reportReady",
         "weeklyDigest",
+        "groupAnnouncement",
+        "newMaterial",
       ],
       quran_quality: [
         "mumtaz",
