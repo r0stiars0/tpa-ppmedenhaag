@@ -495,9 +495,9 @@ Er zijn twee soorten groepen: **Yanbu'a/Al-Quran-groepen** (ingedeeld naar leesn
 | **+ Nieuwe groep** | Opent het formulier voor een nieuwe groep (zie afbeelding hieronder). |
 | **Actief** / **Gearchiveerd** | Toont de actieve groepen of de gearchiveerde groepen. |
 | Kaart per groep | Naam, eventueel het label **"Geen registratie Yanbu'a"** (bijv. een Aqidah-groep; voluit: geen registratie van Yanbu'a, Al-Quran en Murajaah) of **"Gearchiveerd"**, rooster, lesdagen (bijv. "wo, za"), en lijst van toegewezen docenten. |
-| **Leden (aantal)** | Opent de ledenlijst van de groep, waar u leerlingen toevoegt en verwijdert (zie [§12.2.1](#1221-leden-van-een-groep)). |
+| **Leerlingen (aantal)** | Opent de leerlingenlijst van de groep, waar u leerlingen toevoegt en verwijdert (zie [§12.2.1](#1221-leerlingen-van-een-groep)). |
 | **Bewerken** | Opent het bewerkingsformulier voor die groep, al ingevuld met bestaande gegevens. |
-| **Archiveren** | Voor een groep van een vorig schooljaar of een opgeheven groep. Een gearchiveerde groep wordt **bevroren**: geen nieuwe lessen, aanwezigheid, huiswerk of leden meer, voor niemand (ook niet voor de beheerder). De geschiedenis blijft bewaard en zichtbaar, maar de groep verdwijnt uit alle keuzelijsten, en de docenten van de groep zien geen gegevens van de vroegere leerlingen meer buiten die groep zelf. Had de groep in de afgelopen 7 dagen nog les, dan waarschuwt de app: een docent die offline aanwezigheid heeft ingevuld die nog niet is verstuurd, kan die na het archiveren niet meer versturen. |
+| **Archiveren** | Voor een groep van een vorig schooljaar of een opgeheven groep. Een gearchiveerde groep wordt **bevroren**: geen nieuwe lessen, aanwezigheid, huiswerk of leerlingen meer, voor niemand (ook niet voor de beheerder). De geschiedenis blijft bewaard en zichtbaar, maar de groep verdwijnt uit alle keuzelijsten, en de docenten van de groep zien geen gegevens van de vroegere leerlingen meer buiten die groep zelf. Had de groep in de afgelopen 7 dagen nog les, dan waarschuwt de app: een docent die offline aanwezigheid heeft ingevuld die nog niet is verstuurd, kan die na het archiveren niet meer versturen. |
 | **Heractiveren** | Maakt een gearchiveerde groep weer actief, bijvoorbeeld om iets te corrigeren. |
 | **Verwijderen** | Alleen voor een groep **zonder geschiedenis** (bijv. per ongeluk aangemaakt). Heeft de groep al lessen of huiswerk, dan kan hij niet worden verwijderd — de app zegt dat en raadt aan hem te archiveren. |
 
@@ -520,9 +520,9 @@ Groepsformulier (hetzelfde voor nieuw aanmaken of bewerken):
 
 Een doel dat **moet worden afgesloten** is al aangevinkt en niet te wijzigen. Heeft de leerling nog een andere groep met registratie, dan **mag** het doel blijven (niet aangevinkt). Kies **Doorgaan** om de wijziging uit te voeren en de aangevinkte doelen af te sluiten, of **Annuleren** om niets te wijzigen.
 
-#### 12.2.1 Leden van een groep
+#### 12.2.1 Leerlingen van een groep
 
-<img src="./screenshots/nl/admin-group-members.png" width="360" alt="Beheer — leden van een groep toevoegen">
+<img src="./screenshots/nl/admin-group-members.png" width="360" alt="Beheer — leerlingen aan een groep toevoegen">
 
 | Element | Functie |
 |---|---|
@@ -530,9 +530,9 @@ Een doel dat **moet worden afgesloten** is al aangevinkt en niet te wijzigen. He
 | Filters **Naam**, **Geboren vanaf** / **Geboren tot en met**, **Huidige groep** | Beperken de lijst. Filteren op geboortedatum is een hulpmiddel om bijvoorbeeld een leeftijdsgroep te vinden; de app stelt zelf **geen** groep voor. Met **Huidige groep → Nog geen groep** vindt u leerlingen die nog nergens zijn ingedeeld. |
 | Lijst met vinkjes | Elke leerling met geboortedatum en huidige groep(en). Leerlingen die al lid zijn, staan er niet in. |
 | **Toevoegen ({aantal})** | Vraagt eerst om bevestiging: de app noemt hoeveel leerlingen worden toegevoegd en **welke docenten daardoor toegang krijgen** tot hun gegevens (Yanbu'a/Al-Quran/Murajaah-geschiedenis, aanwezigheid en contactgegevens van ouders). Elke toevoeging wordt vastgelegd (wie, wat, wanneer). |
-| Ledenlijst met **Uit groep halen** | Haalt een leerling uit de groep, na bevestiging. De eerdere aanwezigheid en het huiswerk van de leerling blijven bewaard en zichtbaar voor het gezin; berichten en materiaal van de groep niet meer. |
+| Leerlingenlijst met **Uit groep halen** | Haalt een leerling uit de groep, na bevestiging. De eerdere aanwezigheid en het huiswerk van de leerling blijven bewaard en zichtbaar voor het gezin; berichten en materiaal van de groep niet meer. |
 
-Een gearchiveerde groep toont hier alleen de leden, met de melding dat de groep is gearchiveerd.
+Een gearchiveerde groep toont hier alleen de leerlingen, met de melding dat de groep is gearchiveerd.
 
 ### 12.3 Leerlingen
 
@@ -541,7 +541,7 @@ Een gearchiveerde groep toont hier alleen de leden, met de melding dat de groep 
 | Element | Functie |
 |---|---|
 | **+ Nieuwe leerling** | Opent het formulier voor een nieuwe leerling. |
-| **Tonen** | Filter: alle groepen, **Nog geen groep**, of de leden van één groep. |
+| **Tonen** | Filter: alle groepen, **Nog geen groep**, of de leerlingen van één groep. |
 | Kaart per leerling | Naam, label **"Eigen account"** (als de leerling een eigen Google-login heeft, bijvoorbeeld een leerling van 16+), groep(en) — of **"Nog geen groep"** — en de namen van de gekoppelde ouders/verzorgers. |
 | **Bewerken** | Opent het bewerkingsformulier. |
 | **Verwijderen** | Verwijdert de leerlinggegevens **permanent**, inclusief alle aanwezigheid, voortgang en rapporten (met een bevestigingsvraag vooraf). Alleen gebruiken om een dubbele registratie op te ruimen — bijvoorbeeld wanneer een ouder het inschrijfformulier opnieuw instuurt met een gecorrigeerde spelling van de naam, waardoor er twee records voor één kind ontstaan. |
@@ -647,8 +647,8 @@ Om tweetalige communicatie binnen de TPA te vergemakkelijken, hier de belangrijk
 | Gebruikers | Pengguna | Beheersubpagina om naam en rol van een account te wijzigen. |
 | Registratie Yanbu'a/Al-Quran/Murajaah | Pencatatan Yanbu'a/Al-Quran/Murajaah | Instelling per groep: aan voor een Yanbu'a/Al-Quran-groep, uit voor een Aqidah-groep. |
 | Archiveren | Arsipkan | Een groep bevriezen en uit de keuzelijsten halen; de geschiedenis blijft. |
-| Leden | Anggota | De leerlingen van een groep. |
+| Leerlingen (van een groep) | Santri (dalam grup) | De leerlingen die in een groep zitten. |
 
 ---
 
-*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **12.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026), met **§5.1 aangevuld voor de sectie "Aanwezigheid docenten"** en **§12.4 toegevoegd voor het beheerdersscherm "Aanwezigheid docenten"** (ADR-041, september 2026), met **§12.5 toegevoegd voor het beheerdersscherm "Gebruikers"** (ADR-042, september 2026), en bijgewerkt voor **leerlingen in meerdere groepen** (ADR-045, september 2026): §5, §6.2, §7, §11.1, §12.2 (met het nieuwe §12.2.1 "Leden van een groep") en §12.3. De indeling kan in latere app-versies licht afwijken. De PDF-versie is uit deze tekst opnieuw gegenereerd met `scripts/gen-manual-pdf.mjs`; de schermen van §12.4 en §12.5 hebben nog geen schermafbeelding.*
+*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **12.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026), met **§5.1 aangevuld voor de sectie "Aanwezigheid docenten"** en **§12.4 toegevoegd voor het beheerdersscherm "Aanwezigheid docenten"** (ADR-041, september 2026), met **§12.5 toegevoegd voor het beheerdersscherm "Gebruikers"** (ADR-042, september 2026), en bijgewerkt voor **leerlingen in meerdere groepen** (ADR-045, september 2026): §5, §6.2, §7, §11.1, §12.2 (met het nieuwe §12.2.1 "Leerlingen van een groep") en §12.3. De indeling kan in latere app-versies licht afwijken. De PDF-versie is uit deze tekst opnieuw gegenereerd met `scripts/gen-manual-pdf.mjs`; de schermen van §12.4 en §12.5 hebben nog geen schermafbeelding.*

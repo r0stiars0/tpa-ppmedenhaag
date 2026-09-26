@@ -495,9 +495,9 @@ Ada dua jenis grup: **grup Yanbu'a/Al-Quran** (dibagi menurut tingkat bacaan) da
 | **+ Grup Baru** | Membuka formulir grup baru (lihat gambar di bawah). |
 | **Aktif** / **Diarsipkan** | Menampilkan grup aktif atau grup yang diarsipkan. |
 | Kartu tiap grup | Nama, bila ada lencana **"Tanpa pencatatan Yanbu'a"** (mis. grup Aqidah; lengkapnya: tanpa pencatatan Yanbu'a, Al-Quran dan Murajaah) atau **"Diarsipkan"**, jadwal, hari pertemuan (mis. "Rab, Sab"), dan daftar guru pengampu. |
-| **Anggota (jumlah)** | Membuka daftar anggota grup, tempat menambah dan mengeluarkan santri (lihat [§12.2.1](#1221-anggota-grup)). |
+| **Santri (jumlah)** | Membuka daftar santri grup, tempat menambah dan mengeluarkan santri (lihat [§12.2.1](#1221-santri-dalam-grup)). |
 | **Ubah** | Membuka formulir edit untuk grup tersebut, terisi data yang sudah ada. |
-| **Arsipkan** | Untuk grup tahun ajaran sebelumnya atau grup yang dibubarkan. Grup yang diarsipkan **dibekukan**: tidak bisa lagi diisi sesi, kehadiran, tugas atau anggota baru, oleh siapa pun (termasuk admin). Riwayatnya tetap tersimpan dan terlihat, tetapi grup hilang dari semua pilihan grup, dan guru grup itu tidak lagi melihat data mantan santrinya di luar grup itu sendiri. Jika grup masih bertemu dalam 7 hari terakhir, aplikasi memberi peringatan: guru yang mengisi kehadiran secara offline dan belum terkirim tidak dapat mengirimnya lagi setelah diarsipkan. |
+| **Arsipkan** | Untuk grup tahun ajaran sebelumnya atau grup yang dibubarkan. Grup yang diarsipkan **dibekukan**: tidak bisa lagi diisi sesi, kehadiran, tugas atau santri baru, oleh siapa pun (termasuk admin). Riwayatnya tetap tersimpan dan terlihat, tetapi grup hilang dari semua pilihan grup, dan guru grup itu tidak lagi melihat data mantan santrinya di luar grup itu sendiri. Jika grup masih bertemu dalam 7 hari terakhir, aplikasi memberi peringatan: guru yang mengisi kehadiran secara offline dan belum terkirim tidak dapat mengirimnya lagi setelah diarsipkan. |
 | **Aktifkan kembali** | Mengaktifkan kembali grup yang diarsipkan, misalnya untuk memperbaiki sesuatu. |
 | **Hapus** | Hanya untuk grup **tanpa riwayat** (mis. terbuat tanpa sengaja). Jika grup sudah punya sesi atau tugas, grup tidak bisa dihapus — aplikasi memberi tahu dan menyarankan untuk mengarsipkannya. |
 
@@ -520,19 +520,19 @@ Formulir Grup (sama untuk buat baru maupun ubah):
 
 Target yang **harus ditutup** sudah tercentang dan tidak bisa diubah. Jika santri masih punya grup lain yang mencatat, target **boleh dipertahankan** (tidak tercentang). Pilih **Lanjutkan** untuk menjalankan perubahan dan menutup target yang dicentang, atau **Batal** untuk tidak mengubah apa pun.
 
-#### 12.2.1 Anggota grup
+#### 12.2.1 Santri dalam grup
 
-<img src="./screenshots/id/admin-group-members.png" width="360" alt="Kelola — menambah anggota grup">
+<img src="./screenshots/id/admin-group-members.png" width="360" alt="Kelola — menambah santri ke grup">
 
 | Elemen | Fungsi |
 |---|---|
 | **+ Tambah santri** | Membuka daftar pilihan untuk menambahkan beberapa santri sekaligus — berguna di awal tahun ajaran, daripada mengubah data santri satu per satu. |
 | Saringan **Nama**, **Lahir dari** / **Lahir sampai**, **Grup saat ini** | Mempersempit daftar. Menyaring menurut tanggal lahir adalah alat bantu untuk menemukan kelompok usia; aplikasi **tidak** menyarankan grup. Dengan **Grup saat ini → Tanpa grup** Anda menemukan santri yang belum ditempatkan. |
-| Daftar dengan centang | Setiap santri dengan tanggal lahir dan grup saat ini. Santri yang sudah menjadi anggota tidak tercantum. |
+| Daftar dengan centang | Setiap santri dengan tanggal lahir dan grup saat ini. Santri yang sudah ada di grup ini tidak tercantum. |
 | **Tambahkan ({jumlah})** | Meminta konfirmasi lebih dulu: aplikasi menyebut berapa santri yang ditambahkan dan **guru mana yang dengan itu mendapat akses** ke data mereka (riwayat Yanbu'a/Al-Quran/Murajaah, kehadiran, dan kontak orang tua). Setiap penambahan dicatat (siapa, apa, kapan). |
-| Daftar anggota dengan **Keluarkan** | Mengeluarkan santri dari grup, setelah konfirmasi. Kehadiran dan tugas santri sebelumnya tetap tersimpan dan terlihat oleh keluarga; pengumuman dan materi grup tidak lagi. |
+| Daftar santri dengan **Keluarkan** | Mengeluarkan santri dari grup, setelah konfirmasi. Kehadiran dan tugas santri sebelumnya tetap tersimpan dan terlihat oleh keluarga; pengumuman dan materi grup tidak lagi. |
 
-Grup yang diarsipkan hanya menampilkan anggotanya di sini, dengan keterangan bahwa grup telah diarsipkan.
+Grup yang diarsipkan hanya menampilkan santrinya di sini, dengan keterangan bahwa grup telah diarsipkan.
 
 ### 12.3 Santri
 
@@ -541,7 +541,7 @@ Grup yang diarsipkan hanya menampilkan anggotanya di sini, dengan keterangan bah
 | Elemen | Fungsi |
 |---|---|
 | **+ Santri Baru** | Membuka formulir santri baru. |
-| **Tampilkan** | Saringan: semua grup, **Tanpa grup**, atau anggota satu grup. |
+| **Tampilkan** | Saringan: semua grup, **Tanpa grup**, atau santri satu grup. |
 | Kartu tiap santri | Nama, lencana **"Akun sendiri"** (jika santri punya login Google sendiri, misalnya santri 16+), grup — atau **"Tanpa grup"** — dan nama orang tua/wali yang tertaut. |
 | **Ubah** | Membuka formulir edit. |
 | **Hapus** | Menghapus data santri **secara permanen**, beserta seluruh kehadiran, progres, dan rapornya (muncul pertanyaan konfirmasi lebih dulu). Gunakan hanya untuk membersihkan data ganda — misalnya jika orang tua mengirim ulang formulir pendaftaran dengan ejaan nama yang diperbaiki, sehingga muncul dua data untuk satu anak. |
@@ -647,8 +647,8 @@ Untuk memudahkan komunikasi dua bahasa di lingkungan TPA, berikut padanan istila
 | Pengguna | Gebruikers | Sub-halaman admin untuk mengubah nama dan peran akun. |
 | Pencatatan Yanbu'a/Al-Quran/Murajaah | Registratie Yanbu'a/Al-Quran/Murajaah | Pengaturan per grup: aktif untuk grup Yanbu'a/Al-Quran, nonaktif untuk grup Aqidah. |
 | Arsipkan | Archiveren | Membekukan grup dan menghapusnya dari pilihan grup; riwayatnya tetap ada. |
-| Anggota | Leden | Santri dalam sebuah grup. |
+| Santri (dalam grup) | Leerlingen (van een groep) | Santri yang ikut sebuah grup. |
 
 ---
 
-*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **12.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026), serta **§5.1 dilengkapi dengan bagian "Kehadiran guru"** dan **§12.4 ditambahkan untuk layar peninjauan "Kehadiran Guru" admin** (ADR-041, September 2026), **§12.5 ditambahkan untuk layar "Pengguna" admin** (ADR-042, September 2026), dan diperbarui untuk **santri yang ikut beberapa grup** (ADR-045, September 2026): §5, §6.2, §7, §11.1, §12.2 (dengan §12.2.1 "Anggota grup" yang baru) dan §12.3. Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF dibuat ulang dari teks ini dengan `scripts/gen-manual-pdf.mjs`; layar §12.4 dan §12.5 belum memiliki tangkapan layar.*
+*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **12.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026), serta **§5.1 dilengkapi dengan bagian "Kehadiran guru"** dan **§12.4 ditambahkan untuk layar peninjauan "Kehadiran Guru" admin** (ADR-041, September 2026), **§12.5 ditambahkan untuk layar "Pengguna" admin** (ADR-042, September 2026), dan diperbarui untuk **santri yang ikut beberapa grup** (ADR-045, September 2026): §5, §6.2, §7, §11.1, §12.2 (dengan §12.2.1 "Santri dalam grup" yang baru) dan §12.3. Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF dibuat ulang dari teks ini dengan `scripts/gen-manual-pdf.mjs`; layar §12.4 dan §12.5 belum memiliki tangkapan layar.*
