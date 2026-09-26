@@ -25,6 +25,8 @@ import { formatDayList } from '../../lib/weekdays'
 import { ClassForm, type ClassFormValue } from './ClassForm'
 import { MurajaahTargetPrompt } from './MurajaahTargetPrompt'
 import { todayLocalDate } from '../attendance/api'
+import { fetchStorageUsage } from '../groups/api'
+import { formatFileSize } from '../groups/format'
 
 interface PendingPrompt {
   impacts: TargetImpact[]
@@ -39,8 +41,9 @@ function daysBefore(date: string, days: number): string {
 }
 
 export function ClassesPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [classes, setClasses] = useState<AdminClass[]>([])
+  const [materialStorage, setMaterialStorage] = useState<{ objects: number; bytes: number } | null>(null)
   const [memberships, setMemberships] = useState<MembershipRow[]>([])
   const [tutors, setTutors] = useState<DirectoryUser[]>([])
   const [loading, setLoading] = useState(true)
@@ -69,6 +72,17 @@ export function ClassesPage() {
   }
 
   useEffect(load, [])
+
+  // Storage the course materials use (TAD ADR-045(f)): the free plan's
+  // 1 GB is shared with the report PDFs, so an admin can watch it here.
+  useEffect(() => {
+    fetchStorageUsage()
+      .then((rows) => {
+        const row = rows.find((r) => r.bucket_id === 'group-materials')
+        setMaterialStorage({ objects: row?.objects ?? 0, bytes: row?.bytes ?? 0 })
+      })
+      .catch(() => setMaterialStorage(null))
+  }, [])
 
   const memberCount = useMemo(() => {
     const counts = new Map<string, number>()
@@ -184,6 +198,14 @@ export function ClassesPage() {
     <div className="space-y-4">
       <AdminSectionNav />
       <h1 className="text-lg font-bold text-ppme-primary">{t('admin.classesTitle')}</h1>
+      {materialStorage && (
+        <p className="text-xs text-ppme-text/60">
+          {t('admin.storageUsage', {
+            size: formatFileSize(materialStorage.bytes, i18n.language),
+            count: materialStorage.objects,
+          })}
+        </p>
+      )}
 
       {error && <p className="rounded-lg bg-ppme-danger/10 p-3 text-sm text-ppme-danger">{error}</p>}
       {notice && <p className="rounded-lg bg-ppme-accent/15 p-3 text-sm text-ppme-text">{notice}</p>}

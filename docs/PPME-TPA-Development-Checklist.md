@@ -873,3 +873,34 @@ Docs: ADR-045 status + findings, PRD implementation-status lines, `openapi.yaml`
 3. [ ] Smoke check in the app: an admin saves a student's groups; a tutor records attendance; a parent opens attendance and notifications. Done by the maintainer.
 
 **Rollback after 027:** a Netlify rollback can go back only as far as the 8a deploy, because a pre-8a bundle reads `students.class_id`. Undoing 027 itself means restoring the dump.
+
+**Feature 8 release 8b-1: announcements and course materials (TAD ADR-045(e)–(g), migration 028).** Release 8b was split in two (PRD Resolved Decision 33): 8b-1 is the group content, and 8b-2 (migration 029) the year-end report sections, needed by July.
+- [x] **Migration 028:**
+  - `group_announcements` and `group_materials` with RLS, readable through `fn_my_content_classes()`;
+  - the link allow-list and the one-file-or-one-link shape as check constraints;
+  - the private `group-materials` bucket (20 MB, PDF/PPTX) and its object rules;
+  - the freeze trigger extended to both tables;
+  - the `groupAnnouncement` and `newMaterial` events and their INSERT webhooks;
+  - `fn_admin_storage_usage`, `fn_group_tutor_names` and `fn_group_author_names`.
+- [x] **Functions:** `notify-group-content` (families only, no title, file or link in the push); `prune-notifications` also removes day-old orphan objects in the bucket.
+- [x] **Screens:**
+  - "Pengumuman & Materi" / "Mededelingen & lesmateriaal" from a Dashboard tile, with the tab bar unchanged; a family picks a child, a tutor sees only their own groups;
+  - the group page with announcements, materials and the author line, plus "diubah" on edited items;
+  - the announcement and material forms, with the link and file rules in words;
+  - the storage line on Beheer → Grup.
+- [x] **Decided while building** (PRD Resolved Decision 33): no unread badges; a tutor lists only the groups they teach; "diubah" on edited items; 16+ student assistants are not named to families as a group's tutor or as an author.
+- [x] **Verified:**
+  - pgTAP 566/566 (RLS-146…159 new), unit 708/708, both typechecks and the build;
+  - live against a local stack at 028: 36 browser checks with zero console errors and failed requests, plus `notify-group-content` and the orphan clean-up driven for real (test-plan §6.z).
+  - Not verified here: a real device push, and the database-to-Function webhook call, since the local stack has no webhook settings in Vault.
+
+**Before 8b-1 goes live — [IT TEAM]:** review the DPIA update (R18: course materials and links, and a compromised tutor account) and the privacy-policy paragraph on announcements and course materials, in both languages (PRD Feature 8 §8.4: the IT team reviews again before 8b).
+
+**Production runbook for 8b-1 (migration 028) — do in this order, by hand:**
+1. A fresh `pg_dump` of production, stored off-platform.
+2. Apply 028 with `supabase db push` from this PR's branch, then merge the PR. 028 is additive and the running app reads none of it, so the order only matters for the notification webhooks: until the merge deploys `notify-group-content`, a post would reach a Function that does not exist yet. Nobody can post until the new app is live, so this is a formality.
+3. Check in the Supabase dashboard that the `group-materials` bucket exists, is private, and has the 20 MB and PDF/PPTX limits.
+4. Smoke-check: a tutor posts an announcement and uploads a PDF to their group; a parent of a child in that group sees both, downloads the PDF and gets the notification; a family with no child in the group does not see them.
+5. Tell the TPA coordinator. Tutors are asked to post their first announcement there instead of in WhatsApp, and to upload the current term's slides (PRD rollout plan).
+
+**Rollback, 8b-1:** a Netlify rollback to the previous deploy. 028 is additive, so no database rollback is needed.

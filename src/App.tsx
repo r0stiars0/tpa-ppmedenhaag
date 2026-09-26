@@ -11,6 +11,8 @@ import { YanbuaPage } from './features/yanbua/YanbuaPage'
 import { QuranPage } from './features/quran/QuranPage'
 import { MurajaahPage } from './features/murajaah/MurajaahPage'
 import { ReportsPage } from './features/reports/ReportsPage'
+import { GroupsPage } from './features/groups/GroupsPage'
+import { GroupContentPage } from './features/groups/GroupContentPage'
 import { NotificationSettingsPage } from './features/notifications/NotificationSettingsPage'
 import { NotificationCentrePage } from './features/notifications/NotificationCentrePage'
 import { RegistrationsPage } from './features/admin/RegistrationsPage'
@@ -50,6 +52,8 @@ function Gate() {
         <Route path="/quran" element={<QuranPage />} />
         <Route path="/murajaah" element={<MurajaahPage />} />
         <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/groups" element={<GroupsPage />} />
+        <Route path="/groups/:id" element={<GroupContentPage />} />
         {/* Not a tab: the five operational tabs are the
             prototype-validated set (checklist §5) and settings is not
             one of them. Reached from the dashboard instead. */}

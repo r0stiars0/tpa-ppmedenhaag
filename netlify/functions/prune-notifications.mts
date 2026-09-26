@@ -1,6 +1,8 @@
 import type { Config } from '@netlify/functions'
+import type { ServiceClient } from './lib/callerAuth'
 import { HOURLY, scheduledHandler } from './lib/scheduled'
 import { addDays } from '../../src/lib/murajaah'
+import { orphanedMaterialObjects } from './lib/groupContent'
 
 /**
  * Retention for the notification centre — DPIA risk **R5**, "data kept
@@ -57,8 +59,42 @@ export default scheduledHandler({
       .select('id')
     if (error) throw new Error(error.message)
 
-    return { deleted: data?.length ?? 0, cutoff, retentionDays: RETENTION_DAYS }
+    // Course-material files no material points at (TAD ADR-045(f)): an
+    // upload writes its object first and its row second, so a crash in
+    // between leaves a file nobody can see. Same nightly job, because it
+    // is the same kind of duty: keep nothing nobody can use.
+    const orphans = await removeOrphanedMaterials(client)
+
+    return { deleted: data?.length ?? 0, cutoff, retentionDays: RETENTION_DAYS, orphanedMaterials: orphans }
   },
 })
+
+async function removeOrphanedMaterials(client: ServiceClient): Promise<number> {
+  const bucket = client.storage.from('group-materials')
+  const { data: rows, error: rowsError } = await client.from('group_materials').select('storage_path').not('storage_path', 'is', null)
+  if (rowsError) throw new Error(rowsError.message)
+  const referenced = new Set((rows ?? []).map((r) => r.storage_path as string))
+
+  // Objects live at {class}/{material}/{file}: list two levels down.
+  const objects: { name: string; created_at: string }[] = []
+  const { data: classes, error: listError } = await bucket.list('', { limit: 1000 })
+  if (listError) throw new Error(listError.message)
+  for (const cls of classes ?? []) {
+    const { data: materials } = await bucket.list(cls.name, { limit: 1000 })
+    for (const material of materials ?? []) {
+      const { data: files } = await bucket.list(`${cls.name}/${material.name}`, { limit: 100 })
+      for (const file of files ?? []) {
+        objects.push({ name: `${cls.name}/${material.name}/${file.name}`, created_at: file.created_at ?? new Date().toISOString() })
+      }
+    }
+  }
+
+  const orphans = orphanedMaterialObjects(objects, referenced, new Date())
+  if (orphans.length > 0) {
+    const { error } = await bucket.remove(orphans)
+    if (error) throw new Error(error.message)
+  }
+  return orphans.length
+}
 
 export const config: Config = { schedule: HOURLY }

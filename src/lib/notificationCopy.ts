@@ -57,7 +57,10 @@ export function copyKeyFor(
   // A child in several groups (PRD Feature 8): the row names the group so
   // two absences on one day read differently. Rows written before groups
   // carried a name have no `group` and keep their original copy.
-  if ((event === 'absence' || event === 'newAssignment') && typeof context.group === 'string') {
+  if (
+    (event === 'absence' || event === 'newAssignment' || event === 'groupAnnouncement' || event === 'newMaterial') &&
+    typeof context.group === 'string'
+  ) {
     return `notifications.${event}InGroup`
   }
   return `notifications.${event}`
@@ -87,6 +90,8 @@ export const NOTIFICATION_ROUTE: Record<NotificationEventName, string> = {
   murajaahReminder: '/murajaah',
   reportReady: '/reports',
   weeklyDigest: '/',
+  groupAnnouncement: '/groups',
+  newMaterial: '/groups',
 }
 
 export type { Locale }

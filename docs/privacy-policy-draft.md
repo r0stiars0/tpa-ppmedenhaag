@@ -181,6 +181,24 @@ beheerder, en elke toevoeging of verwijdering wordt vastgelegd (wie,
 wat, wanneer), omdat het bepaalt welke docenten de gegevens van een kind
 kunnen zien.
 
+**Mededelingen en lesmateriaal.** Docenten kunnen in de app mededelingen
+en lesmateriaal delen met hun groep: een PDF- of PowerPoint-bestand, of
+een link naar een Google-document of -presentatie, een Google
+Drive-bestand of een persoonlijke OneDrive. Deze inhoud gaat over de
+lessen, niet over uw kind. Zij is zichtbaar voor de docenten van de
+groep, de beheerders, de ouders/verzorgers van de leerlingen in de groep,
+leerlingen van 16+ met een eigen account in de groep, en docenten die een
+kind uit de groep in een andere groep lesgeven. Bestanden worden, net als
+rapporten, afgeschermd in de EU opgeslagen en alleen via een link van vijf
+minuten gedownload. Een link opent het bestand bij Google of Microsoft,
+buiten de app en buiten de EU, en wie de link heeft kan het bestand
+openen; daarom delen docenten via links geen persoonsgegevens. Bij een
+nieuwe mededeling of nieuw lesmateriaal krijgt u een melding met de
+voornaam van uw kind en de naam van de groep, niet de inhoud. Op de
+groepspagina staan de namen van de volwassen docenten van de groep en van
+wie iets plaatste; de naam van een leerling-assistent wordt daar niet
+getoond. U kunt niet reageren op een mededeling.
+
 **Aanwezigheid van docenten.** Op dezelfde presentielijst wordt ook
 vastgelegd of de docenten van de groep aanwezig waren, zodat de
 TPA-leiding dit periodiek kan nakijken. Deze gegevens zijn alleen
@@ -439,6 +457,23 @@ berkaitan dengan grup yang ia ajar. Pembagian santri ke dalam grup hanya
 dilakukan oleh admin, dan setiap penambahan atau pengeluaran dicatat
 (siapa, apa, kapan), karena hal itu menentukan guru mana yang dapat
 melihat data seorang anak.
+
+**Pengumuman dan materi.** Guru dapat membagikan pengumuman dan materi
+pelajaran kepada grupnya di aplikasi: berkas PDF atau PowerPoint, atau
+tautan ke dokumen atau presentasi Google, satu berkas Google Drive, atau
+OneDrive pribadi. Isinya tentang pelajaran, bukan tentang anak Anda. Isi
+ini terlihat oleh guru grup tersebut, admin, orang tua/wali santri di
+grup itu, santri 16+ yang memiliki akun sendiri di grup itu, dan guru
+yang mengajar salah satu santri grup itu di grup lain. Berkas disimpan
+secara tertutup di Uni Eropa, sama seperti rapor, dan hanya dapat diunduh
+melalui tautan yang berlaku lima menit. Tautan membuka berkas di Google
+atau Microsoft, di luar aplikasi dan di luar Uni Eropa, dan siapa pun
+yang memiliki tautan itu dapat membukanya; karena itu guru tidak
+membagikan data pribadi melalui tautan. Saat ada pengumuman atau materi
+baru, Anda menerima notifikasi yang menyebut nama depan anak Anda dan
+nama grupnya, bukan isinya. Halaman grup menampilkan nama guru dewasa
+grup tersebut dan nama orang yang mengunggah; nama santri asisten tidak
+ditampilkan di sana. Anda tidak dapat membalas pengumuman.
 
 **Kehadiran guru.** Pada daftar hadir yang sama juga dicatat apakah
 para guru kelas itu hadir, agar pimpinan TPA dapat meninjaunya secara

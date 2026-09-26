@@ -42,6 +42,8 @@ tags:
     description: Year-end curriculum reports
   - name: functions
     description: Custom Netlify Functions
+  - name: groups
+    description: A group's announcements and course materials (PRD Feature 8, release 8b-1)
   - name: admin
     description: >-
       Full read and write access to every feature on every class (TAD ADR-014,
@@ -805,6 +807,240 @@ paths:
         '204': { description: Removed }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
+  /group_announcements:
+    get:
+      tags: [groups]
+      summary: A group's announcements
+      description: |
+        Added in migration 028 (TAD ADR-045(e), PRD Feature 8 FR-004,
+        release 8b-1). RLS: readable when `class_id` is in
+        `fn_my_content_classes()` — the group's own tutors, admins, every
+        guardian of an enrolled student, an enrolled 16+ student, and every
+        tutor who teaches one of the group's students in another active
+        group (not a student assistant). Order by `created_at.desc`.
+        `body` is plain text: render it as text, turning only `https://`
+        URLs into links.
+      parameters:
+        - $ref: '#/components/parameters/select'
+        - name: class_id
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Announcements
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/GroupAnnouncement' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [groups]
+      summary: Post an announcement (the group's tutor, or an admin)
+      description: |
+        `author_id` must be the caller's own id, admins included. A tutor may
+        post only to a group they teach. Refused with `23514` for an archived
+        group, a blank title, a title over 200 or a body over 2,000
+        characters. The INSERT fires `notify-group-content`, which notifies
+        the group's families; tutors are not notified.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [class_id, author_id, title]
+              properties:
+                class_id: { type: string, format: uuid }
+                author_id: { type: string, format: uuid }
+                title: { type: string, minLength: 1, maxLength: 200 }
+                body: { type: string, maxLength: 2000 }
+      responses:
+        '201': { description: Created }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: Not a tutor of this group, or not posting as oneself }
+    patch:
+      tags: [groups]
+      summary: Edit an announcement (its author, or an admin)
+      description: |
+        Only the author (while still a tutor of the group) or an admin. A
+        co-tutor's or another reader's edit matches no row. An edit notifies
+        nobody; `updated_at` moves, and the app labels the item "diubah".
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Updated, or no row the caller may edit }
+    delete:
+      tags: [groups]
+      summary: Delete an announcement (its author, or an admin — the takedown)
+      description: An admin's delete works in an archived group too.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Deleted, or no row the caller may delete }
+
+  /group_materials:
+    get:
+      tags: [groups]
+      summary: A group's course materials
+      description: |
+        Added in migration 028 (TAD ADR-045(f), PRD Feature 8 FR-005). Same
+        readers as `/group_announcements`. A material is one file
+        (`kind = file`: `storage_path`, `file_name`, `mime_type`,
+        `size_bytes`) or one link (`kind = link`: `url`). A file is
+        downloaded from the `group-materials` Storage bucket with a signed
+        URL (`createSignedUrl(storage_path, 300, { download: file_name })`),
+        which Storage checks against the same reader rule.
+      parameters:
+        - $ref: '#/components/parameters/select'
+        - name: class_id
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Materials
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/GroupMaterial' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [groups]
+      summary: Add a course material (the group's tutor, or an admin)
+      description: |
+        `uploaded_by` must be the caller. For a file: upload the object first
+        to `group-materials/{class_id}/{id}/{file_name}` (PDF or PPTX, at most
+        20 MB, enforced by the bucket), then insert the row with that `id`;
+        `storage_path` must lie in the row's own group and id folder. For a
+        link, `url` must match
+        `^https://(docs\.google\.com/(document|presentation)/d/|drive\.google\.com/file/d/|onedrive\.live\.com/)`:
+        Google Forms, other Google paths, Drive folders, `1drv.ms`,
+        `*.sharepoint.com` and every other address are refused with `23514`.
+        The INSERT fires `notify-group-content` (one notification per child
+        per group per day).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GroupMaterial' }
+      responses:
+        '201': { description: Created }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: Not a tutor of this group, or not uploading as oneself }
+    patch:
+      tags: [groups]
+      summary: Rename, re-describe, change the link or point at a replacement file (uploader, or admin)
+      description: |
+        Replacing a file: upload the new object, update `storage_path`,
+        `file_name`, `mime_type` and `size_bytes`, then delete the old object.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Updated, or no row the caller may edit }
+    delete:
+      tags: [groups]
+      summary: Delete a material (uploader, or admin — the takedown)
+      description: Delete the Storage object first, then the row.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Deleted, or no row the caller may delete }
+
+  /rpc/fn_group_tutor_names:
+    post:
+      tags: [groups]
+      summary: A group's tutors, by name
+      description: |
+        Migration 028. Names only, for anyone who can read the group (or an
+        admin); empty otherwise. 16+ student assistants are left out: they
+        are pupils themselves, and their names are not given to other
+        families.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_class]
+              properties:
+                p_class: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Tutor names
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    full_name: { type: string }
+
+  /rpc/fn_group_author_names:
+    post:
+      tags: [groups]
+      summary: Names of the people who posted in a group
+      description: |
+        Migration 028. `(user_id, full_name)` of the authors of the group's
+        announcements and materials, with the same reader rule and the same
+        student-assistant exclusion as `fn_group_tutor_names`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_class]
+              properties:
+                p_class: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Author names
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    user_id: { type: string, format: uuid }
+                    full_name: { type: string }
+
+  /rpc/fn_admin_storage_usage:
+    post:
+      tags: [admin]
+      summary: Storage used per bucket (Admin only)
+      description: |
+        Migration 028. `(bucket_id, objects, bytes)` summed from
+        `storage.objects`; empty for anyone who is not an admin. Shown on
+        Beheer → Grup for the `group-materials` bucket.
+      responses:
+        '200':
+          description: One row per bucket
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    bucket_id: { type: string }
+                    objects: { type: integer }
+                    bytes: { type: integer }
+
   /class_member_changes:
     get:
       tags: [admin]
@@ -1459,6 +1695,50 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/NotifyResult' }
         '400': { description: Malformed body or record.id missing }
+        '401': { description: Missing or invalid webhook secret }
+        '405': { description: Method other than POST }
+        '502': { description: The push service rejected the send }
+
+  /notify-group-content:
+    post:
+      tags: [functions]
+      summary: Notify families of a new announcement or course material — BUILT
+      description: |
+        Invoked by the database webhooks on INSERT into
+        `public.group_announcements` and `public.group_materials` (migration
+        028, TAD ADR-045(g)). Re-reads the row and the roster
+        (`class_members`); only the id comes in the body. Families only:
+        the active guardians of each member and a 16+ self-login. Tutors are
+        not notified, and an edit fires nothing.
+
+        The push names the child and the group (`…InGroup` copy); the title,
+        body, file name and link are never in it (DPIA R6). An
+        announcement is one notification each (`ref_id` = its id) with its
+        title in the in-app row; materials are one per child per group per
+        day (`ref_id` = the group) with no title.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [table, record]
+              properties:
+                type: { type: string, enum: [INSERT] }
+                table: { type: string, enum: [group_announcements, group_materials] }
+                record:
+                  type: object
+                  required: [id]
+                  properties:
+                    id: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Dispatched, or skipped (no such row, empty group, nobody subscribed)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotifyResult' }
+        '400': { description: Malformed body, record.id missing, or another table }
         '401': { description: Missing or invalid webhook secret }
         '405': { description: Method other than POST }
         '502': { description: The push service rejected the send }
@@ -2135,6 +2415,8 @@ components:
         - murajaahReminder
         - reportReady
         - weeklyDigest
+        - groupAnnouncement
+        - newMaterial
     NotifyResult:
       type: object
       description: |
@@ -2256,6 +2538,38 @@ components:
         class_id: { type: string, format: uuid }
         student_id: { type: string, format: uuid }
         enrolled_at: { type: string, format: date-time }
+
+    GroupAnnouncement:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        class_id: { type: string, format: uuid }
+        author_id: { type: string, format: uuid }
+        title: { type: string, maxLength: 200 }
+        body: { type: string, maxLength: 2000, description: Plain text; only https links are made clickable }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time, description: Later than created_at once edited ("diubah") }
+
+    GroupMaterial:
+      type: object
+      required: [class_id, uploaded_by, title, kind]
+      properties:
+        id: { type: string, format: uuid }
+        class_id: { type: string, format: uuid }
+        uploaded_by: { type: string, format: uuid }
+        title: { type: string, maxLength: 200 }
+        description: { type: string, maxLength: 500, nullable: true }
+        kind: { type: string, enum: [file, link] }
+        storage_path: { type: string, nullable: true, description: '{class_id}/{id}/{file_name}; file only' }
+        file_name: { type: string, nullable: true }
+        mime_type:
+          type: string
+          nullable: true
+          enum: [application/pdf, application/vnd.openxmlformats-officedocument.presentationml.presentation]
+        size_bytes: { type: integer, maximum: 20971520, nullable: true }
+        url: { type: string, nullable: true, description: Link only; Google Docs/Slides, a Drive file or onedrive.live.com }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
 
     ClassMemberChange:
       type: object

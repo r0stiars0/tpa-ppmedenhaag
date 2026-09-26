@@ -24,6 +24,10 @@
 --   * "Grup Lama 2025/2026", archived, with history (read-only, and
 --     "delete" refused).
 --   * Rafi — a student in no group (the Beheer "no group" strip).
+--   * Release 8b-1 (migration 028): announcements in the Aqidah group
+--     and Grup A, and a link material in the Aqidah group. A FILE
+--     material needs its object in Storage, which SQL cannot create:
+--     upload one from the page as Ustadzah Maryam.
 --
 -- Re-running: not idempotent; reload the fixture first
 -- (`supabase db reset --local`, then the fixture, then this file).
@@ -124,3 +128,25 @@ insert into public.attendance (session_id, student_id, status) values
   ('a7000000-0000-0000-0000-000000000001', 'a5000000-0000-0000-0000-000000000002', 'present');
 -- Archived last: from here on the group is frozen for every role.
 update public.classes set archived_at = now() where id = 'a4000000-0000-0000-0000-0000000000f1';
+
+-- ---------- 8b-1: announcements and a link material ----------
+-- Inserted here, the notification webhooks do not deliver (no Vault
+-- configuration locally), so these notify nobody.
+insert into public.group_announcements (class_id, author_id, title, body, created_at, updated_at) values
+  ('a4000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000001',
+   'Selamat datang di grup Aqidah',
+   'Tahun ini kita belajar rukun iman dan kisah para nabi. Materi setiap pertemuan akan diunggah di halaman ini.',
+   now() - interval '13 days', now() - interval '13 days'),
+  ('a4000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000001',
+   'Tidak ada kelas Minggu depan',
+   'Assalamu''alaikum. Minggu depan tidak ada kelas Aqidah karena ada acara di masjid. Silakan ulangi hafalan rukun iman di rumah. Lembar latihan: https://docs.google.com/document/d/contoh-lembar-latihan/edit',
+   now() - interval '6 days', now() - interval '5 days'),
+  ('a4000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001',
+   'Bawa Jilid masing-masing',
+   'Mulai Sabtu ini setiap santri membawa buku Jilid sendiri.',
+   now() - interval '3 days', now() - interval '3 days');
+insert into public.group_materials (class_id, uploaded_by, title, description, kind, url, created_at, updated_at) values
+  ('a4000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000001',
+   'Kisah Nabi Ibrahim', 'Slide untuk dibaca bersama anak di rumah.', 'link',
+   'https://docs.google.com/presentation/d/contoh-kisah-nabi-ibrahim/edit',
+   now() - interval '13 days', now() - interval '13 days');

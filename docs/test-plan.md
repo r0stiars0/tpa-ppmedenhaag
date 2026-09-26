@@ -467,6 +467,45 @@ Every earlier fixture that seeded students through `students.class_id` now enrol
 
 *Total after migration 027: 512 (verified on a stack built from `supabase/migrations`, PASS). That is 505, less RLS-122's two assertions, plus RLS-143…145's nine.*
 
+### 3.10 Group announcements and course materials (RLS-146…159, migration 028, TAD ADR-045(e)–(g), PRD Feature 8 release 8b-1)
+
+A fresh island (`f8b…`): an Aqidah group GA (tutors T1 and a 16+ student assistant SA), a Yanbu'a group GY (T2), an unrelated group GX (TX) and an archived group GARCH (T1). Children: C1 in GY + GA (P1), C2 in GA + GARCH (P2), C4 a 16+ self-login in GA (guardian P2), C3 in GX (P3), and SA's own student record in GX (P3).
+
+- [x] RLS-146 — **Who reads announcements (FR-006).**
+  - A tutor reads their own groups, an archived one included, and the other group of a pupil.
+  - A guardian reads every group their child is in, an archived one included.
+  - A 16+ student reads their own group.
+  - A student assistant reads the group they teach and their own, never a pupil's other group.
+  - A tutor with no pupil there reads nothing, and so does anon.
+- [x] RLS-147 — **Who posts.** Only the group's own tutors (a student assistant included) or an admin, always as themselves.
+  - Refused (`42501`): another group, another person's name, a cross-group reader, a guardian.
+  - An archived group is refused with `23514`.
+- [x] RLS-148 — **Only the author edits; the author or an admin deletes.** A co-tutor and a cross-group reader can do neither. An admin takes down content in an archived group.
+- [x] RLS-149 — **An announcement's shape.** A blank title, a title over 200 and a body over 2,000 characters are refused.
+- [x] RLS-150 — **Materials have the same readers as announcements.** A student assistant cannot add one to a group they do not teach, and a cross-group reader can neither add nor rename one.
+- [x] RLS-151 — **The link allow-list is in the database.**
+  - Accepted: Google Docs and Slides, a Drive file, `onedrive.live.com`.
+  - Refused: Forms, Sheets, Drive folders, `1drv.ms`, SharePoint, `http:`, look-alike hosts, `javascript:`.
+- [x] RLS-152 — **One file or one link.** Refused:
+  - a file material without its file, or a link material carrying one;
+  - a path into another group's folder;
+  - a type other than PDF/PPTX;
+  - a description over 500 characters.
+- [x] RLS-153 — **The private bucket.** It is private, 20 MB, and takes PDF and PPTX only.
+  - A tutor uploads only into their own group's folder.
+  - A cross-group reader and a guardian reach exactly their groups' files; another family reaches none.
+  - A cross-group reader's DELETE removes nothing.
+- [x] RLS-154 — **`notification_event` has `groupAnnouncement` and `newMaterial`.**
+- [x] RLS-155 — **A webhook fires on INSERT of an announcement or a material, not on UPDATE.**
+- [x] RLS-156 — **`fn_admin_storage_usage`**: an admin sees the materials' storage; a tutor sees nothing.
+- [x] RLS-157 — **Materials:** the uploader renames their own; an archived group takes no new material; an admin takes any down.
+- [x] RLS-158 — **`fn_group_tutor_names`**: a family and a cross-group reader get the group's adult tutors, not the student assistant, and nothing for a group they cannot read.
+- [x] RLS-159 — **`fn_group_author_names`**: a family sees who posted, but not a student assistant who also posted; a family with no child there sees no name.
+
+Storage refuses a direct SQL `DELETE` unless `storage.allow_delete_query` is set, which the Storage API does itself; RLS-153 sets it to test the row-level rule as the API would.
+
+*Total after migration 028: 566 (verified on a stack built from `supabase/migrations`, PASS). That is 512 plus RLS-146…159's 54.*
+
 ## 4. Unit tests (Vitest)
 
 ### 4.1 Streak logic
@@ -780,6 +819,20 @@ the `student_guardians` `ON DELETE RESTRICT` invariant is in §3.8 RLS-116.
 - [x] `tests/unit/capabilities.test.ts`: pickers never offer an archived group; tracking-only for progress screens; the tutor count ignores archived groups.
 - [x] `tests/unit/roster.test.ts`: a roster is read through `class_members`.
 
+### 4.5o Group announcements and course materials (TAD ADR-045(e)–(g), release 8b-1)
+
+- [x] `tests/unit/groupContent.test.ts`:
+  - `checkMaterialLink`: the four accepted address kinds, whitespace trimmed. Each refusal has its own reason: empty, not https, `1drv.ms`, SharePoint, Google Forms (`docs.google.com/forms` and `forms.gle`), Drive folder, and anything else.
+  - `linkify`: only `https://` becomes a link, shown by host, with trailing punctuation left out; `javascript:`, `http:`, `data:` and `mailto:` stay text; line breaks are kept.
+  - `checkMaterialFile`: PDF and PPTX accepted; a `.pptx` with no reported type is accepted by extension; `.docx`, `.ppt` and a type that contradicts the extension are refused; empty and over-20 MB files are refused.
+  - `materialStoragePath`: always `{class}/{id}/{name}`, never an extra or parent folder or a hidden name.
+  - `isEdited` gives the "diubah" label.
+  - `groupContentNotice`: an announcement is one per announcement with its title in the in-app row; a material is one per group per day with no title; both use the Amsterdam date.
+  - `orphanedMaterialObjects` takes only unreferenced objects over 24 hours old.
+- [x] `tests/unit/authSession.test.ts`: an auth event for the same account (the page becoming visible, a token refresh) does not reload the profile; a first sign-in, a different account and a sign-out do.
+- [x] `tests/unit/notifications.test.ts`: both new events always name the group in the push, in both languages, first name only.
+- [x] `tests/unit/notificationEvents.test.ts`: in-app copy uses the `…InGroup` key for both events. The enum, copy, route, tone and icon coverage extends to them automatically.
+
 ### 4.6 Access control and delivery inside the Functions
 
 The three modules that decide who may make a Function act, and what
@@ -878,8 +931,13 @@ Run against Preview deploys with fixture data; auth mocked via Supabase test JWT
 | E2E-28 | Aqidah-only tutor: attendance and homework pickers offer the Aqidah group; the Yanbu'a/Al-Quran/Murajaah pickers offer nothing; a direct API insert of progress is refused (AC-003) | Tutor |
 | E2E-29 | A child in two groups: both tutors mark the child absent → the Yanbu'a tutor opens the child's history on the register and sees the Aqidah absence without its reason → the guardian sees both reasons, a rate per group plus overall, and homework labelled by group (FR-003/FR-006, AC-002/AC-012/AC-021) | Tutor → Tutor → Parent |
 | E2E-30 | Guardian of an Aqidah-only child opens Yanbu'a, Al-Quran and Murajaah → each shows the no-tracking explanation instead of an empty history (FR-007, AC-022) | Parent |
+| E2E-31 | Aqidah tutor opens Pengumuman & Materi → sees only her group → posts an announcement with an `https` link → the link shows its host and opens in a new tab; a `javascript:` string stays text → edits it → "diubah" appears (FR-004, FR-007) | Tutor |
+| E2E-32 | Tutor adds materials: a `.docx` is refused with a sentence; a PDF uploads; a `1drv.ms` link shows the "copy the full address" message and cannot be saved; a Google Slides link saves; replacing the PDF with a PPTX deletes the old file (FR-005) | Tutor |
+| E2E-33 | Parent opens the page → picks a child → sees that child's groups with counts → opens the Aqidah group → reads the announcement with its author, downloads the file under its original name, and has no post/edit/delete actions (FR-006, FR-007) | Parent |
+| E2E-34 | A Yanbu'a tutor's list shows only their own groups; opening a pupil's Aqidah group by its link shows it read-only. A 16+ student and a student assistant with no share in that group get "not found" (FR-006) | Tutor / Student |
+| E2E-35 | Admin sees the materials' storage on Beheer → Grup and takes down a tutor's material (FR-005) | Admin |
 
-*E2E-15…E2E-24 are specified but not implemented — this project has no
+*E2E-15…E2E-35 are specified but not implemented (E2E-25…35 were run as scripted browser checks against a local stack, §6.x and §6.z) — this project has no
 authenticated Playwright harness yet (`e2e/sign-in.spec.ts` documents
 why the E2E-01…E2E-14 suite is also still unbuilt). The flows are
 covered at the unit layer (§4.5d, §4.5e, §4.5g, §4.5i, §4.5j, §4.5k,
@@ -1175,6 +1233,34 @@ Run on 2026-09-26 on the same separate local stack, reset and rebuilt from this 
   - `publish-report` as the authoring tutor, for Ali (Grup A + Aqidah, author Ustadz Ahmad) and for Hana (Aqidah only, author Ustadzah Maryam): `200` for both. The stored PDFs, read back with `pdftotext`, name "Grup A" and "Aqidah 9–11 th" respectively. **This is the defect 027 would have caused.** Before the fix, `publish-report` embedded the group through `students.class_id`, and the embed fails once the column is dropped.
 - **New app, browser-driven:** the same 35 checks as §6.x (two runs, 21 + 14), with **zero console errors and zero failed requests**. Three harness selectors were updated first, for copy renamed after 8a: "Tanpa pencatatan Yanbu'a", "Tambahkan (2)" and "Santri tanpa grup: 1".
 - **Production order:** apply 027 before merging its PR. The 8a app in production already upserts on the five-column key, and nothing it runs reads `students.class_id` except `publish-report`. Until the merge, publishing a report fails, so apply and merge back to back. Year-end reports are not published in September.
+
+### 6.z Group announcements and course materials — live verification (release 8b-1, migration 028)
+
+Run on 2026-09-26 on the separate local stack, rebuilt from this branch's migrations (001–028) and loaded with `dev-fixture.sql` and `dev-seed-multigroup.sql`.
+
+- **Browser-driven** (Playwright, 390×844, Indonesian, over the LAN HTTPS dev server): 36 checks with **zero console errors and zero failed requests**.
+  - **Aqidah tutor (Ustadzah Maryam):**
+    - her list shows only her group, and the group page names her;
+    - an announcement with an `https` link renders the host, `target=_blank`, `rel=noopener noreferrer`, and a `javascript:` string stays text;
+    - a `.docx` is refused with a sentence, and a PDF uploads to `{group}/{id}/rukun-iman.pdf`;
+    - a `1drv.ms` link gets the full-address message and cannot be saved, while a Google Slides link saves;
+    - an edit says it notifies nobody and shows "diubah";
+    - replacing the PDF with a PPTX re-points the row and deletes the old object;
+    - the download arrives under its original name.
+  - **Parent (Ibu Siti):** Ali's two groups with counts; the announcement with its author line; no post/edit/delete; the download works. Grup A's tutor line leaves out the student assistant.
+  - **Yanbu'a tutor (Ustadz Ahmad):** only Grup A and B listed; Ali's Aqidah group readable by link, read-only.
+  - **Isolation:** Fatimah (16+, Grup A only) and Aisyah (student assistant of Grup B, whose pupils are in Aqidah) get "not found". In the database they read 0 announcements, 0 materials and 0 files of the Aqidah group, while Bapak Rudi (Umar is in Aqidah) reads all of it.
+  - **Admin:** the storage line on Beheer → Grup; a takedown of a tutor's material.
+  - **Found and fixed during the run:** the meeting day showed as "Ah"; the group page now writes the day out.
+  - **Found on a real Android phone afterwards:** after choosing a file, the phone returned to the group page with the form closed. A diagnostic on the demo server showed no page reload; the profile was simply re-read on return: supabase-js re-announces the session when the page becomes visible, and `AuthContext` restarted the app on every auth event. Fixed (`needsProfileReload`); re-checked by re-announcing the same session with a form open (the form and its typed title survive), by signing in, out and in as another account, and by rerunning the 36 checks (all pass).
+- **Functions, driven for real:**
+  - `notify-group-content` for an announcement reaches exactly the active guardians of the group's members, and its tutor gets nothing. The in-app rows carry the title, the group, and the announcement as `ref_id`. Two announcements on one day are two rows.
+  - Two materials on one day are one row per child, with no title.
+  - Another table gets 400 and a wrong secret 401.
+  - `prune-notifications` removed the day-old orphan object and kept both a fresh orphan (possibly mid-upload) and a referenced file.
+- **Not verified here:**
+  - delivery to a real device (no subscribed device; the push payloads are covered by the unit tests);
+  - the database-to-Function webhook call itself, since the local stack has no webhook settings in Vault. RLS-155 asserts the trigger, which uses the same `fn_post_webhook` as the webhooks already live in production.
 
 ## 7. i18n completeness (automated)
 
