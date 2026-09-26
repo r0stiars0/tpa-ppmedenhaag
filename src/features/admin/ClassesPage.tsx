@@ -247,19 +247,22 @@ export function ClassesPage() {
               ) : (
                 <div className="space-y-2">
                   <div>
-                    <p className="font-medium text-ppme-text">
-                      {cls.name}
-                      {!cls.tracks_progress && (
-                        <span className="ml-2 rounded-full bg-ppme-text/10 px-2 py-0.5 text-xs font-normal text-ppme-text/70">
-                          {t('admin.noProgressTracking')}
-                        </span>
-                      )}
-                      {cls.archived_at && (
-                        <span className="ml-2 rounded-full bg-ppme-text/10 px-2 py-0.5 text-xs font-normal text-ppme-text/70">
-                          {t('admin.archivedBadge')}
-                        </span>
-                      )}
-                    </p>
+                    {/* Name on the left, badges right-aligned on the same line. */}
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium text-ppme-text">{cls.name}</p>
+                      <div className="flex shrink-0 flex-wrap justify-end gap-1">
+                        {!cls.tracks_progress && (
+                          <span className="rounded-full bg-ppme-text/10 px-2 py-0.5 text-xs text-ppme-text/70">
+                            {t('admin.noProgressTracking')}
+                          </span>
+                        )}
+                        {cls.archived_at && (
+                          <span className="rounded-full bg-ppme-text/10 px-2 py-0.5 text-xs text-ppme-text/70">
+                            {t('admin.archivedBadge')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                     {cls.schedule && <p className="text-sm text-ppme-text/60">{cls.schedule}</p>}
                     <p className="text-xs text-ppme-text/60">{formatDayList(cls.meeting_days, t)}</p>
                     <p className="mt-1 text-xs text-ppme-text/50">{tutorNames(cls.tutor_ids)}</p>
