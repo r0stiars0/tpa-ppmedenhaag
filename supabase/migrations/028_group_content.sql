@@ -219,7 +219,45 @@ create trigger trg_notify_group_announcement after insert on public.group_announ
 create trigger trg_notify_group_material after insert on public.group_materials
   for each row execute function public.fn_notify_group_material();
 
--- ---------- 8. storage used, for admins ----------
+-- ---------- 8. a group's tutors, by name, for its page (FR-007) ----------
+-- `users` is readable only by oneself and admins, so a family could not
+-- otherwise see who teaches their child's group. Names only, only to
+-- those who can read the group, and no 16+ student assistant: they are
+-- a pupil themselves, and their name is not given to other families.
+create or replace function public.fn_group_tutor_names(p_class uuid)
+returns table (full_name text)
+language sql stable security definer set search_path = public as $$
+  select u.full_name
+  from public.classes c
+  join public.users u on u.id = any (c.tutor_ids)
+  where c.id = p_class
+    and (public.fn_is_admin() or p_class in (select public.fn_my_content_classes()))
+    and not exists (select 1 from public.students s where s.user_id = u.id)
+  order by u.full_name
+$$;
+
+revoke all on function public.fn_group_tutor_names(uuid) from public, anon;
+grant execute on function public.fn_group_tutor_names(uuid) to authenticated;
+
+-- The author line on each announcement and material: the names of the
+-- people who posted in the group, to those who can read it, with the
+-- same student-assistant exclusion.
+create or replace function public.fn_group_author_names(p_class uuid)
+returns table (user_id uuid, full_name text)
+language sql stable security definer set search_path = public as $$
+  select u.id, u.full_name
+  from public.users u
+  where u.id in (select author_id from public.group_announcements where class_id = p_class
+                 union
+                 select uploaded_by from public.group_materials where class_id = p_class)
+    and (public.fn_is_admin() or p_class in (select public.fn_my_content_classes()))
+    and not exists (select 1 from public.students s where s.user_id = u.id)
+$$;
+
+revoke all on function public.fn_group_author_names(uuid) from public, anon;
+grant execute on function public.fn_group_author_names(uuid) to authenticated;
+
+-- ---------- 9. storage used, for admins ----------
 create or replace function public.fn_admin_storage_usage()
 returns table (bucket_id text, objects bigint, bytes bigint)
 language sql stable security definer set search_path = public as $$

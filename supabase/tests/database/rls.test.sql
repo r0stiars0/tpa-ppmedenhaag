@@ -5550,6 +5550,30 @@ reset role;
 insert into _tap_log(line) select is((select title from public.group_materials where id = 'f8b20000-0000-0000-0000-000000000003'),
   'GA deck v2', 'RLS-157: …and the rename stuck');
 
+-- ---- RLS-158: a group's page names its tutors (FR-007) to the people
+-- who can read the group, and names no student assistant.
+set local role authenticated;
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000012';  -- P2 (C2 and C4 in GA)
+insert into _tap_log(line) select set_eq('select full_name from public.fn_group_tutor_names(''f8bc0000-0000-0000-0000-000000000001'')',
+  array['GC Tutor Aqidah'], 'RLS-158: a family reads the names of their child''s group''s tutors, not the student assistant''s');
+insert into _tap_log(line) select is((select count(*) from public.fn_group_tutor_names('f8bc0000-0000-0000-0000-000000000003')), 0::bigint,
+  'RLS-158: …and nothing for a group they cannot read');
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000002';  -- T2, cross-group reader of GA
+insert into _tap_log(line) select set_eq('select full_name from public.fn_group_tutor_names(''f8bc0000-0000-0000-0000-000000000001'')',
+  array['GC Tutor Aqidah'], 'RLS-158: a cross-group reader sees the same names');
+reset role;
+
+-- ---- RLS-159: the author line on each item names adult authors only,
+-- and only to people who can read the group.
+set local role authenticated;
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000011';  -- P1 (C1 in GA + GY)
+insert into _tap_log(line) select set_eq('select full_name from public.fn_group_author_names(''f8bc0000-0000-0000-0000-000000000001'')',
+  array['GC Tutor Aqidah'], 'RLS-159: a family sees who posted in their child''s group — T1, not the student assistant who also posted');
+set local request.jwt.claim.sub to 'f8b00000-0000-0000-0000-000000000013';  -- P3
+insert into _tap_log(line) select is((select count(*) from public.fn_group_author_names('f8bc0000-0000-0000-0000-000000000001')), 0::bigint,
+  'RLS-159: …and a family with no child there sees no name');
+reset role;
+
 reset role;
 
 -- ---------- done ----------

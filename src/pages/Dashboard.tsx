@@ -67,6 +67,21 @@ export function Dashboard() {
         </Link>
       </div>
 
+      {/* PRD Feature 8 FR-007: a Dashboard tile, not a tab — the bottom
+          tab bar stays as it is. */}
+      <Link
+        to="/groups"
+        className="flex min-h-11 items-center justify-between gap-3 rounded-lg border-2 border-ppme-primary bg-white p-4 shadow-sm transition-colors hover:bg-ppme-bg-alt"
+      >
+        <span>
+          <span className="block font-medium text-ppme-text">{t('groups.title')}</span>
+          <span className="block text-xs text-ppme-text/60">{t('groups.tileHint')}</span>
+        </span>
+        <span aria-hidden className="text-ppme-primary">
+          →
+        </span>
+      </Link>
+
       {/* Every role, not only recipients: the settings screen also
           explains what a notification can contain, and a tutor or admin
           should be able to read that too (TAD ADR-015). */}

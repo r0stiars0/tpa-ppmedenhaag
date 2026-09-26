@@ -1225,6 +1225,19 @@ export type Database = {
           student_id: string
         }[]
       }
+      fn_group_author_names: {
+        Args: { p_class: string }
+        Returns: {
+          full_name: string
+          user_id: string
+        }[]
+      }
+      fn_group_tutor_names: {
+        Args: { p_class: string }
+        Returns: {
+          full_name: string
+        }[]
+      }
       fn_is_admin: { Args: never; Returns: boolean }
       fn_is_class_member: {
         Args: { p_class: string; p_student: string }
