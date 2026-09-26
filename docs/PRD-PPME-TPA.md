@@ -1325,7 +1325,7 @@ A group with tracking off otherwise behaves like any other group. It has meeting
 | Release | Contents | Why this order |
 |---|---|---|
 | **8a — Multi-group enrolment** | FR-001 tracking setting · FR-002 multi-group enrolment · FR-003 group-scoped attendance/homework (incl. per-group absence notification) · FR-006 visibility rules for attendance, homework and progress · FR-009 bulk enrolment · FR-010 group archiving · the per-group parent attendance screens (FR-003) | Unblocks Aqidah tutors. Contains the database access-rule migration, which is the riskiest part, in the smallest reviewable change |
-| **8b — Group content** | FR-004 announcements · FR-005 course materials · FR-006 visibility for announcements/materials · the "Pengumuman & Materi" page in FR-007 · FR-008 year-end report sections | Needs 8a's memberships. Report sections are needed only by July (Resolved Decision 14) |
+| **8b — Group content**, shipped in two parts (Resolved Decision 33) | **8b-1:** FR-004 announcements · FR-005 course materials · FR-006 visibility for announcements/materials · the "Pengumuman & Materi" page in FR-007. **8b-2:** FR-008 year-end report sections | Needs 8a's memberships. Report sections are needed only by July (Resolved Decision 14) |
 
 *   **Feature Name:** Feature-PRD-TPA-Multi-Group-And-Content
 *   **Parent EPIC:** EPIC-001 - Build a Digital Progress Tracking Platform for TPA
@@ -1408,8 +1408,9 @@ A group with tracking off otherwise behaves like any other group. It has meeting
 - Announcements go to the **whole group** only. There is no per-student targeting. Families cannot reply.
 - Posting sends an **in-app notification** and a **Web Push** to each family recipient who has push on. There are **no per-category notification settings**: the app has one push on/off switch, and announcements follow it like every other notification. There is no e-mail or WhatsApp delivery.
 - Like every other notification, it is sent **per child**. The push names the child's first name and the group (e.g. "Aisha: new announcement in Aqidah 7–9 th"). A guardian with two children in the same group therefore receives two, as with homework today. Neither the title nor the body is put in the push payload, following the same rule that keeps homework titles out of pushes (DPIA R6). The full text is read in the app.
-- The author, or an admin, can edit or delete an announcement. An edit does not notify again.
+- The author, or an admin, can edit or delete an announcement. An edit does not notify again. An edited announcement is marked **"diubah" / "gewijzigd"** (Resolved Decision 33), so a family who read it before knows it changed.
 - Announcements are listed newest first on the group's page (see FR-007).
+- *Implementation status: **built — release 8b-1** (TAD ADR-045(e)/(g), migration 028).*
 
 **FR-005: Course Materials**
 - Priority: High
@@ -1441,6 +1442,7 @@ A group with tracking off otherwise behaves like any other group. It has meeting
   - **Work/school Microsoft 365 links (`*.sharepoint.com`) are refused.** Many organisations switch off "Anyone with the link" sharing. Families would then be asked to sign in and could not open the file, and the tutor would not notice when adding the link.
   - All other URLs are refused.
   - Links use no app storage.
+- *Implementation status: **built — release 8b-1** (TAD ADR-045(f)/(g), migration 028).*
 
 **FR-006: Who Can See a Group's Content**
 - Priority: High
@@ -1463,7 +1465,7 @@ A group with tracking off otherwise behaves like any other group. It has meeting
   - **Student assistants** (16+ students who also tutor a group) get **no cross-group reads**. They see what they need for the group they teach and nothing from the child's other groups: no other groups' announcements, materials or homework, no attendance from other groups, and Yanbu'a/Quran/Murajaah history only for students of a group they teach with tracking on.
 - Only the group's own tutors and admins can post, edit or delete there. A tutor who can read another group's content through a shared student cannot change it.
 - A parent of a child in groups A and B sees A's and B's content. A parent with no child in group C sees nothing of C. This family isolation is re-verified live against the database, not only in the automated suite.
-- *Implementation status: attendance, homework and progress visibility **built — release 8a** (TAD ADR-045, migration 026); announcements and materials are release 8b.*
+- *Implementation status: attendance, homework and progress visibility **built — release 8a** (TAD ADR-045, migration 026); announcements and materials **built — release 8b-1** (migration 028).*
 
 **FR-007: Family and Tutor Screens**
 - Priority: High
@@ -1473,7 +1475,7 @@ A group with tracking off otherwise behaves like any other group. It has meeting
 - The bottom tab bar is unchanged.
 - For a child who is in **no** group with Yanbu'a/Quran/Murajaah tracking on, the Yanbu'a, Al-Quran and Murajaah screens show a short explanation instead of an empty history.
 - Tutor screens that pick a group (the attendance register, homework, the scope switch) list every **active** group the tutor teaches. Archived groups (FR-010) are left out of pickers, and their history stays reachable from the student's records.
-- *Implementation status: the per-group family attendance screens, the no-tracking explanation and the tutor pickers are **built — release 8a**; the "Pengumuman & Materi" page is release 8b.*
+- *Implementation status: the per-group family attendance screens, the no-tracking explanation and the tutor pickers are **built — release 8a**; the "Pengumuman & Materi" page is **built — release 8b-1** (migration 028). Decided with it (Resolved Decision 33): the page shows no "new"/unread markers; a tutor's list shows only the groups they teach (the other groups of their pupils stay readable, from the child's records and notifications, but are not listed); the page names a group's adult tutors, not a 16+ student assistant.*
 
 **FR-008: Year-End Reports Across Groups**
 - Priority: Medium
@@ -1779,6 +1781,7 @@ sequenceDiagram
 | 30 | Rollout safety (Feature 8a) | Additive migration first, old field removed only after the new app is verified; backup and written rollback before starting. The privacy policy and DPIA update ship with 8a. |
 | 31 | Aqidah participation and ownership (Feature 8) | Aqidah is optional, and nothing assumes every student is in an Aqidah group. KPI 6 measures the app roster against the Aqidah tutors' actual attendance. The TPA coordinator (rollout) and the TPA admin role (Beheer tasks) may be the same person or different people, and the PRD assigns tasks to each role explicitly. |
 | 32 | Final review (Feature 8) | Murajaah targets can be kept only if another active tracking group still covers the student; archiving a tracking group triggers the same prompt. 8a admin screens are built from existing patterns and reviewed at the click-through; the 8b family page and section editor are wireframed first. Archived groups run no reminders or digests. Guardian contact details stay within each active group. KPIs state how they are measured, including a weekly push-subscriber count started before 8a. |
+| 33 | Release 8b split and page details (Feature 8) | 8b ships as **8b-1** (announcements, materials, the "Pengumuman & Materi" page; migration 028) and **8b-2** (year-end report sections; migration 029, needed by July). The page shows no unread badges; read rate stays measured from the notification centre (KPI 8). A tutor's list shows only the groups they teach. Edited announcements and materials are labelled "diubah". Student assistants are not named as a group's tutor or as an author to families. |
 
 ### Remaining Open Questions
 

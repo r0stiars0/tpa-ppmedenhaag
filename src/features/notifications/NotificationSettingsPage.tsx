@@ -193,6 +193,7 @@ export function NotificationSettingsPage() {
             <li>{t('notifications.settings.itemAssignment')}</li>
             <li>{t('notifications.settings.itemMilestone')}</li>
             <li>{t('notifications.settings.itemReport')}</li>
+            <li>{t('notifications.settings.itemGroupContent')}</li>
           </ul>
         </div>
       )}

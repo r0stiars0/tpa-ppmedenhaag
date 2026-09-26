@@ -16,11 +16,12 @@ Aplikasi TPA PPME Den Haag digunakan untuk mencatat dan memantau perkembangan sa
 8. [Al-Quran](#8-al-quran)
 9. [Murajaah](#9-murajaah)
 10. [Rapor](#10-rapor)
-11. [Notifikasi](#11-notifikasi)
-12. [Kelola (Khusus Admin)](#12-kelola-khusus-admin)
-13. [Akun dengan Peran Ganda](#13-akun-dengan-peran-ganda)
-14. [Elemen & Istilah Umum](#14-elemen--istilah-umum)
-15. [Lampiran: Istilah Indonesia ⟷ Belanda](#15-lampiran-istilah-indonesia--belanda)
+11. [Pengumuman & Materi](#11-pengumuman--materi)
+12. [Notifikasi](#12-notifikasi)
+13. [Kelola (Khusus Admin)](#13-kelola-khusus-admin)
+14. [Akun dengan Peran Ganda](#14-akun-dengan-peran-ganda)
+15. [Elemen & Istilah Umum](#15-elemen--istilah-umum)
+16. [Lampiran: Istilah Indonesia ⟷ Belanda](#16-lampiran-istilah-indonesia--belanda)
 
 ---
 
@@ -35,7 +36,7 @@ Aplikasi ini melayani empat jenis hubungan (bukan sekadar satu "peran" tetap per
 | **Santri** (16+ dengan akun sendiri) | Melihat riwayat miliknya sendiri, seperti orang tua, tetapi **tidak bisa** mengonfirmasi murajaah untuk dirinya sendiri — itu tetap tugas orang tua. |
 | **Admin** | Mengelola pendaftaran pengguna, grup, dan data santri; memiliki akses baca/tulis penuh yang setara guru di semua grup; membuat draf rapor massal — tetapi **tidak bisa menerbitkan** rapor. |
 
-Satu akun bisa memegang **lebih dari satu** hubungan sekaligus — misalnya seorang guru yang juga orang tua dari santri di grup lain. Akun seperti ini mendapat **saklar tampilan (scope switch)** untuk berpindah antara "Grup saya" (tampilan guru) dan "Anak saya" (tampilan orang tua) — lihat [§13](#13-akun-dengan-peran-ganda).
+Satu akun bisa memegang **lebih dari satu** hubungan sekaligus — misalnya seorang guru yang juga orang tua dari santri di grup lain. Akun seperti ini mendapat **saklar tampilan (scope switch)** untuk berpindah antara "Grup saya" (tampilan guru) dan "Anak saya" (tampilan orang tua) — lihat [§14](#14-akun-dengan-peran-ganda).
 
 ---
 
@@ -63,7 +64,7 @@ Jika akun Google Anda belum terdaftar oleh admin TPA (misalnya karena Anda login
 | **Keterangan** | Opsional. Teks bebas: siapa Anda, untuk anak yang mana, mengapa Anda memerlukan akses. |
 | **Kirim permintaan** | Mengirim data ke admin. Tombol nonaktif selama bidang nama masih kosong. |
 
-Setelah dikirim, teks di atas berubah menjadi **"Permintaan Anda telah diterima. Admin akan meninjaunya sesegera mungkin."** Anda tetap di layar ini — permintaan itu sendiri tidak memberi akses. Anda dapat membuka formulir lagi dan memperbaiki data Anda selama admin belum mendaftarkan Anda. Begitu itu terjadi, saat memuat berikutnya Anda otomatis masuk ke aplikasi. Admin juga dapat **menolak** permintaan (lihat [§12.1](#121-pendaftaran)); setelah itu Anda tetap bisa masuk lagi dan mengajukan permintaan baru.
+Setelah dikirim, teks di atas berubah menjadi **"Permintaan Anda telah diterima. Admin akan meninjaunya sesegera mungkin."** Anda tetap di layar ini — permintaan itu sendiri tidak memberi akses. Anda dapat membuka formulir lagi dan memperbaiki data Anda selama admin belum mendaftarkan Anda. Begitu itu terjadi, saat memuat berikutnya Anda otomatis masuk ke aplikasi. Admin juga dapat **menolak** permintaan (lihat [§13.1](#131-pendaftaran)); setelah itu Anda tetap bisa masuk lagi dan mengajukan permintaan baru.
 
 > Catatan: pada versi pengembangan (developer), muncul kotak tambahan "Dev only — local fixture sign-in" untuk menguji berbagai akun contoh tanpa Google. Kotak ini **tidak pernah muncul** di aplikasi produksi/nyata dan tidak relevan bagi pengguna sehari-hari.
 
@@ -77,7 +78,7 @@ Setelah masuk, setiap layar memiliki bagian-bagian tetap berikut (tampak di hamp
 | Elemen | Fungsi |
 |---|---|
 | Logo | Tautan kembali ke Beranda. |
-| 🔔 Ikon Lonceng | Hanya muncul untuk akun yang bisa menerima notifikasi (orang tua, atau santri 16+ dengan akun sendiri). Menampilkan angka jika ada notifikasi belum dibaca (maks. tampilan "9+"). Tekan untuk membuka [Pusat Notifikasi](#111-pusat-notifikasi). |
+| 🔔 Ikon Lonceng | Hanya muncul untuk akun yang bisa menerima notifikasi (orang tua, atau santri 16+ dengan akun sendiri). Menampilkan angka jika ada notifikasi belum dibaca (maks. tampilan "9+"). Tekan untuk membuka [Pusat Notifikasi](#121-pusat-notifikasi). |
 | 🌙/☀️ Ikon bulan/matahari | Beralih mode gelap/terang. |
 | **ID** / **NL** | Mengganti bahasa antarmuka ke Indonesia atau Belanda. Pilihan tersimpan di perangkat. |
 | **Keluar** | Keluar dari akun dan kembali ke layar masuk. |
@@ -90,7 +91,7 @@ Lima tab tetap, sama untuk semua peran termasuk admin:
 Menu **Rapor** dan **Kelola** (khusus admin) tidak ada di bilah bawah — keduanya diakses lewat ubin di Beranda, karena hanya ada ruang untuk lima tombol yang nyaman disentuh di layar ponsel.
 
 ### Saklar Tampilan (Scope Switch)
-Muncul di atas konten, **hanya untuk akun dengan lebih dari satu hubungan** (misalnya guru yang juga orang tua), dan **hanya** pada enam layar berikut: Hadir, Tugas, Yanbu'a, Al-Quran, Murajaah, Rapor. Lihat [§13](#13-akun-dengan-peran-ganda) untuk detail lengkap.
+Muncul di atas konten, **hanya untuk akun dengan lebih dari satu hubungan** (misalnya guru yang juga orang tua), dan **hanya** pada enam layar berikut: Hadir, Tugas, Yanbu'a, Al-Quran, Murajaah, Rapor. Lihat [§14](#14-akun-dengan-peran-ganda) untuk detail lengkap.
 
 ---
 
@@ -107,7 +108,8 @@ Layar pertama setelah masuk. Isinya berbeda sedikit tergantung peran.
 | Kartu sapaan | Nama pengguna + daftar hubungan yang dimiliki (mis. "Guru", atau gabungan "Guru · Orang Tua" jika kedua-duanya). |
 | Kartu **"Minggu ini"** *(hanya muncul untuk akun dengan anak/santri terkait — lihat §4.2)* | Tidak tampil untuk guru murni. |
 | Ubin **Hadir / Tugas / Yanbu'a / Al-Quran / Murajaah / Rapor** | Tekan salah satu untuk membuka fitur terkait. |
-| Baris **Notifikasi →** | Membuka halaman [Pengaturan Notifikasi](#112-pengaturan-notifikasi) — tersedia untuk semua peran, bukan hanya penerima notifikasi, karena semua orang berhak membaca apa isi sebuah notifikasi. |
+| Ubin **Pengumuman & Materi →** | Membuka pengumuman dan materi grup-grup (lihat [§11](#11-pengumuman--materi)). |
+| Baris **Notifikasi →** | Membuka halaman [Pengaturan Notifikasi](#122-pengaturan-notifikasi) — tersedia untuk semua peran, bukan hanya penerima notifikasi, karena semua orang berhak membaca apa isi sebuah notifikasi. |
 
 ### 4.2 Tampilan Keluarga (Orang Tua / Santri)
 
@@ -128,7 +130,7 @@ Kartu ini otomatis **tersembunyi** jika tidak ada aktivitas sama sekali minggu i
 
 <img src="./screenshots/id/dashboard-admin.png" width="360" alt="Beranda — tampilan admin">
 
-Sama seperti tampilan guru, ditambah bagian **"Kelola"** di bagian bawah — satu-satunya jalan masuk ke [halaman administrasi](#12-kelola-khusus-admin) (pendaftaran, grup, santri).
+Sama seperti tampilan guru, ditambah bagian **"Kelola"** di bagian bawah — satu-satunya jalan masuk ke [halaman administrasi](#13-kelola-khusus-admin) (pendaftaran, grup, santri).
 
 ---
 
@@ -141,7 +143,7 @@ Sama seperti tampilan guru, ditambah bagian **"Kelola"** di bagian bawah — sat
 Layar untuk mencatat kehadiran per grup. Layar terbuka pada sesi terkini
 grup — hari ini jika grup bertemu hari ini, jika tidak maka hari
 pertemuan terakhir sebelumnya. Hari pertemuan sebuah grup diatur oleh
-admin pada grup tersebut (lihat [§12.2](#122-grup) → Hari pertemuan).
+admin pada grup tersebut (lihat [§13.2](#132-grup) → Hari pertemuan).
 
 | Elemen | Fungsi |
 |---|---|
@@ -246,7 +248,7 @@ Hanya untuk melihat — status tugas hanya bisa diubah oleh guru.
 
 Yanbu'a adalah metode belajar membaca Al-Qur'an bertahap (jilid 1–7 + halaman). Layar ini mencatat jilid, halaman, dan tingkat penguasaan bacaan santri.
 
-> **Hanya grup yang mencatat.** Yanbu'a, Al-Quran dan Murajaah hanya dicatat di grup yang oleh admin dicentang **Pencatatan Yanbu'a/Al-Quran/Murajaah** ([§12.2](#122-grup)). Jadi **Pilih Grup** di ketiga layar ini hanya menampilkan grup seperti itu; guru yang hanya mengajar grup Aqidah tidak melihat santri di sini. Guru seorang santri tetap boleh **melihat** riwayat Yanbu'a/Al-Quran/Murajaah santri tersebut, termasuk dari grup lain.
+> **Hanya grup yang mencatat.** Yanbu'a, Al-Quran dan Murajaah hanya dicatat di grup yang oleh admin dicentang **Pencatatan Yanbu'a/Al-Quran/Murajaah** ([§13.2](#132-grup)). Jadi **Pilih Grup** di ketiga layar ini hanya menampilkan grup seperti itu; guru yang hanya mengajar grup Aqidah tidak melihat santri di sini. Guru seorang santri tetap boleh **melihat** riwayat Yanbu'a/Al-Quran/Murajaah santri tersebut, termasuk dari grup lain.
 
 ### 7.1 Tampilan Guru — Mencatat Progres
 
@@ -425,9 +427,53 @@ Jika belum ada rapor yang diterbitkan untuk anak tersebut, layar menampilkan pes
 
 ---
 
-## 11. Notifikasi
+## 11. Pengumuman & Materi
 
-### 11.1 Pusat Notifikasi
+Setiap grup punya halaman sendiri berisi **pengumuman** dari guru dan **materi** pelajaran, misalnya slide pelajaran Aqidah. Halaman ini dibuka lewat ubin **Pengumuman & Materi** di beranda; bilah bawah tidak berubah.
+
+### 11.1 Tampilan Keluarga — Membaca pengumuman dan materi
+
+<img src="./screenshots/id/groups-family.png" width="360" alt="Pengumuman & Materi — grup seorang anak">
+
+<img src="./screenshots/id/group-content-family.png" width="360" alt="Pengumuman & Materi — halaman satu grup">
+
+| Elemen | Fungsi |
+|---|---|
+| **Pilih Anak** | Hanya bila anak lebih dari satu: pilih grup anak yang ingin dilihat. |
+| Kartu tiap grup | Grup-grup anak itu, dengan guru, jumlah pengumuman dan materi, dan tanggal yang terbaru. Ketuk kartu untuk membuka grup. |
+| Bagian atas halaman grup | Nama grup, guru, dan hari pertemuan. |
+| **Pengumuman** | Terbaru di atas, dengan tanggal dan nama guru. Tautan di dalam teks hanya menampilkan domainnya (mis. **docs.google.com ↗**) dan terbuka di tab baru. Pengumuman yang diubah menampilkan **"diubah"**. |
+| **Materi** — berkas | Berkas PDF atau PowerPoint dengan ukuran dan tanggal. **Unduh** menyimpannya dengan nama aslinya. |
+| **Materi** — tautan | Dokumen atau presentasi Google, satu berkas Google Drive, atau berkas OneDrive. **Buka ↗** membukanya di Google atau Microsoft. |
+
+Saat ada pengumuman atau materi baru, Anda menerima notifikasi yang menyebut nama depan anak Anda dan nama grupnya; isinya dibaca di aplikasi (lihat [§12](#12-notifikasi)). Pengumuman tidak dapat dibalas.
+
+### 11.2 Tampilan Guru — Mengirim pengumuman dan materi
+
+<img src="./screenshots/id/group-content-tutor.png" width="360" alt="Pengumuman & Materi — tampilan guru sebuah grup">
+
+<img src="./screenshots/id/group-announcement-new.png" width="360" alt="Pengumuman Baru">
+
+<img src="./screenshots/id/group-material-link.png" width="360" alt="Materi Baru — tautan">
+
+Daftar hanya menampilkan grup yang Anda ajar (admin melihat semua grup aktif). Grup santri Anda yang diajar guru lain dapat dibuka lewat tautan atau notifikasi dan dibaca, tetapi tidak dapat diubah.
+
+| Elemen | Fungsi |
+|---|---|
+| **+ Pengumuman** | **Judul** (sampai 200 karakter) dan **isi** (sampai 2.000 karakter). Hanya tautan yang dimulai dengan `https://` yang bisa diklik. Pengumuman dikirim ke seluruh grup; semua keluarga menerima notifikasi yang menyebut nama anak dan grup, tanpa judul atau isi. Guru tidak menerima notifikasi. |
+| **+ Materi** — **Berkas** | **PDF** atau **PowerPoint (.pptx)**, maksimal **20 MB**. Berkas lain ditolak dengan keterangan jenis yang diterima. |
+| **+ Materi** — **Tautan** | Diterima: dokumen atau presentasi Google, satu berkas Google Drive, atau tautan OneDrive **pribadi** yang dimulai dengan `https://onedrive.live.com/`. Ditolak: Google Formulir, folder Drive, tautan SharePoint kantor/sekolah, dan tautan pendek `1drv.ms`. Tombol "Salin link" di OneDrive menghasilkan tautan pendek seperti itu: buka sekali di browser, lalu salin alamat lengkapnya. Atur berbagi berkas ke **"Siapa saja yang memiliki link"**; siapa pun yang menerima tautan itu dapat membukanya, jadi jangan bagikan data pribadi lewat tautan. |
+| Notifikasi materi | Satu notifikasi per anak per hari untuk grup ini, berapa pun materi yang diunggah, tanpa judul atau nama berkas. |
+| **Ubah** | Hanya untuk pengumuman dan materi Anda sendiri. Mengubah tidak mengirim notifikasi baru; setelah itu tampil **"diubah"**. Untuk berkas, Anda juga bisa **mengganti berkas**. |
+| **Hapus** | Item Anda sendiri; admin dapat menghapus item apa pun, juga di grup yang diarsipkan. Untuk berkas, berkasnya ikut dihapus. |
+
+Di grup yang **diarsipkan** tidak ada yang dapat ditambah atau diubah.
+
+---
+
+## 12. Notifikasi
+
+### 12.1 Pusat Notifikasi
 
 <img src="./screenshots/id/notifications-centre.png" width="360" alt="Pusat Notifikasi">
 
@@ -437,9 +483,9 @@ Dibuka lewat ikon lonceng di bilah atas. Hanya tersedia (berisi data) untuk akun
 |---|---|
 | Daftar notifikasi | Setiap baris berupa satu peristiwa: santri tidak hadir, tugas baru, pengingat tenggat, jilid Yanbu'a selesai, surah baru dihafal, pengingat murajaah, rapor siap, atau ringkasan mingguan. Jika anak ikut lebih dari satu grup, notifikasi ketidakhadiran dan tugas baru menyebut **grupnya** (mis. "… tidak hadir hari ini di grup Aqidah 9–11 th"), sehingga dua ketidakhadiran pada hari yang sama bisa dibedakan. Tekan salah satu untuk membuka layar terkait. |
 | Membaca notifikasi | Semua notifikasi otomatis ditandai "sudah dibaca" begitu halaman ini dibuka — tidak ada tombol tersendiri untuk itu. |
-| Tautan **Pengaturan notifikasi** | Membuka [§11.2](#112-pengaturan-notifikasi). |
+| Tautan **Pengaturan notifikasi** | Membuka [§12.2](#122-pengaturan-notifikasi). |
 
-### 11.2 Pengaturan Notifikasi
+### 12.2 Pengaturan Notifikasi
 
 <img src="./screenshots/id/notifications-settings.png" width="360" alt="Pengaturan Notifikasi">
 
@@ -449,18 +495,18 @@ Diakses dari Beranda atau dari Pusat Notifikasi. Terbuka untuk **semua peran**, 
 |---|---|
 | Status notifikasi push saat ini | "Notifikasi aktif di perangkat ini" / "tidak aktif" / "aktif di perangkat lain" (satu akun hanya bisa menerima notifikasi di satu perangkat sekaligus). |
 | **Aktifkan notifikasi** / **Matikan notifikasi** / **Pindahkan ke perangkat ini** | Tombol tunggal yang berubah label sesuai status di atas. |
-| *(Khusus akun penerima notifikasi)* Daftar **"Yang akan Anda terima"** | Penjelasan singkat 4 jenis notifikasi yang akan dikirim: ketidakhadiran, tugas baru, capaian (jilid/surah selesai), dan rapor siap. |
+| *(Khusus akun penerima notifikasi)* Daftar **"Yang akan Anda terima"** | Penjelasan singkat 5 jenis notifikasi yang akan dikirim: ketidakhadiran, tugas baru, capaian (jilid/surah selesai), rapor siap, serta pengumuman atau materi baru di grup anak. |
 | **"Apa yang tampil di layar kunci"** | Penjelasan privasi: notifikasi di layar kunci hanya memuat nama depan anak dan jenis peristiwa — **tidak pernah** memuat alasan ketidakhadiran, nilai, atau detail progres; semua itu baru terlihat setelah membuka aplikasi. |
 
 Jika peramban memblokir izin notifikasi, layar menampilkan penjelasan untuk membuka pengaturan izin peramban secara manual.
 
 ---
 
-## 12. Kelola (Khusus Admin)
+## 13. Kelola (Khusus Admin)
 
 Hanya bisa diakses oleh akun dengan peran Admin, lewat ubin **Kelola** di Beranda. Terdiri dari lima sub-halaman dengan menu tab di bagian atas: **Pendaftaran · Grup · Santri · Kehadiran Guru · Pengguna**.
 
-### 12.1 Pendaftaran
+### 13.1 Pendaftaran
 
 <img src="./screenshots/id/admin-registrations.png" width="360" alt="Kelola — Pendaftaran">
 
@@ -484,7 +530,7 @@ Hanya bisa diakses oleh akun dengan peran Admin, lewat ubin **Kelola** di Berand
 | **Daftarkan** | Menyelesaikan pendaftaran orang tersebut — baris otomatis hilang dari daftar setelah berhasil, dan permintaan (beserta keterangannya) dihapus. |
 | **Tolak** | Menghapus pendaftaran yang menunggu. Muncul dulu pertanyaan konfirmasi berisi alamat email. Setelah dikonfirmasi, akun (yang belum terdaftar) beserta permintaannya dihapus dan baris hilang dari daftar. **Menolak bukan pemblokiran**: pengguna Google yang sama dapat masuk lagi dan akan muncul sebagai pendaftaran menunggu yang baru. Pendaftaran yang akunnya sudah terlanjur dibuat tidak dapat ditolak. |
 
-### 12.2 Grup
+### 13.2 Grup
 
 <img src="./screenshots/id/admin-classes.png" width="360" alt="Kelola — daftar Grup">
 
@@ -495,8 +541,9 @@ Ada dua jenis grup: **grup Yanbu'a/Al-Quran** (dibagi menurut tingkat bacaan) da
 | **+ Grup Baru** | Membuka formulir grup baru (lihat gambar di bawah). |
 | **Aktif** / **Diarsipkan** | Menampilkan grup aktif atau grup yang diarsipkan. |
 | Kartu tiap grup | Nama, bila ada lencana **"Tanpa pencatatan Yanbu'a"** (mis. grup Aqidah; lengkapnya: tanpa pencatatan Yanbu'a, Al-Quran dan Murajaah) atau **"Diarsipkan"**, jadwal, hari pertemuan (mis. "Rab, Sab"), dan daftar guru pengampu. |
-| **Santri (jumlah)** | Membuka daftar santri grup, tempat menambah dan mengeluarkan santri (lihat [§12.2.1](#1221-santri-dalam-grup)). |
+| **Santri (jumlah)** | Membuka daftar santri grup, tempat menambah dan mengeluarkan santri (lihat [§13.2.1](#1321-santri-dalam-grup)). |
 | **Ubah** | Membuka formulir edit untuk grup tersebut, terisi data yang sudah ada. |
+| Penyimpanan materi | Di bawah judul: berapa ruang penyimpanan yang dipakai semua berkas materi (lihat [§11](#11-pengumuman--materi)). Paket gratis punya 1 GB, bersama rapor. |
 | **Arsipkan** | Untuk grup tahun ajaran sebelumnya atau grup yang dibubarkan. Grup yang diarsipkan **dibekukan**: tidak bisa lagi diisi sesi, kehadiran, tugas atau santri baru, oleh siapa pun (termasuk admin). Riwayatnya tetap tersimpan dan terlihat, tetapi grup hilang dari semua pilihan grup, dan guru grup itu tidak lagi melihat data mantan santrinya di luar grup itu sendiri. Jika grup masih bertemu dalam 7 hari terakhir, aplikasi memberi peringatan: guru yang mengisi kehadiran secara offline dan belum terkirim tidak dapat mengirimnya lagi setelah diarsipkan. |
 | **Aktifkan kembali** | Mengaktifkan kembali grup yang diarsipkan, misalnya untuk memperbaiki sesuatu. |
 | **Hapus** | Hanya untuk grup **tanpa riwayat** (mis. terbuat tanpa sengaja). Jika grup sudah punya sesi atau tugas, grup tidak bisa dihapus — aplikasi memberi tahu dan menyarankan untuk mengarsipkannya. |
@@ -520,7 +567,7 @@ Formulir Grup (sama untuk buat baru maupun ubah):
 
 Target yang **harus ditutup** sudah tercentang dan tidak bisa diubah. Jika santri masih punya grup lain yang mencatat, target **boleh dipertahankan** (tidak tercentang). Pilih **Lanjutkan** untuk menjalankan perubahan dan menutup target yang dicentang, atau **Batal** untuk tidak mengubah apa pun.
 
-#### 12.2.1 Santri dalam grup
+#### 13.2.1 Santri dalam grup
 
 <img src="./screenshots/id/admin-group-members.png" width="360" alt="Kelola — menambah santri ke grup">
 
@@ -534,7 +581,7 @@ Target yang **harus ditutup** sudah tercentang dan tidak bisa diubah. Jika santr
 
 Grup yang diarsipkan hanya menampilkan santrinya di sini, dengan keterangan bahwa grup telah diarsipkan.
 
-### 12.3 Santri
+### 13.3 Santri
 
 <img src="./screenshots/id/admin-students.png" width="360" alt="Kelola — daftar Santri">
 
@@ -561,7 +608,7 @@ Formulir Santri:
 
 **Tanpa grup.** Santri yang masuk lewat formulir pendaftaran belum ikut grup mana pun dan belum terlihat oleh guru mana pun. Selama masih ada santri seperti itu, di bagian atas setiap layar Kelola tampil pemberitahuan dengan segitiga peringatan, **"⚠ Santri tanpa grup: {jumlah}"**; ketuk untuk melihat mereka.
 
-### 12.4 Kehadiran Guru
+### 13.4 Kehadiran Guru
 
 Layar untuk meninjau kehadiran seorang guru secara berkala. Kehadiran guru dicatat oleh guru atau admin di layar **Kehadiran** biasa (lihat [§5.1](#51-tampilan-guru--mencatat-kehadiran) → "Kehadiran guru").
 
@@ -575,16 +622,16 @@ Layar untuk meninjau kehadiran seorang guru secara berkala. Kehadiran guru dicat
 
 Layar ini **hanya untuk melihat** — koreksi kehadiran dilakukan di layar Kehadiran grup yang bersangkutan. Orang tua dan santri tidak pernah melihat kehadiran guru.
 
-### 12.5 Pengguna
+### 13.5 Pengguna
 
-Daftar semua akun yang sudah terdaftar, untuk memperbaiki **nama** atau **peran** seseorang. Pembuatan akun tetap dilakukan di [§12.1 Pendaftaran](#121-pendaftaran).
+Daftar semua akun yang sudah terdaftar, untuk memperbaiki **nama** atau **peran** seseorang. Pembuatan akun tetap dilakukan di [§13.1 Pendaftaran](#131-pendaftaran).
 
 | Elemen | Fungsi |
 |---|---|
 | **Cari nama atau email** | Menyaring daftar berdasarkan potongan nama atau alamat email. |
 | Penyaring peran | **Semua peran** / Admin / Guru / Orang Tua / Santri. |
 | **Ubah** | Membuka formulir baris: kolom **Nama Lengkap** dan pilihan **Peran**. Tekan **Simpan** atau **Batal**. |
-| **Hapus** | Hanya muncul pada baris akun **Orang Tua** atau **Santri** (bukan Guru/Admin, dan bukan akun Anda sendiri). Menghapus akun **secara permanen** beserta data terkaitnya, setelah pertanyaan konfirmasi. Dipakai untuk membersihkan akun palsu dari pengiriman formulir pendaftaran yang tidak sah. Jika akun masih tertaut sebagai wali santri, hapus dulu data santrinya di [§12.3 Santri](#123-santri); selama masih tertaut, penghapusan ditolak dengan pesan yang menjelaskan hal itu. |
+| **Hapus** | Hanya muncul pada baris akun **Orang Tua** atau **Santri** (bukan Guru/Admin, dan bukan akun Anda sendiri). Menghapus akun **secara permanen** beserta data terkaitnya, setelah pertanyaan konfirmasi. Dipakai untuk membersihkan akun palsu dari pengiriman formulir pendaftaran yang tidak sah. Jika akun masih tertaut sebagai wali santri, hapus dulu data santrinya di [§13.3 Santri](#133-santri); selama masih tertaut, penghapusan ditolak dengan pesan yang menjelaskan hal itu. |
 
 Beberapa aturan pengaman:
 
@@ -597,7 +644,7 @@ Setiap perubahan peran dicatat (siapa, dari peran apa ke apa, kapan) di log inte
 
 ---
 
-## 13. Akun dengan Peran Ganda
+## 14. Akun dengan Peran Ganda
 
 Sebagian akun memegang lebih dari satu hubungan — misalnya seorang guru yang juga orang tua dari santri di grup lain (bukan grup yang ia ajar). Akun seperti ini melihat **saklar tampilan** di atas layar Kehadiran, Tugas, Yanbu'a, Al-Quran, Murajaah, dan Rapor:
 
@@ -613,7 +660,7 @@ Layar yang sedang dibuka **tidak berpindah** saat menekan saklar ini — hanya i
 
 ---
 
-## 14. Elemen & Istilah Umum
+## 15. Elemen & Istilah Umum
 
 Elemen berikut muncul berulang di banyak layar dan dijelaskan sekali di sini agar tidak diulang-ulang.
 
@@ -629,7 +676,7 @@ Elemen berikut muncul berulang di banyak layar dan dijelaskan sekali di sini aga
 
 ---
 
-## 15. Lampiran: Istilah Indonesia ⟷ Belanda
+## 16. Lampiran: Istilah Indonesia ⟷ Belanda
 
 Untuk memudahkan komunikasi dua bahasa di lingkungan TPA, berikut padanan istilah utama yang digunakan aplikasi:
 
@@ -651,4 +698,4 @@ Untuk memudahkan komunikasi dua bahasa di lingkungan TPA, berikut padanan istila
 
 ---
 
-*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **12.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026), serta **§5.1 dilengkapi dengan bagian "Kehadiran guru"** dan **§12.4 ditambahkan untuk layar peninjauan "Kehadiran Guru" admin** (ADR-041, September 2026), **§12.5 ditambahkan untuk layar "Pengguna" admin** (ADR-042, September 2026), dan diperbarui untuk **santri yang ikut beberapa grup** (ADR-045, September 2026): §5, §6.2, §7, §11.1, §12.2 (dengan §12.2.1 "Santri dalam grup" yang baru) dan §12.3. Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF dibuat ulang dari teks ini dengan `scripts/gen-manual-pdf.mjs`; layar §12.4 dan §12.5 belum memiliki tangkapan layar.*
+*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **13.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026), serta **§5.1 dilengkapi dengan bagian "Kehadiran guru"** dan **§13.4 ditambahkan untuk layar peninjauan "Kehadiran Guru" admin** (ADR-041, September 2026), **§13.5 ditambahkan untuk layar "Pengguna" admin** (ADR-042, September 2026), dan diperbarui untuk **santri yang ikut beberapa grup** (ADR-045, September 2026): §5, §6.2, §7, §12.1, §13.2 (dengan §13.2.1 "Santri dalam grup" yang baru) dan §13.3, serta **§11 ditambahkan untuk "Pengumuman & Materi"** (ADR-045 rilis 8b-1, September 2026; bab-bab sesudahnya bergeser satu nomor). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF dibuat ulang dari teks ini dengan `scripts/gen-manual-pdf.mjs`; layar §13.4 dan §13.5 belum memiliki tangkapan layar.*

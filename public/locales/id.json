@@ -250,6 +250,7 @@
       "itemAssignment": "Pemberitahuan bila ada tugas baru untuk grup anak Anda",
       "itemMilestone": "Kabar gembira bila anak Anda menyelesaikan satu jilid atau hafal surah baru",
       "itemReport": "Pemberitahuan bila rapor akhir tahun sudah siap",
+      "itemGroupContent": "Pemberitahuan bila ada pengumuman atau materi baru di grup anak Anda",
       "privacyTitle": "Apa yang tampil di layar kunci",
       "privacyBody": "Notifikasi hanya memuat nama depan anak dan jenis kejadian. Alasan ketidakhadiran, nilai, dan detail progres tidak pernah dikirim dalam notifikasi — semua itu hanya terlihat setelah Anda masuk ke aplikasi.",
       "permissionDenied": "Notifikasi diblokir di peramban ini. Izinkan notifikasi untuk situs ini melalui pengaturan peramban, lalu coba lagi.",

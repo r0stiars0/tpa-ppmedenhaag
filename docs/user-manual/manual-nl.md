@@ -16,11 +16,12 @@ De TPA PPME Den Haag-app wordt gebruikt om de voortgang van leerlingen bij de TP
 8. [Al-Quran](#8-al-quran)
 9. [Murajaah](#9-murajaah)
 10. [Rapport](#10-rapport)
-11. [Meldingen](#11-meldingen)
-12. [Beheer (alleen beheerder)](#12-beheer-alleen-beheerder)
-13. [Accounts met een dubbele rol](#13-accounts-met-een-dubbele-rol)
-14. [Algemene elementen & begrippen](#14-algemene-elementen--begrippen)
-15. [Bijlage: begrippenlijst Nederlands ⟷ Indonesisch](#15-bijlage-begrippenlijst-nederlands--indonesisch)
+11. [Mededelingen & lesmateriaal](#11-mededelingen--lesmateriaal)
+12. [Meldingen](#12-meldingen)
+13. [Beheer (alleen beheerder)](#13-beheer-alleen-beheerder)
+14. [Accounts met een dubbele rol](#14-accounts-met-een-dubbele-rol)
+15. [Algemene elementen & begrippen](#15-algemene-elementen--begrippen)
+16. [Bijlage: begrippenlijst Nederlands ⟷ Indonesisch](#16-bijlage-begrippenlijst-nederlands--indonesisch)
 
 ---
 
@@ -35,7 +36,7 @@ De app bedient vier soorten relaties (geen vast "account-type", maar wat een acc
 | **Leerling** (16+ met eigen account) | De eigen geschiedenis bekijken, net als een ouder, maar **kan geen** murajaah voor zichzelf bevestigen — dat blijft de taak van een ouder. |
 | **Beheerder** | Gebruikersregistraties, groepen en leerlinggegevens beheren; heeft dezelfde lees-/schrijftoegang als een docent op elke groep — maar **kan geen** rapporten publiceren. |
 
-Eén account kan **meer dan één** relatie tegelijk hebben — bijvoorbeeld een docent die ook ouder is van een leerling in een andere groep. Zo'n account krijgt een **weergaveschakelaar (scope switch)** om te wisselen tussen "Mijn groep" (docentweergave) en "Mijn kind" (ouder-weergave) — zie [§13](#13-accounts-met-een-dubbele-rol).
+Eén account kan **meer dan één** relatie tegelijk hebben — bijvoorbeeld een docent die ook ouder is van een leerling in een andere groep. Zo'n account krijgt een **weergaveschakelaar (scope switch)** om te wisselen tussen "Mijn groep" (docentweergave) en "Mijn kind" (ouder-weergave) — zie [§14](#14-accounts-met-een-dubbele-rol).
 
 ---
 
@@ -63,7 +64,7 @@ Als uw Google-account nog niet door de TPA-beheerder is geregistreerd (bijvoorbe
 | **Toelichting** | Optioneel. Vrije tekst: wie u bent, om welk kind het gaat, waarom u toegang nodig heeft. |
 | **Aanvraag versturen** | Verstuurt de gegevens naar de beheerder. De knop is uitgeschakeld zolang het naamveld leeg is. |
 
-Na het versturen verandert de tekst bovenaan in **"Uw aanvraag is ontvangen. Een beheerder beoordeelt deze zo snel mogelijk."** U blijft op dit scherm — de aanvraag geeft zelf geen toegang. U kunt het formulier opnieuw openen en uw gegevens corrigeren zolang de beheerder u nog niet heeft geregistreerd. Zodra dat gebeurt, komt u bij de volgende keer laden vanzelf in de app. Een beheerder kan een aanvraag ook **weigeren** (zie [§12.1](#121-registraties)); u kunt daarna gewoon opnieuw inloggen en een nieuwe aanvraag indienen.
+Na het versturen verandert de tekst bovenaan in **"Uw aanvraag is ontvangen. Een beheerder beoordeelt deze zo snel mogelijk."** U blijft op dit scherm — de aanvraag geeft zelf geen toegang. U kunt het formulier opnieuw openen en uw gegevens corrigeren zolang de beheerder u nog niet heeft geregistreerd. Zodra dat gebeurt, komt u bij de volgende keer laden vanzelf in de app. Een beheerder kan een aanvraag ook **weigeren** (zie [§13.1](#131-registraties)); u kunt daarna gewoon opnieuw inloggen en een nieuwe aanvraag indienen.
 
 > Let op: in de ontwikkelversie verschijnt een extra vak "Dev only — local fixture sign-in" om verschillende testaccounts te proberen zonder Google. Dit vak **verschijnt nooit** in de echte/productieomgeving en is niet relevant voor dagelijkse gebruikers.
 
@@ -77,7 +78,7 @@ Na het inloggen heeft elk scherm de volgende vaste onderdelen (zichtbaar op bijn
 | Element | Functie |
 |---|---|
 | Logo | Link terug naar het startscherm. |
-| 🔔 Belletje | Alleen zichtbaar voor accounts die meldingen kunnen ontvangen (ouder, of een leerling van 16+ met eigen account). Toont een aantal ongelezen meldingen (max. weergave "9+"). Tikken opent het [Meldingencentrum](#111-meldingencentrum). |
+| 🔔 Belletje | Alleen zichtbaar voor accounts die meldingen kunnen ontvangen (ouder, of een leerling van 16+ met eigen account). Toont een aantal ongelezen meldingen (max. weergave "9+"). Tikken opent het [Meldingencentrum](#121-meldingencentrum). |
 | 🌙/☀️ Maan/zon-icoon | Schakelt tussen donkere en lichte modus. |
 | **ID** / **NL** | Wisselt de taal van de app tussen Indonesisch en Nederlands. De keuze wordt op het apparaat onthouden. |
 | **Uitloggen** | Logt uit en keert terug naar het inlogscherm. |
@@ -90,7 +91,7 @@ Vijf vaste tabbladen, hetzelfde voor elke rol inclusief beheerder:
 **Rapport** en **Beheer** (alleen beheerder) staan niet in de onderbalk — beide zijn bereikbaar via een tegel op het startscherm, omdat er op een mobiel scherm maar ruimte is voor vijf goed aantikbare knoppen.
 
 ### Weergaveschakelaar (Scope Switch)
-Verschijnt boven de inhoud, **alleen voor accounts met meer dan één relatie** (bijvoorbeeld een docent die ook ouder is), en **alleen** op deze zes schermen: Aanwezig, Huiswerk, Yanbu'a, Al-Quran, Murajaah, Rapport. Zie [§13](#13-accounts-met-een-dubbele-rol) voor de volledige uitleg.
+Verschijnt boven de inhoud, **alleen voor accounts met meer dan één relatie** (bijvoorbeeld een docent die ook ouder is), en **alleen** op deze zes schermen: Aanwezig, Huiswerk, Yanbu'a, Al-Quran, Murajaah, Rapport. Zie [§14](#14-accounts-met-een-dubbele-rol) voor de volledige uitleg.
 
 ---
 
@@ -107,7 +108,8 @@ Het eerste scherm na het inloggen. De inhoud verschilt licht per rol.
 | Begroetingskaart | Naam van de gebruiker + de relaties die het account heeft (bijv. "Docent", of "Docent · Ouder" als beide gelden). |
 | Kaart **"Deze week"** *(alleen voor accounts met een gekoppeld kind/leerling — zie §4.2)* | Wordt niet getoond voor een zuivere docent. |
 | Tegels **Aanwezig / Huiswerk / Yanbu'a / Al-Quran / Murajaah / Rapport** | Tik op een tegel om die functie te openen. |
-| Regel **Meldingen →** | Opent de pagina [Meldingsinstellingen](#112-meldingsinstellingen) — beschikbaar voor elke rol, niet alleen voor ontvangers van meldingen, omdat iedereen moet kunnen lezen wat een melding precies inhoudt. |
+| Tegel **Mededelingen & lesmateriaal →** | Opent de mededelingen en het lesmateriaal van de groepen (zie [§11](#11-mededelingen--lesmateriaal)). |
+| Regel **Meldingen →** | Opent de pagina [Meldingsinstellingen](#122-meldingsinstellingen) — beschikbaar voor elke rol, niet alleen voor ontvangers van meldingen, omdat iedereen moet kunnen lezen wat een melding precies inhoudt. |
 
 ### 4.2 Weergave voor een gezin (ouder / leerling)
 
@@ -128,7 +130,7 @@ Deze kaart wordt automatisch **verborgen** als er die week helemaal geen activit
 
 <img src="./screenshots/nl/dashboard-admin.png" width="360" alt="Startscherm — beheerder-weergave">
 
-Hetzelfde als de docentweergave, plus een sectie **"Beheer"** onderaan — de enige toegang tot de [beheerpagina's](#12-beheer-alleen-beheerder) (registraties, groepen, leerlingen).
+Hetzelfde als de docentweergave, plus een sectie **"Beheer"** onderaan — de enige toegang tot de [beheerpagina's](#13-beheer-alleen-beheerder) (registraties, groepen, leerlingen).
 
 ---
 
@@ -141,7 +143,7 @@ Hetzelfde als de docentweergave, plus een sectie **"Beheer"** onderaan — de en
 Het scherm om de aanwezigheid per groep te registreren. Het opent op de
 huidige les van de groep — vandaag als de groep vandaag samenkomt, anders
 de meest recente lesdag daarvoor. Welke dagen een groep samenkomt, stelt
-de beheerder in bij de groep (zie [§12.2](#122-groepen) → Lesdagen).
+de beheerder in bij de groep (zie [§13.2](#132-groepen) → Lesdagen).
 
 | Element | Functie |
 |---|---|
@@ -246,7 +248,7 @@ Alleen om te bekijken — de status kan alleen door de docent worden gewijzigd.
 
 Yanbu'a is een stapsgewijze leesmethode voor het Arabisch/Koranlezen (jilid 1–7 + pagina's). Dit scherm registreert de jilid, pagina en het beheersingsniveau van de leerling.
 
-> **Alleen groepen met registratie.** Yanbu'a, Al-Quran en Murajaah worden alleen vastgelegd in groepen waarbij de beheerder **Registratie Yanbu'a/Al-Quran/Murajaah** heeft aangevinkt ([§12.2](#122-groepen)). Bij **Kies groep** op deze drie schermen staan dus alleen zulke groepen; een docent die alleen een Aqidah-groep lesgeeft, ziet hier geen leerlingen. Een docent van een leerling mag de Yanbu'a/Al-Quran/Murajaah-geschiedenis van die leerling wel **inzien**, ook vanuit een andere groep.
+> **Alleen groepen met registratie.** Yanbu'a, Al-Quran en Murajaah worden alleen vastgelegd in groepen waarbij de beheerder **Registratie Yanbu'a/Al-Quran/Murajaah** heeft aangevinkt ([§13.2](#132-groepen)). Bij **Kies groep** op deze drie schermen staan dus alleen zulke groepen; een docent die alleen een Aqidah-groep lesgeeft, ziet hier geen leerlingen. Een docent van een leerling mag de Yanbu'a/Al-Quran/Murajaah-geschiedenis van die leerling wel **inzien**, ook vanuit een andere groep.
 
 ### 7.1 Docentweergave — Voortgang registreren
 
@@ -425,9 +427,53 @@ Als er nog geen rapport is gepubliceerd voor dat kind, toont het scherm het beri
 
 ---
 
-## 11. Meldingen
+## 11. Mededelingen & lesmateriaal
 
-### 11.1 Meldingencentrum
+Elke groep heeft een eigen pagina met **mededelingen** van de docent en **lesmateriaal**, bijvoorbeeld de slides van een Aqidah-les. U opent de pagina met de tegel **Mededelingen & lesmateriaal** op het startscherm; de onderbalk blijft zoals hij is.
+
+### 11.1 Gezinsweergave — Mededelingen en lesmateriaal lezen
+
+<img src="./screenshots/nl/groups-family.png" width="360" alt="Mededelingen & lesmateriaal — groepen van een kind">
+
+<img src="./screenshots/nl/group-content-family.png" width="360" alt="Mededelingen & lesmateriaal — de pagina van een groep">
+
+| Element | Functie |
+|---|---|
+| **Kies kind** | Alleen bij meer dan één kind: kies van welk kind u de groepen wilt zien. |
+| Kaart per groep | De groepen van het kind, met de docenten, het aantal mededelingen en stukken lesmateriaal en de datum van het nieuwste. Tik op een kaart om de groep te openen. |
+| Kop van de groepspagina | Naam van de groep, de docenten en de lesdag(en). |
+| **Mededelingen** | Nieuwste eerst, met datum en de naam van de docent. Een link in de tekst toont alleen het domein (bijv. **docs.google.com ↗**) en opent in een nieuw tabblad. Een gewijzigde mededeling toont **"gewijzigd"**. |
+| **Lesmateriaal** — bestand | Een PDF- of PowerPoint-bestand met grootte en datum. **Downloaden** slaat het op onder de oorspronkelijke naam. |
+| **Lesmateriaal** — link | Een Google-document of -presentatie, een Google Drive-bestand of een OneDrive-bestand. **Openen ↗** opent het bij Google of Microsoft. |
+
+Bij een nieuwe mededeling of nieuw lesmateriaal krijgt u een melding met de voornaam van uw kind en de naam van de groep; de inhoud leest u in de app (zie [§12](#12-meldingen)). Reageren op een mededeling is niet mogelijk.
+
+### 11.2 Docentweergave — Mededelingen en lesmateriaal plaatsen
+
+<img src="./screenshots/nl/group-content-tutor.png" width="360" alt="Mededelingen & lesmateriaal — docentweergave van een groep">
+
+<img src="./screenshots/nl/group-announcement-new.png" width="360" alt="Nieuwe mededeling">
+
+<img src="./screenshots/nl/group-material-link.png" width="360" alt="Nieuw lesmateriaal — een link">
+
+De lijst toont alleen de groepen waarin u lesgeeft (een beheerder ziet alle actieve groepen). De groep van een leerling bij een andere docent kunt u openen via een link of melding en lezen, maar niet wijzigen.
+
+| Element | Functie |
+|---|---|
+| **+ Mededeling** | Een **titel** (tot 200 tekens) en een **tekst** (tot 2.000 tekens). Alleen links die beginnen met `https://` worden klikbaar. De mededeling gaat naar de hele groep; alle gezinnen krijgen een melding met de naam van het kind en de groep, zonder titel of tekst. Docenten krijgen geen melding. |
+| **+ Lesmateriaal** — **Bestand** | Een **PDF** of **PowerPoint (.pptx)** van ten hoogste **20 MB**. Andere bestanden worden geweigerd met een melding welke soorten wel mogen. |
+| **+ Lesmateriaal** — **Link** | Toegestaan: een Google-document of -presentatie, één Google Drive-bestand, of een **persoonlijke** OneDrive-link die begint met `https://onedrive.live.com/`. Geweigerd: Google Formulieren, Drive-mappen, SharePoint-links van werk of school, en korte `1drv.ms`-links. De knop "Link kopiëren" van OneDrive geeft zo'n korte link: open die één keer in de browser en kopieer het volledige adres. Zet het delen van het bestand op **"Iedereen met de link"**; wie de link krijgt, kan het bestand dan openen, dus deel via een link geen persoonsgegevens. |
+| Melding bij lesmateriaal | Eén melding per kind per dag voor deze groep, hoeveel materiaal u ook plaatst, zonder titel of bestandsnaam. |
+| **Bewerken** | Alleen bij uw eigen mededelingen en lesmateriaal. Wijzigen stuurt geen nieuwe melding; het item toont daarna **"gewijzigd"**. Bij een bestand kunt u ook het **bestand vervangen**. |
+| **Verwijderen** | Uw eigen items; een beheerder kan elk item verwijderen, ook in een gearchiveerde groep. Bij een bestand wordt ook het bestand zelf verwijderd. |
+
+In een **gearchiveerde** groep kan niets worden toegevoegd of gewijzigd.
+
+---
+
+## 12. Meldingen
+
+### 12.1 Meldingencentrum
 
 <img src="./screenshots/nl/notifications-centre.png" width="360" alt="Meldingencentrum">
 
@@ -437,9 +483,9 @@ Wordt geopend via het belletje in de bovenbalk. Bevat alleen gegevens voor accou
 |---|---|
 | Meldingenlijst | Elke regel is één gebeurtenis: leerling afwezig, nieuw huiswerk, deadline-herinnering, Yanbu'a-jilid voltooid, nieuwe surah gememoriseerd, murajaah-herinnering, rapport klaar, of het wekelijkse overzicht. Zit een kind in meer dan één groep, dan noemen de melding over afwezigheid en die over nieuw huiswerk de **groep** (bijv. "… niet aanwezig bij groep Aqidah 9–11 th"), zodat u twee afwezigheden op dezelfde dag uit elkaar houdt. Tik op een regel om het bijbehorende scherm te openen. |
 | Meldingen lezen | Alle meldingen worden automatisch als "gelezen" gemarkeerd zodra deze pagina wordt geopend — er is geen aparte knop hiervoor. |
-| Link **Meldingsinstellingen** | Opent [§11.2](#112-meldingsinstellingen). |
+| Link **Meldingsinstellingen** | Opent [§12.2](#122-meldingsinstellingen). |
 
-### 11.2 Meldingsinstellingen
+### 12.2 Meldingsinstellingen
 
 <img src="./screenshots/nl/notifications-settings.png" width="360" alt="Meldingsinstellingen">
 
@@ -449,18 +495,18 @@ Bereikbaar vanaf het startscherm of vanuit het Meldingencentrum. Open voor **elk
 |---|---|
 | Huidige pushmeldingsstatus | "Meldingen staan aan op dit apparaat" / "staan uit" / "staan aan op een ander apparaat" (één account kan meldingen maar op één apparaat tegelijk ontvangen). |
 | **Meldingen inschakelen** / **Meldingen uitschakelen** / **Verplaats naar dit apparaat** | Eén knop waarvan het label verandert afhankelijk van de bovenstaande status. |
-| *(Alleen voor accounts die meldingen ontvangen)* Lijst **"Wat u ontvangt"** | Korte uitleg van de 4 soorten meldingen die worden verstuurd: afwezigheid, nieuw huiswerk, prestaties (jilid/surah voltooid), en rapport klaar. |
+| *(Alleen voor accounts die meldingen ontvangen)* Lijst **"Wat u ontvangt"** | Korte uitleg van de 5 soorten meldingen die worden verstuurd: afwezigheid, nieuw huiswerk, prestaties (jilid/surah voltooid), rapport klaar, en nieuwe mededelingen of nieuw lesmateriaal in de groep van het kind. |
 | **"Wat er op het vergrendelscherm verschijnt"** | Privacytoelichting: een melding op het vergrendelscherm bevat alleen de voornaam van het kind en het soort gebeurtenis — **nooit** de reden van afwezigheid, cijfers of voortgangsdetails; die zijn pas zichtbaar na het openen van de app. |
 
 Als de browser meldingsrechten blokkeert, toont het scherm uitleg om deze handmatig via de browserinstellingen toe te staan.
 
 ---
 
-## 12. Beheer (alleen beheerder)
+## 13. Beheer (alleen beheerder)
 
 Alleen toegankelijk voor een account met de rol Beheerder, via de tegel **Beheer** op het startscherm. Bestaat uit vijf subpagina's met een tabmenu bovenaan: **Registraties · Groepen · Leerlingen · Aanwezigheid docenten · Gebruikers**.
 
-### 12.1 Registraties
+### 13.1 Registraties
 
 <img src="./screenshots/nl/admin-registrations.png" width="360" alt="Beheer — Registraties">
 
@@ -484,7 +530,7 @@ Alleen toegankelijk voor een account met de rol Beheerder, via de tegel **Beheer
 | **Registreren** | Voltooit de registratie van die persoon — de rij verdwijnt automatisch uit de lijst na succes, en de aanvraag (met toelichting) wordt verwijderd. |
 | **Weigeren** | Verwijdert de wachtende aanmelding. Er verschijnt eerst een bevestigingsvraag met het e-mailadres. Na bevestiging worden het (nog niet-geregistreerde) account en de bijbehorende aanvraag verwijderd en verdwijnt de rij uit de lijst. **Weigeren is geen blokkade**: dezelfde Google-gebruiker kan opnieuw inloggen en verschijnt dan als een nieuwe wachtende aanmelding. Een aanmelding waarvan het account inmiddels wél is aangemaakt, kan niet worden geweigerd. |
 
-### 12.2 Groepen
+### 13.2 Groepen
 
 <img src="./screenshots/nl/admin-classes.png" width="360" alt="Beheer — groepenlijst">
 
@@ -495,8 +541,9 @@ Er zijn twee soorten groepen: **Yanbu'a/Al-Quran-groepen** (ingedeeld naar leesn
 | **+ Nieuwe groep** | Opent het formulier voor een nieuwe groep (zie afbeelding hieronder). |
 | **Actief** / **Gearchiveerd** | Toont de actieve groepen of de gearchiveerde groepen. |
 | Kaart per groep | Naam, eventueel het label **"Geen registratie Yanbu'a"** (bijv. een Aqidah-groep; voluit: geen registratie van Yanbu'a, Al-Quran en Murajaah) of **"Gearchiveerd"**, rooster, lesdagen (bijv. "wo, za"), en lijst van toegewezen docenten. |
-| **Leerlingen (aantal)** | Opent de leerlingenlijst van de groep, waar u leerlingen toevoegt en verwijdert (zie [§12.2.1](#1221-leerlingen-van-een-groep)). |
+| **Leerlingen (aantal)** | Opent de leerlingenlijst van de groep, waar u leerlingen toevoegt en verwijdert (zie [§13.2.1](#1321-leerlingen-van-een-groep)). |
 | **Bewerken** | Opent het bewerkingsformulier voor die groep, al ingevuld met bestaande gegevens. |
+| Opslag lesmateriaal | Onder de titel: hoeveel opslag de bestanden van het lesmateriaal samen gebruiken (zie [§11](#11-mededelingen--lesmateriaal)). Het gratis abonnement heeft 1 GB, samen met de rapporten. |
 | **Archiveren** | Voor een groep van een vorig schooljaar of een opgeheven groep. Een gearchiveerde groep wordt **bevroren**: geen nieuwe lessen, aanwezigheid, huiswerk of leerlingen meer, voor niemand (ook niet voor de beheerder). De geschiedenis blijft bewaard en zichtbaar, maar de groep verdwijnt uit alle keuzelijsten, en de docenten van de groep zien geen gegevens van de vroegere leerlingen meer buiten die groep zelf. Had de groep in de afgelopen 7 dagen nog les, dan waarschuwt de app: een docent die offline aanwezigheid heeft ingevuld die nog niet is verstuurd, kan die na het archiveren niet meer versturen. |
 | **Heractiveren** | Maakt een gearchiveerde groep weer actief, bijvoorbeeld om iets te corrigeren. |
 | **Verwijderen** | Alleen voor een groep **zonder geschiedenis** (bijv. per ongeluk aangemaakt). Heeft de groep al lessen of huiswerk, dan kan hij niet worden verwijderd — de app zegt dat en raadt aan hem te archiveren. |
@@ -520,7 +567,7 @@ Groepsformulier (hetzelfde voor nieuw aanmaken of bewerken):
 
 Een doel dat **moet worden afgesloten** is al aangevinkt en niet te wijzigen. Heeft de leerling nog een andere groep met registratie, dan **mag** het doel blijven (niet aangevinkt). Kies **Doorgaan** om de wijziging uit te voeren en de aangevinkte doelen af te sluiten, of **Annuleren** om niets te wijzigen.
 
-#### 12.2.1 Leerlingen van een groep
+#### 13.2.1 Leerlingen van een groep
 
 <img src="./screenshots/nl/admin-group-members.png" width="360" alt="Beheer — leerlingen aan een groep toevoegen">
 
@@ -534,7 +581,7 @@ Een doel dat **moet worden afgesloten** is al aangevinkt en niet te wijzigen. He
 
 Een gearchiveerde groep toont hier alleen de leerlingen, met de melding dat de groep is gearchiveerd.
 
-### 12.3 Leerlingen
+### 13.3 Leerlingen
 
 <img src="./screenshots/nl/admin-students.png" width="360" alt="Beheer — leerlingenlijst">
 
@@ -561,7 +608,7 @@ Leerlingformulier:
 
 **Nog geen groep.** Leerlingen die via het inschrijfformulier binnenkomen, zitten nog in geen enkele groep en zijn voor geen docent zichtbaar. Zolang er zulke leerlingen zijn, staat bovenaan elk Beheer-scherm een melding met een waarschuwingsdriehoek, **"⚠ Leerlingen zonder groep: {aantal}"**; tik erop om ze te zien.
 
-### 12.4 Aanwezigheid docenten
+### 13.4 Aanwezigheid docenten
 
 Scherm om de aanwezigheid van een docent periodiek na te kijken. De aanwezigheid van docenten wordt door een docent of de beheerder vastgelegd op het gewone scherm **Aanwezigheid** (zie [§5.1](#51-docentweergave--aanwezigheid-registreren) → "Aanwezigheid docenten").
 
@@ -575,16 +622,16 @@ Scherm om de aanwezigheid van een docent periodiek na te kijken. De aanwezigheid
 
 Dit scherm is **alleen om te bekijken** — corrigeren gebeurt op het Aanwezigheidsscherm van de betreffende groep. Ouders en leerlingen zien de aanwezigheid van docenten nooit.
 
-### 12.5 Gebruikers
+### 13.5 Gebruikers
 
-Een lijst van alle bestaande accounts, om iemands **naam** of **rol** te corrigeren. Accounts aanmaken blijft op [§12.1 Registraties](#121-registraties).
+Een lijst van alle bestaande accounts, om iemands **naam** of **rol** te corrigeren. Accounts aanmaken blijft op [§13.1 Registraties](#131-registraties).
 
 | Element | Functie |
 |---|---|
 | **Zoek op naam of e-mail** | Filtert de lijst op een deel van de naam of het e-mailadres. |
 | Rolfilter | **Alle rollen** / Beheerder / Docent / Ouder / Leerling. |
 | **Bewerken** | Opent het regelformulier: veld **Volledige naam** en keuzelijst **Rol**. Tik **Opslaan** of **Annuleren**. |
-| **Verwijderen** | Verschijnt alleen op regels van een **Ouder**- of **Leerling**-account (niet Docent/Beheerder, en niet uw eigen account). Verwijdert het account **permanent**, met de bijbehorende gegevens, na een bevestigingsvraag. Bedoeld om een nepaccount van een kwaadaardige inschrijfformulier-inzending op te ruimen. Is het account nog als verzorger aan leerlingen gekoppeld, verwijder dan eerst die leerlinggegevens in [§12.3 Leerlingen](#123-leerlingen); zolang de koppeling bestaat wordt verwijderen geweigerd met een uitleg. |
+| **Verwijderen** | Verschijnt alleen op regels van een **Ouder**- of **Leerling**-account (niet Docent/Beheerder, en niet uw eigen account). Verwijdert het account **permanent**, met de bijbehorende gegevens, na een bevestigingsvraag. Bedoeld om een nepaccount van een kwaadaardige inschrijfformulier-inzending op te ruimen. Is het account nog als verzorger aan leerlingen gekoppeld, verwijder dan eerst die leerlinggegevens in [§13.3 Leerlingen](#133-leerlingen); zolang de koppeling bestaat wordt verwijderen geweigerd met een uitleg. |
 
 Enkele beveiligingen:
 
@@ -597,7 +644,7 @@ Elke rolwijziging wordt vastgelegd (wie, van welke rol naar welke, wanneer) in e
 
 ---
 
-## 13. Accounts met een dubbele rol
+## 14. Accounts met een dubbele rol
 
 Sommige accounts hebben meer dan één relatie — bijvoorbeeld een docent die ook ouder is van een leerling in een andere groep (niet de groep die hij/zij zelf begeleidt). Zulke accounts zien een **weergaveschakelaar** boven de schermen Aanwezigheid, Huiswerk, Yanbu'a, Al-Quran, Murajaah en Rapport:
 
@@ -613,7 +660,7 @@ Het geopende scherm **verandert niet** bij het indrukken van deze schakelaar —
 
 ---
 
-## 14. Algemene elementen & begrippen
+## 15. Algemene elementen & begrippen
 
 De volgende elementen komen op veel schermen terug en worden hier één keer uitgelegd om herhaling te voorkomen.
 
@@ -629,7 +676,7 @@ De volgende elementen komen op veel schermen terug en worden hier één keer uit
 
 ---
 
-## 15. Bijlage: begrippenlijst Nederlands ⟷ Indonesisch
+## 16. Bijlage: begrippenlijst Nederlands ⟷ Indonesisch
 
 Om tweetalige communicatie binnen de TPA te vergemakkelijken, hier de belangrijkste begrippen die de app gebruikt:
 
@@ -651,4 +698,4 @@ Om tweetalige communicatie binnen de TPA te vergemakkelijken, hier de belangrijk
 
 ---
 
-*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **12.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026), met **§5.1 aangevuld voor de sectie "Aanwezigheid docenten"** en **§12.4 toegevoegd voor het beheerdersscherm "Aanwezigheid docenten"** (ADR-041, september 2026), met **§12.5 toegevoegd voor het beheerdersscherm "Gebruikers"** (ADR-042, september 2026), en bijgewerkt voor **leerlingen in meerdere groepen** (ADR-045, september 2026): §5, §6.2, §7, §11.1, §12.2 (met het nieuwe §12.2.1 "Leerlingen van een groep") en §12.3. De indeling kan in latere app-versies licht afwijken. De PDF-versie is uit deze tekst opnieuw gegenereerd met `scripts/gen-manual-pdf.mjs`; de schermen van §12.4 en §12.5 hebben nog geen schermafbeelding.*
+*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **13.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026), met **§5.1 aangevuld voor de sectie "Aanwezigheid docenten"** en **§13.4 toegevoegd voor het beheerdersscherm "Aanwezigheid docenten"** (ADR-041, september 2026), met **§13.5 toegevoegd voor het beheerdersscherm "Gebruikers"** (ADR-042, september 2026), en bijgewerkt voor **leerlingen in meerdere groepen** (ADR-045, september 2026): §5, §6.2, §7, §12.1, §13.2 (met het nieuwe §13.2.1 "Leerlingen van een groep") en §13.3, en met **§11 toegevoegd voor "Mededelingen & lesmateriaal"** (ADR-045 release 8b-1, september 2026; de latere hoofdstukken schoven één nummer op). De indeling kan in latere app-versies licht afwijken. De PDF-versie is uit deze tekst opnieuw gegenereerd met `scripts/gen-manual-pdf.mjs`; de schermen van §13.4 en §13.5 hebben nog geen schermafbeelding.*
