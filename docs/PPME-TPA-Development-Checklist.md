@@ -867,9 +867,9 @@ Docs: ADR-045 status + findings, PRD implementation-status lines, `openapi.yaml`
 - [x] The pgTAP fixtures and `dev-fixture.sql` are off `students.class_id`. RLS-122 is retired; RLS-143…145 are new.
 - [x] Verified: pgTAP 512/512; unit 672/672; both typechecks and the build; live against 027 (Functions, including `publish-report` with the PDF read back, and the 35 browser checks with zero console errors and failed requests). See test-plan §6.y.
 
-**Production runbook for 027 — do in this order, by hand:**
-1. A fresh `pg_dump` of production, stored off-platform.
-2. Apply 027 with `supabase db push` from this PR's branch, **then merge the PR straight away.** The 8a app already in production works against 027, with one exception: `publish-report`, which is fixed in this PR. Year-end reports are not published in September, so the minutes between the two steps do not matter in practice.
-3. Smoke-check: an admin saves a student's groups; a tutor records attendance; a parent opens attendance and notifications.
+**Production runbook for 027 — steps 1–2 done 2026-09-26:**
+1. [x] A fresh `pg_dump` of production (roles, schema, data), stored off-platform on the maintainer's machine.
+2. [x] 027 applied with `supabase db push` from the PR branch, and #19 merged straight after. Checked in production: 027 is recorded as applied; `students.class_id` and `trg_students_class_id_sync` are gone; `notifications`' only unique key is `UNIQUE NULLS NOT DISTINCT (user_id, student_id, event, event_date, ref_id)`; `class_members` holds 96 rows, the Aqidah groups having been enrolled after 8a went live. The 8a app ran against 027 only for the minutes before the merge deployed. Year-end reports are not published in September, so the one path that would have failed, `publish-report`, was never exercised in that window.
+3. [ ] Smoke check in the app: an admin saves a student's groups; a tutor records attendance; a parent opens attendance and notifications. Done by the maintainer.
 
 **Rollback after 027:** a Netlify rollback can go back only as far as the 8a deploy, because a pre-8a bundle reads `students.class_id`. Undoing 027 itself means restoring the dump.
