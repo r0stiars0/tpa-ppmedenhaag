@@ -386,7 +386,7 @@
     "archivedGroupsOfStudent": "Gearchiveerde groepen (blijven als geschiedenis): {{groups}}",
     "filterByGroup": "Tonen",
     "noGroup": "Nog geen groep",
-    "studentsWithoutGroup": "Leerlingen zonder groep: {{count}} — nog voor geen enkele docent zichtbaar",
+    "studentsWithoutGroup": "Leerlingen zonder groep: {{count}}",
     "tracksProgress": "Registratie Yanbu'a",
     "tracksProgressFull": "Registratie Yanbu'a/Al-Quran/Murajaah",
     "tracksProgressHint": "Vink uit voor een Aqidah-groep: de docenten registreren dan wel aanwezigheid en huiswerk, maar geen Yanbu'a, Al-Quran of Murajaah.",

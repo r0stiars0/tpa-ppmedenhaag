@@ -559,7 +559,7 @@ Leerlingformulier:
 | **Koppel zelfstandig account** | Optioneel — verschijnt alleen als er een account van het type "leerling" bestaat dat nog aan geen enkele leerling is gekoppeld. Dit is de manier om de Google-login van een leerling (meestal 16+) te koppelen aan bestaande leerlinggegevens, bijvoorbeeld wanneer de leerling net een eigen account heeft aangemaakt. |
 | **Opslaan** / **Annuleren** | Opslaan of annuleren. |
 
-**Nog geen groep.** Leerlingen die via het inschrijfformulier binnenkomen, zitten nog in geen enkele groep en zijn voor geen docent zichtbaar. Zolang er zulke leerlingen zijn, staat bovenaan elk Beheer-scherm een melding **"Leerlingen zonder groep: {aantal}"**; tik erop om ze te zien.
+**Nog geen groep.** Leerlingen die via het inschrijfformulier binnenkomen, zitten nog in geen enkele groep en zijn voor geen docent zichtbaar. Zolang er zulke leerlingen zijn, staat bovenaan elk Beheer-scherm een melding met een waarschuwingsdriehoek, **"⚠ Leerlingen zonder groep: {aantal}"**; tik erop om ze te zien.
 
 ### 12.4 Aanwezigheid docenten
 

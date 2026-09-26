@@ -559,7 +559,7 @@ Formulir Santri:
 | **Tautkan Akun Login Mandiri** | Opsional — hanya muncul jika ada akun bertipe "santri" yang belum tertaut ke santri manapun. Ini cara untuk menghubungkan login Google milik santri (biasanya yang sudah 16+) ke data santri yang sudah ada, misalnya saat santri baru saja membuat akunnya sendiri. |
 | **Simpan** / **Batal** | Menyimpan atau membatalkan. |
 
-**Belum ada grup.** Santri yang masuk lewat formulir pendaftaran belum ikut grup mana pun dan belum terlihat oleh guru mana pun. Selama masih ada santri seperti itu, di bagian atas setiap layar Kelola tampil pemberitahuan **"Santri belum ada grup: {jumlah}"**; ketuk untuk melihat mereka.
+**Belum ada grup.** Santri yang masuk lewat formulir pendaftaran belum ikut grup mana pun dan belum terlihat oleh guru mana pun. Selama masih ada santri seperti itu, di bagian atas setiap layar Kelola tampil pemberitahuan dengan segitiga peringatan, **"⚠ Santri belum ada grup: {jumlah}"**; ketuk untuk melihat mereka.
 
 ### 12.4 Kehadiran Guru
 
