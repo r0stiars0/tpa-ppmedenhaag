@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { InfoButton } from '../../components/InfoButton'
 import { ROLE_I18N_KEY } from '../../lib/roleLabels'
 import { DISPLAY_ORDER, DOW_KEY, normaliseDows } from '../../lib/weekdays'
 import type { DirectoryUser, AdminClass } from './api'
@@ -94,18 +95,19 @@ export function ClassForm({ initial, tutors, saving, onSave, onCancel }: ClassFo
         {noDays && <p className="mt-1 text-xs text-ppme-danger">{t('admin.meetingDaysHint')}</p>}
       </fieldset>
 
-      <label className="flex min-h-11 items-start gap-2 text-sm text-ppme-text">
-        <input
-          type="checkbox"
-          checked={tracksProgress}
-          onChange={(e) => setTracksProgress(e.target.checked)}
-          className="mt-1 h-4 w-4"
-        />
-        <span>
+      {/* Short label, full explanation behind the ⓘ (kept outside the label). */}
+      <div className="flex items-center justify-between gap-2">
+        <label className="flex min-h-11 items-center gap-2 text-sm text-ppme-text">
+          <input
+            type="checkbox"
+            checked={tracksProgress}
+            onChange={(e) => setTracksProgress(e.target.checked)}
+            className="h-4 w-4"
+          />
           {t('admin.tracksProgress')}
-          <span className="block text-xs text-ppme-text/60">{t('admin.tracksProgressHint')}</span>
-        </span>
-      </label>
+        </label>
+        <InfoButton title={t('admin.tracksProgressFull')}>{t('admin.tracksProgressHint')}</InfoButton>
+      </div>
 
       <div>
         <p className="text-xs font-medium text-ppme-text/70">{t('admin.assignTutors')}</p>

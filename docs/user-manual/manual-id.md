@@ -510,7 +510,7 @@ Formulir Grup (sama untuk buat baru maupun ubah):
 | **Nama Grup** | Wajib diisi. Misalnya "Grup A" atau "Aqidah 9–11 th" — namanya bebas, aplikasi hanya melihat pengaturan di bawah ini. |
 | **Jadwal** | Opsional, teks bebas untuk waktu (mis. "Sabtu 10:00-12:00"). |
 | **Hari pertemuan** | Daftar centang Senin sampai Ahad. Pada grup baru, **Sabtu** sudah tercentang; boleh lebih dari satu hari. Minimal satu hari harus dipilih — jika tidak, tombol **Simpan** nonaktif dengan pesan *"Pilih minimal satu hari"*. Hari-hari ini menentukan tanggal mana yang bisa dibuatkan sesi di daftar hadir. |
-| **Pencatatan Yanbu'a/Al-Quran/Murajaah** | Secara bawaan **tercentang** (grup Yanbu'a/Al-Quran). **Hilangkan centang untuk grup Aqidah**: gurunya tetap mengisi kehadiran dan tugas, tetapi tidak mencatat Yanbu'a, Al-Quran atau Murajaah. |
+| **Pencatatan Yanbu'a** + tombol **ⓘ** | Lengkapnya: *Pencatatan Yanbu'a/Al-Quran/Murajaah*. Secara bawaan **tercentang** (grup Yanbu'a/Al-Quran). **Hilangkan centang untuk grup Aqidah**: gurunya tetap mengisi kehadiran dan tugas, tetapi tidak mencatat Yanbu'a, Al-Quran atau Murajaah. Ketuk **ⓘ** untuk membaca penjelasan ini dalam jendela kecil; ketuk lagi atau di luar jendela untuk menutupnya. |
 | **Guru Pengampu** | Daftar centang — bisa memilih lebih dari satu guru, atau tidak memilih sama sekali. |
 | **Simpan** / **Batal** | Menyimpan atau membatalkan. |
 
@@ -529,7 +529,7 @@ Target yang **harus ditutup** sudah tercentang dan tidak bisa diubah. Jika santr
 | **+ Tambah santri** | Membuka daftar pilihan untuk menambahkan beberapa santri sekaligus — berguna di awal tahun ajaran, daripada mengubah data santri satu per satu. |
 | Saringan **Nama**, **Lahir dari** / **Lahir sampai**, **Grup saat ini** | Mempersempit daftar. Menyaring menurut tanggal lahir adalah alat bantu untuk menemukan kelompok usia; aplikasi **tidak** menyarankan grup. Dengan **Grup saat ini → Belum ada grup** Anda menemukan santri yang belum ditempatkan. |
 | Daftar dengan centang | Setiap santri dengan tanggal lahir dan grup saat ini. Santri yang sudah menjadi anggota tidak tercantum. |
-| **Tambahkan {jumlah} santri** | Meminta konfirmasi lebih dulu: aplikasi menyebut berapa santri yang ditambahkan dan **guru mana yang dengan itu mendapat akses** ke data mereka (riwayat Yanbu'a/Al-Quran/Murajaah, kehadiran, dan kontak orang tua). Setiap penambahan dicatat (siapa, apa, kapan). |
+| **Tambahkan ({jumlah})** | Meminta konfirmasi lebih dulu: aplikasi menyebut berapa santri yang ditambahkan dan **guru mana yang dengan itu mendapat akses** ke data mereka (riwayat Yanbu'a/Al-Quran/Murajaah, kehadiran, dan kontak orang tua). Setiap penambahan dicatat (siapa, apa, kapan). |
 | Daftar anggota dengan **Keluarkan** | Mengeluarkan santri dari grup, setelah konfirmasi. Kehadiran dan tugas santri sebelumnya tetap tersimpan dan terlihat oleh keluarga; pengumuman dan materi grup tidak lagi. |
 
 Grup yang diarsipkan hanya menampilkan anggotanya di sini, dengan keterangan bahwa grup telah diarsipkan.
@@ -559,7 +559,7 @@ Formulir Santri:
 | **Tautkan Akun Login Mandiri** | Opsional — hanya muncul jika ada akun bertipe "santri" yang belum tertaut ke santri manapun. Ini cara untuk menghubungkan login Google milik santri (biasanya yang sudah 16+) ke data santri yang sudah ada, misalnya saat santri baru saja membuat akunnya sendiri. |
 | **Simpan** / **Batal** | Menyimpan atau membatalkan. |
 
-**Belum ada grup.** Santri yang masuk lewat formulir pendaftaran belum ikut grup mana pun dan belum terlihat oleh guru mana pun. Selama masih ada santri seperti itu, di bagian atas setiap layar Kelola tampil pemberitahuan **"{jumlah} santri belum ada grup"**; ketuk untuk melihat mereka.
+**Belum ada grup.** Santri yang masuk lewat formulir pendaftaran belum ikut grup mana pun dan belum terlihat oleh guru mana pun. Selama masih ada santri seperti itu, di bagian atas setiap layar Kelola tampil pemberitahuan **"Santri belum ada grup: {jumlah}"**; ketuk untuk melihat mereka.
 
 ### 12.4 Kehadiran Guru
 

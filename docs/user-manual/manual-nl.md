@@ -510,7 +510,7 @@ Groepsformulier (hetzelfde voor nieuw aanmaken of bewerken):
 | **Groepsnaam** | Verplicht. Bijvoorbeeld "Grup A" of "Aqidah 9–11 th" — de naam is vrij, de app kijkt alleen naar de instelling hieronder. |
 | **Rooster** | Optioneel, vrije tekst voor de tijd (bijv. "Sabtu 10:00-12:00"). |
 | **Lesdagen** | Aanvinklijst maandag t/m zondag. Bij een nieuwe groep staat **zaterdag** al aangevinkt; meerdere dagen mag. Er moet minstens één dag gekozen zijn — anders is **Opslaan** uitgeschakeld met de melding *"Kies minstens één dag"*. Deze dagen bepalen op welke datums de aanwezigheidslijst een les kan aanmaken. |
-| **Registratie Yanbu'a/Al-Quran/Murajaah** | Standaard **aangevinkt** (een Yanbu'a/Al-Quran-groep). **Vink uit voor een Aqidah-groep**: de docenten registreren dan wel aanwezigheid en huiswerk, maar geen Yanbu'a, Al-Quran of Murajaah. |
+| **Registratie Yanbu'a** + knop **ⓘ** | Voluit: *Registratie Yanbu'a/Al-Quran/Murajaah*. Standaard **aangevinkt** (een Yanbu'a/Al-Quran-groep). **Vink uit voor een Aqidah-groep**: de docenten registreren dan wel aanwezigheid en huiswerk, maar geen Yanbu'a, Al-Quran of Murajaah. Tik op **ⓘ** om deze uitleg in een venstertje te lezen; tik nogmaals of ernaast om het te sluiten. |
 | **Toegewezen docenten** | Aanvinklijst — er kan meer dan één docent worden gekozen, of geen enkele. |
 | **Opslaan** / **Annuleren** | Opslaan of annuleren. |
 
@@ -529,7 +529,7 @@ Een doel dat **moet worden afgesloten** is al aangevinkt en niet te wijzigen. He
 | **+ Leerlingen toevoegen** | Opent de keuzelijst om meerdere leerlingen tegelijk aan de groep toe te voegen — handig aan het begin van het schooljaar, in plaats van elke leerling apart te bewerken. |
 | Filters **Naam**, **Geboren vanaf** / **Geboren tot en met**, **Huidige groep** | Beperken de lijst. Filteren op geboortedatum is een hulpmiddel om bijvoorbeeld een leeftijdsgroep te vinden; de app stelt zelf **geen** groep voor. Met **Huidige groep → Nog geen groep** vindt u leerlingen die nog nergens zijn ingedeeld. |
 | Lijst met vinkjes | Elke leerling met geboortedatum en huidige groep(en). Leerlingen die al lid zijn, staan er niet in. |
-| **{aantal} leerlingen toevoegen** | Vraagt eerst om bevestiging: de app noemt hoeveel leerlingen worden toegevoegd en **welke docenten daardoor toegang krijgen** tot hun gegevens (Yanbu'a/Al-Quran/Murajaah-geschiedenis, aanwezigheid en contactgegevens van ouders). Elke toevoeging wordt vastgelegd (wie, wat, wanneer). |
+| **Toevoegen ({aantal})** | Vraagt eerst om bevestiging: de app noemt hoeveel leerlingen worden toegevoegd en **welke docenten daardoor toegang krijgen** tot hun gegevens (Yanbu'a/Al-Quran/Murajaah-geschiedenis, aanwezigheid en contactgegevens van ouders). Elke toevoeging wordt vastgelegd (wie, wat, wanneer). |
 | Ledenlijst met **Uit groep halen** | Haalt een leerling uit de groep, na bevestiging. De eerdere aanwezigheid en het huiswerk van de leerling blijven bewaard en zichtbaar voor het gezin; berichten en materiaal van de groep niet meer. |
 
 Een gearchiveerde groep toont hier alleen de leden, met de melding dat de groep is gearchiveerd.
@@ -559,7 +559,7 @@ Leerlingformulier:
 | **Koppel zelfstandig account** | Optioneel — verschijnt alleen als er een account van het type "leerling" bestaat dat nog aan geen enkele leerling is gekoppeld. Dit is de manier om de Google-login van een leerling (meestal 16+) te koppelen aan bestaande leerlinggegevens, bijvoorbeeld wanneer de leerling net een eigen account heeft aangemaakt. |
 | **Opslaan** / **Annuleren** | Opslaan of annuleren. |
 
-**Nog geen groep.** Leerlingen die via het inschrijfformulier binnenkomen, zitten nog in geen enkele groep en zijn voor geen docent zichtbaar. Zolang er zulke leerlingen zijn, staat bovenaan elk Beheer-scherm een melding **"{aantal} leerlingen zonder groep"**; tik erop om ze te zien.
+**Nog geen groep.** Leerlingen die via het inschrijfformulier binnenkomen, zitten nog in geen enkele groep en zijn voor geen docent zichtbaar. Zolang er zulke leerlingen zijn, staat bovenaan elk Beheer-scherm een melding **"Leerlingen zonder groep: {aantal}"**; tik erop om ze te zien.
 
 ### 12.4 Aanwezigheid docenten
 
