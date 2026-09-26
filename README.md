@@ -83,6 +83,20 @@ docker exec -i supabase_db_tpa-ppme-denhaag \
   psql -U postgres -v ON_ERROR_STOP=1 < supabase/dev-fixture.sql
 ```
 
+The fixture has no activity rows on purpose. To see the multi-group
+screens (PRD Feature 8) with data, also load the opt-in demo seed. It adds
+three weeks of registers on each group's real meeting days (relative to
+today), homework from two groups, Murajaah targets, an Aqidah-only child
+(Hana), a child in no group (Rafi) and an archived group with history:
+
+```bash
+docker exec -i supabase_db_tpa-ppme-denhaag \
+  psql -U postgres -v ON_ERROR_STOP=1 < supabase/dev-seed-multigroup.sql
+```
+
+It is not idempotent: to reload it, `supabase db reset --local`, then the
+fixture, then the seed.
+
 With `.env` pointed at the local stack, `npm run dev` then shows a
 "Dev only" sign-in panel (`src/dev/DevAuthSwitcher.tsx`, gated on
 `import.meta.env.DEV` and confirmed absent from production builds) on the
