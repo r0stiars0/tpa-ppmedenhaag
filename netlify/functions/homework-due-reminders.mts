@@ -40,20 +40,25 @@ export default scheduledHandler({
 
     const { data: assignments, error } = await client
       .from('assignments')
-      .select('id, class_id, title')
+      // An archived group is frozen and runs nothing automatic (PRD
+      // Feature 8 FR-010): no reminder for homework nobody can update.
+      .select('id, class_id, title, class:classes!inner(archived_at)')
       .eq('due_date', tomorrow)
+      .is('class.archived_at', null)
     if (error) throw new Error(error.message)
     if (!assignments || assignments.length === 0) {
       return { ...empty, skipped: `nothing due on ${tomorrow}` }
     }
 
     const classIds = [...new Set(assignments.map((a) => a.class_id))]
-    const { data: students, error: rosterError } = await client
-      .from('students')
-      .select('id, class_id')
+    // Memberships, not `students.class_id`: a child can be in several
+    // groups and owe homework to more than one of them (ADR-045).
+    const { data: members, error: rosterError } = await client
+      .from('class_members')
+      .select('student_id, class_id')
       .in('class_id', classIds)
     if (rosterError) throw new Error(rosterError.message)
-    if (!students || students.length === 0) {
+    if (!members || members.length === 0) {
       return { ...empty, skipped: 'no students enrolled in those classes' }
     }
 
@@ -67,14 +72,12 @@ export default scheduledHandler({
 
     const finished = new Set((statuses ?? []).map((s) => `${s.assignment_id}:${s.student_id}`))
     const rosterByClass = new Map<string, string[]>()
-    for (const student of students) {
-      // `students.class_id` is nullable — a child enrolled but not yet
-      // placed in a class. They are in no class's roster, so they get no
-      // homework and no reminder about it.
-      if (!student.class_id) continue
-      const roster = rosterByClass.get(student.class_id)
-      if (roster) roster.push(student.id)
-      else rosterByClass.set(student.class_id, [student.id])
+    for (const member of members) {
+      // A child in no group has no membership row, so no homework and no
+      // reminder about it.
+      const roster = rosterByClass.get(member.class_id)
+      if (roster) roster.push(member.student_id)
+      else rosterByClass.set(member.class_id, [member.student_id])
     }
 
     // Per student, because one morning's run can owe different children

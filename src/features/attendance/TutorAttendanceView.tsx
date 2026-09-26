@@ -29,6 +29,7 @@ import {
   type ClassTutor,
   type RosterStudent,
 } from './api'
+import { StudentAttendanceHistory } from './StudentAttendanceHistory'
 
 type AttendanceStatus = Database['public']['Enums']['attendance_status']
 
@@ -454,6 +455,7 @@ export function TutorAttendanceView() {
                     />
                   </div>
                 )}
+                <StudentAttendanceHistory studentId={student.id} />
               </div>
             )
           })}

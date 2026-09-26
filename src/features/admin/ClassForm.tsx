@@ -1,19 +1,23 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { InfoButton } from '../../components/InfoButton'
 import { ROLE_I18N_KEY } from '../../lib/roleLabels'
 import { DISPLAY_ORDER, DOW_KEY, normaliseDows } from '../../lib/weekdays'
 import type { DirectoryUser, AdminClass } from './api'
+
+export interface ClassFormValue {
+  name: string
+  schedule: string | null
+  meeting_days: number[]
+  tutor_ids: string[]
+  tracks_progress: boolean
+}
 
 interface ClassFormProps {
   initial?: AdminClass
   tutors: DirectoryUser[]
   saving: boolean
-  onSave: (data: {
-    name: string
-    schedule: string | null
-    meeting_days: number[]
-    tutor_ids: string[]
-  }) => void
+  onSave: (data: ClassFormValue) => void
   onCancel?: () => void
 }
 
@@ -25,6 +29,9 @@ export function ClassForm({ initial, tutors, saving, onSave, onCancel }: ClassFo
     normaliseDows(initial?.meeting_days ?? [6]),
   )
   const [tutorIds, setTutorIds] = useState<string[]>(initial?.tutor_ids ?? [])
+  // Ticked by default: most groups are Yanbu'a/Quran groups, and the
+  // admin unticks it for an Aqidah group (PRD Feature 8 FR-001).
+  const [tracksProgress, setTracksProgress] = useState<boolean>(initial?.tracks_progress ?? true)
 
   function toggleTutor(id: string) {
     setTutorIds((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]))
@@ -88,6 +95,20 @@ export function ClassForm({ initial, tutors, saving, onSave, onCancel }: ClassFo
         {noDays && <p className="mt-1 text-xs text-ppme-danger">{t('admin.meetingDaysHint')}</p>}
       </fieldset>
 
+      {/* Short label, full explanation behind the ⓘ (kept outside the label). */}
+      <div className="flex items-center justify-between gap-2">
+        <label className="flex min-h-11 items-center gap-2 text-sm text-ppme-text">
+          <input
+            type="checkbox"
+            checked={tracksProgress}
+            onChange={(e) => setTracksProgress(e.target.checked)}
+            className="h-4 w-4"
+          />
+          {t('admin.tracksProgress')}
+        </label>
+        <InfoButton title={t('admin.tracksProgressFull')}>{t('admin.tracksProgressHint')}</InfoButton>
+      </div>
+
       <div>
         <p className="text-xs font-medium text-ppme-text/70">{t('admin.assignTutors')}</p>
         {tutors.length === 0 ? (
@@ -119,6 +140,7 @@ export function ClassForm({ initial, tutors, saving, onSave, onCancel }: ClassFo
               schedule: schedule.trim() || null,
               meeting_days: meetingDays,
               tutor_ids: tutorIds,
+              tracks_progress: tracksProgress,
             })
           }
           className="min-h-11 flex-1 rounded-lg bg-ppme-primary px-4 font-semibold text-white shadow-sm hover:bg-ppme-primary-dark disabled:opacity-60"

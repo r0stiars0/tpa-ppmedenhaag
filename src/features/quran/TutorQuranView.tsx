@@ -21,7 +21,7 @@ type QuranQuality = Database['public']['Enums']['quran_quality']
 export function TutorQuranView() {
   const { t } = useTranslation()
   const { profile } = useAuth()
-  const { classes, loading: classesLoading } = useMyClasses()
+  const { classes, loading: classesLoading } = useMyClasses({ trackingOnly: true })
   const { selfStudentId } = useViewScope()
 
   const [classId, setClassId] = useState<string | null>(null)

@@ -93,6 +93,15 @@ describe('copyKeyFor', () => {
     )
   })
 
+  it('uses the group variant when the row names a group (ADR-045(g))', () => {
+    expect(copyKeyFor('absence', { group: 'Aqidah' })).toBe('notifications.absenceInGroup')
+    expect(copyKeyFor('newAssignment', { group: 'Aqidah', title: 'x', date: '2026-03-10' })).toBe(
+      'notifications.newAssignmentInGroup',
+    )
+    // A row written before groups existed has no `group` and keeps its copy.
+    expect(copyKeyFor('newAssignment', { title: 'x', date: '2026-03-10' })).toBe('notifications.newAssignment')
+  })
+
   it('leaves every other event on its own key', () => {
     expect(copyKeyFor('absence', {})).toBe('notifications.absence')
     expect(copyKeyFor('jilidMilestone', { number: 3 })).toBe('notifications.jilidMilestone')

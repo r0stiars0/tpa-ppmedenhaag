@@ -23,6 +23,8 @@ import {
 import { fetchSurahs } from '../quran/api'
 import { AssignmentCard } from './AssignmentCard'
 import { MurajaahTimeline } from './MurajaahTimeline'
+import { useHasTrackingGroup } from '../../hooks/useHasTrackingGroup'
+import { NoTrackingNotice } from '../../components/NoTrackingNotice'
 import { QUALITY_LABEL_KEY, QUALITY_OPTIONS } from './quality'
 
 type MurajaahQuality = Database['public']['Enums']['murajaah_quality']
@@ -43,6 +45,7 @@ export function FamilyMurajaahView() {
   const [alreadyConfirmed, setAlreadyConfirmed] = useState(false)
   const [quality, setQuality] = useState<MurajaahQuality>('hafal_lancar')
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const hasTracking = useHasTrackingGroup(studentId)
 
   useEffect(() => {
     fetchSurahs()
@@ -212,6 +215,8 @@ export function FamilyMurajaahView() {
 
       {loading ? (
         <p className="text-ppme-text/60">{t('common.loading')}</p>
+      ) : activeAssignments.length === 0 && hasTracking === false && logs.length === 0 ? (
+        <NoTrackingNotice />
       ) : activeAssignments.length === 0 ? (
         <p className="rounded-lg bg-white p-4 text-center text-ppme-text/60 shadow-sm">
           {t('murajaah.noActiveTarget')}

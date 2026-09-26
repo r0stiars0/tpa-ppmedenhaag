@@ -3,6 +3,7 @@ import idCopy from '../../public/locales/id.json'
 import nlCopy from '../../public/locales/nl.json'
 import {
   NOTIFICATION_EVENTS,
+  PUSH_GROUP_VARIANTS,
   amsterdamDate,
   amsterdamHour,
   buildPayload,
@@ -21,7 +22,13 @@ describe('push copy coverage', () => {
   it('every event has copy in every locale, and nothing extra', () => {
     for (const locale of LOCALES) {
       const keys = Object.keys(COPY[locale].notifications.push).sort()
-      expect(keys, `locale ${locale}`).toEqual([...NOTIFICATION_EVENTS].sort())
+      // One string per event, plus the "…InGroup" variant of the events
+      // that name a group (PRD Feature 8, ADR-045(g)) — and nothing else.
+      const expected = [
+        ...NOTIFICATION_EVENTS,
+        ...PUSH_GROUP_VARIANTS.map((event) => `${event}InGroup`),
+      ].sort()
+      expect(keys, `locale ${locale}`).toEqual(expected)
     }
   })
 })
@@ -74,16 +81,36 @@ describe('DPIA risk R6 — lock-screen content limits', () => {
     expect(payload.body).not.toContain('Abdullah')
   })
 
-  it('every push string interpolates the child name and nothing else', () => {
+  it('every push string interpolates the child name and nothing else — the group name only in an …InGroup string', () => {
     // The structural guarantee is that `buildPayload` has no parameter
     // that could carry a reason, grade or position. This is the other
     // half: copy cannot smuggle one in through a placeholder either.
+    //
+    // The one widening is deliberate and narrow (PRD Feature 8 Resolved
+    // Decision 17, DPIA R6): a group's name — "Aqidah 7–9 th" — so a
+    // parent can tell two absences on one day apart. It is teaching
+    // metadata, not about the child, and only the …InGroup strings may
+    // carry it.
     for (const locale of LOCALES) {
       for (const [event, template] of Object.entries(COPY[locale].notifications.push)) {
-        const placeholders = [...template.matchAll(/\{\{\s*(\w+)\s*\}\}/g)].map((m) => m[1])
-        expect(placeholders, `${event}/${locale}`).toEqual(['name'])
+        const placeholders = [...template.matchAll(/\{\{\s*(\w+)\s*\}\}/g)].map((m) => m[1]).sort()
+        const expected = event.endsWith('InGroup') ? ['group', 'name'] : ['name']
+        expect(placeholders, `${event}/${locale}`).toEqual(expected)
       }
     }
+  })
+
+  it('names the group when one is given, for the events that have a group variant', () => {
+    for (const event of PUSH_GROUP_VARIANTS) {
+      const withGroup = pushBody(event, 'nl', 'Yusuf Rahman', 'Aqidah 7-9')
+      expect(withGroup, event).toContain('Aqidah 7-9')
+      expect(withGroup, event).toContain('Yusuf')
+      expect(pushBody(event, 'nl', 'Yusuf Rahman'), event).not.toContain('Aqidah')
+    }
+  })
+
+  it('ignores a group for an event with no group variant', () => {
+    expect(pushBody('jilidMilestone', 'id', 'Yusuf', 'Aqidah 7-9')).toBe(pushBody('jilidMilestone', 'id', 'Yusuf'))
   })
 
   it('no push payload can express an absence reason, grade or progress detail', () => {
@@ -159,6 +186,34 @@ describe('dedup tag (test-plan §4.3)', () => {
     const ali = dedupTag('absence', 'parent-1', 'child-ali', '2026-03-10')
     const zainab = dedupTag('absence', 'parent-1', 'child-zainab', '2026-03-10')
     expect(ali).not.toBe(zainab)
+  })
+
+  it('keeps its old shape when there is no reference', () => {
+    expect(dedupTag('absence', 'u', 'c', '2026-03-10', undefined)).toBe('absence:u:c:2026-03-10')
+  })
+
+  it('tells two absences of one child on one day apart by their session (ADR-045(g))', () => {
+    // A child in two groups can miss both sessions on the same day. The
+    // same tag would make the second push silently replace the first.
+    const yanbua = dedupTag('absence', 'parent-1', 'child-ali', '2026-03-10', 'session-y')
+    const aqidah = dedupTag('absence', 'parent-1', 'child-ali', '2026-03-10', 'session-a')
+    expect(yanbua).not.toBe(aqidah)
+    expect(dedupTag('absence', 'parent-1', 'child-ali', '2026-03-10', 'session-y')).toBe(yanbua)
+  })
+
+  it('carries the reference on the payload tag', () => {
+    const payload = buildPayload({
+      event: 'absence',
+      locale: 'id',
+      childFullName: 'Yusuf',
+      recipientUserId: 'user-1',
+      studentId: 'child-1',
+      date: '2026-03-10',
+      refId: 'session-9',
+      group: 'Aqidah',
+    })
+    expect(payload.tag).toBe('absence:user-1:child-1:2026-03-10:session-9')
+    expect(payload.body).toContain('Aqidah')
   })
 
   it('still collapses a repeated run for the same child on the same day', () => {

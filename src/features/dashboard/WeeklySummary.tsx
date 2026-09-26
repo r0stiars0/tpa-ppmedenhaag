@@ -116,6 +116,17 @@ export function WeeklySummary() {
                 <Stat label={t('nav.alquran')} value={String(week.quran)} />
                 <Stat label={t('nav.murajaah')} value={String(week.murajaah)} />
               </div>
+              {/* Per group when the child is in several (PRD Feature 8 FR-003). */}
+              {week.groups.length > 1 && (
+                <p className="mt-2 text-xs text-ppme-text/70">
+                  {week.groups
+                    .map((group) => {
+                      const groupPercent = attendancePercent(group)
+                      return `${group.className}: ${groupPercent === null ? '—' : `${groupPercent}%`}`
+                    })
+                    .join(' · ')}
+                </p>
+              )}
             </div>
           )
         })}

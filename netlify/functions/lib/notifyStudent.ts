@@ -262,6 +262,7 @@ export async function dispatch(
       await client.from('users').update({ push_sub: null }).eq('id', userId)
     },
   },
+  source: NotificationSource = {},
 ): Promise<DispatchResult> {
   const result: DispatchResult = { sent: 0, expired: 0, failed: 0, tags: [] }
 
@@ -281,6 +282,8 @@ export async function dispatch(
       recipientUserId: recipient.userId,
       studentId: target.studentId,
       date,
+      refId: source.refId,
+      group: source.group,
     })
 
     const outcome = await deps.send(recipient.subscription!, payload)
@@ -369,19 +372,32 @@ function contextFor(input: ContextInput | undefined, studentId: string): Notific
  * family's own record of what they were told never depends on whether
  * Google's push service was having a good minute.
  *
- * `on conflict do update` on (user, child, event, date) — the same
+ * `on conflict do update` on (user, child, event, date, ref) — the same
  * tuple as the dedup tag — is what makes an hourly scheduled Function
  * safe to re-run: the second pass refreshes the row rather than filling
  * a family's list with duplicates. It refreshes rather than ignores so
  * a corrected context (a re-titled assignment) is not stuck at its
  * first value.
+ *
+ * ── The fallback, and when it goes away (ADR-045(a0)/(g)) ───────────
+ * `ref_id` exists from migration 026, but the unique key that includes it
+ * only arrives with the contract migration: swapping the key in 026 would
+ * have broken the *old* Functions' upsert in the window before this code
+ * deployed. Until then Postgres answers 42P10 ("no unique or exclusion
+ * constraint matching the ON CONFLICT specification") and the row is
+ * written against the old four-column key instead — two same-day events
+ * of one kind then share a row, exactly as before ADR-045.
  */
+const CONFLICT_KEY = 'user_id,student_id,event,event_date,ref_id'
+const LEGACY_CONFLICT_KEY = 'user_id,student_id,event,event_date'
+
 export async function recordNotifications(
   client: ServiceClient,
   targets: StudentAudience[],
   event: NotificationEvent,
   date: string,
   context?: ContextInput,
+  refId?: string,
 ): Promise<number> {
   const rows = targets.flatMap((target) =>
     target.recipients.map((recipient) => ({
@@ -390,13 +406,16 @@ export async function recordNotifications(
       event,
       context: contextFor(context, target.studentId),
       event_date: date,
+      ref_id: refId ?? null,
     })),
   )
   if (rows.length === 0) return 0
 
-  const { error } = await client
-    .from('notifications')
-    .upsert(rows, { onConflict: 'user_id,student_id,event,event_date' })
+  const notifications = client.from('notifications')
+  let { error } = await notifications.upsert(rows, { onConflict: CONFLICT_KEY })
+  if (error?.code === '42P10') {
+    ;({ error } = await client.from('notifications').upsert(rows, { onConflict: LEGACY_CONFLICT_KEY }))
+  }
   if (error) {
     // Never fatal to the send. A family losing the in-app copy of a
     // notification they still received on their phone is worse handled
@@ -407,8 +426,19 @@ export async function recordNotifications(
   return rows.length
 }
 
+/**
+ * Where an event came from, beyond the child and the day (ADR-045(g)).
+ * `refId` splits the dedup key — the session for an absence, the group
+ * for new homework — and `group` is the group's name for the push copy
+ * of the events that have a group variant (`PUSH_GROUP_VARIANTS`).
+ */
+export interface NotificationSource {
+  refId?: string
+  group?: string
+}
+
 /** The whole "notify these children's families" path. */
-export interface NotifyArgs {
+export interface NotifyArgs extends NotificationSource {
   studentIds: string[]
   event: NotificationEvent
   audience: Audience
@@ -430,7 +460,14 @@ export async function notifyStudents(
     return { ...empty, recorded: 0, skipped: 'no recipient account' }
   }
 
-  const recorded = await recordNotifications(client, targets, args.event, args.date, args.context)
+  const recorded = await recordNotifications(
+    client,
+    targets,
+    args.event,
+    args.date,
+    args.context,
+    args.refId,
+  )
 
   const reachable = targets.filter((t) => t.recipients.some((r) => r.subscription !== null))
   if (reachable.length === 0) {
@@ -439,7 +476,8 @@ export async function notifyStudents(
     return { ...empty, recorded, skipped: 'no push subscription' }
   }
 
-  return { ...(await dispatch(client, targets, args.event, args.date)), recorded }
+  const source = { refId: args.refId, group: args.group }
+  return { ...(await dispatch(client, targets, args.event, args.date, undefined, source)), recorded }
 }
 
 export function notifyStudent(

@@ -429,6 +429,34 @@ unlinked `role = student` account named "Unlinked Santri").
 
 *Total after these: 427 pgTAP assertions (verified: `supabase test db` reports `Tests=427`, PASS, on a stack built from `supabase/migrations`).*
 
+### 3.9 Multi-group enrolment (RLS-122…142, migration 026, TAD ADR-045, PRD Feature 8 release 8a)
+
+An isolated fixture island (`f8a…`): two tracking groups (GY1, GY3), an Aqidah group with tracking off (GAQ, taught by an adult TQ **and** a 16+ student assistant SA), a group archived part-way through (GY2), and an empty group. Children: K1 in GY1+GAQ, K3 leaves GAQ, K4 in the archived GY2 + GY1, K5 in GAQ only, K6 in GAQ+GY3, K7 in GY1+GY2.
+
+- [x] RLS-122 — **Transitional sync.** Writing `students.class_id` (an old app bundle) adds the matching membership; changing it moves the membership.
+- [x] RLS-123 — **Memberships are read by the group's tutors, the child's family and the student; written only by an admin.** A tutor sees their own group's 5 memberships and none of another group; a guardian sees only their child's; a tutor INSERT is `42501` and a tutor DELETE matches nothing.
+- [x] RLS-124 — **Tracking off means no progress writes.** An Aqidah-only tutor's Yanbu'a, Quran and Murajaah-target inserts are `42501`, even for a child in no tracking group; the tracking group's tutor still records.
+- [x] RLS-125 — **Any current tutor reads the child's progress history** (Yanbu'a + Murajaah targets via the new `massign_tutor_read`), and nothing for a child they do not teach.
+- [x] RLS-126 — **The attendance table is scoped to the session's group.** The Aqidah tutor reads 0 rows of the Yanbu'a register, even for a shared child, reads their own register in full, and their UPDATE of the other register changes nothing.
+- [x] RLS-127 — **`fn_student_attendance_history`: attendance crosses groups, the reason never does.** The Aqidah tutor sees both groups' rows with the other group's absence as `absent/NULL`; the session's own tutor and the guardian see the reason; another family gets 0 rows.
+- [x] RLS-128 — **A register row needs membership of that session's group** (non-member `42501`, member OK).
+- [x] RLS-129 — **Homework: the list crosses groups, completion does not.** The Aqidah tutor reads the other group's homework but none of its completion marks; their UPDATE changes nothing; a status for a non-member is `42501`; homework in a group they only read is `42501`; the homework's own tutor marks completion.
+- [x] RLS-130 — **A family reads all its child's groups and nothing else** (sessions, homework, names), and a family with no child in a group reads none of it.
+- [x] RLS-131 — **Leaving a group.** The family keeps the session the child attended, the homework the child had and the group's name, but not homework set after the child left.
+- [x] RLS-132 — **Tutors read their students' other groups' names and homework lists.**
+- [x] RLS-133 — **Student assistants get no cross-group reads** (Resolved Decision 26). SA reads the register of the group they teach and its members' guardians, but no Yanbu'a history of its members, no attendance from the child's other group, and neither the homework nor the name of that other group. Control: the adult co-tutor does read that history.
+- [x] RLS-134 — **Archiving freezes a group for every role:** no new session, attendance change, tutor attendance, homework, completion change or member, even by an admin (`23514`), and the group's own tutor cannot change its register.
+- [x] RLS-135 — **An archived group stops counting as "teaching".** The former tutor gets 0 guardian details, 0 progress history and 0 cross-group attendance for a former member, while still reading the archived register, session and member names. A current tutor still sees that archived-group attendance, without a reason.
+- [x] RLS-136 — **Enrolment is audited.** A removal and an archive are logged with the admin as `changed_by`; a tutor reads no audit rows; an admin reads them but cannot write them.
+- [x] RLS-137 — **`fn_admin_save_student(p_class_ids)`** replaces the active set, keeps the archived membership, logs both changes; the old six-argument call still works and is mirrored.
+- [x] RLS-138 — **Reports for an Aqidah-only child** are authorable by an Aqidah tutor (`fn_my_report_students`), but not for a child who has a Yanbu'a/Quran group.
+- [x] RLS-139 — **Erasure still cascades through a frozen group** (admin deletes a student with records in an archived group; attendance and memberships go with them).
+- [x] RLS-140 — **A group with history cannot be deleted** (`23503`, restrict); an empty group can.
+- [x] RLS-141 — **Unarchiving restores writes**, and is logged.
+- [x] RLS-142 — **The tracking switch is admin-only; a new group defaults to tracking on and active.**
+
+*Total after these: 505 pgTAP assertions (verified: `supabase test db` reports `Tests=505`, PASS). The 427 earlier assertions pass unchanged against migration 026 — they seed students through `students.class_id`, so they also exercise the transitional sync trigger and show every earlier persona's access is exactly what it was.*
+
 ## 4. Unit tests (Vitest)
 
 ### 4.1 Streak logic
@@ -714,6 +742,30 @@ the `student_guardians` `ON DELETE RESTRICT` invariant is in §3.8 RLS-116.
 - Over REST with minted JWTs, an admin reads the rows; a parent and a tutor read `[]`. An admin `POST` gets `403`, and the admin RPC gets `42501`.
 - With the SQL function missing, simulating the app deploying before the migration is applied, the digest still returns `200` and reports `subscriberCountError`.
 
+### 4.5n Multi-group enrolment (TAD ADR-045, release 8a)
+
+- [x] `tests/unit/groups.test.ts`:
+  - `studentsInActiveTrackingGroups`: the Murajaah reminder safety net drops Aqidah-only and archived-only children.
+  - `groupsOf`: labels and pickers.
+  - `murajaahImpact`: the close-or-keep prompt for tracking off, archive, member removal and a new group set. Must-close only when no active tracking group remains, and a swap to another tracking group keeps the target.
+- [x] `tests/unit/adminGroups.test.ts`:
+  - `saveStudent` sends `p_class_ids`, never the legacy `p_class_id`.
+  - Bulk add is one upsert with `ignoreDuplicates`.
+  - Remove, archive and unarchive, and closing targets.
+- [x] `tests/unit/attendance.test.ts`: `ratesByGroup`, one rate per group plus overall (90% / 50% → 70% overall).
+- [x] `tests/unit/studentAttendanceHistory.test.ts`: history goes through `fn_student_attendance_history` (never the table), rows keep their group, and the active-group lookup excludes archived groups.
+- [x] `tests/unit/weeklyActivity.test.ts`: the digest's per-group breakdown; archived groups are left out entirely.
+- [x] `tests/unit/notifications.test.ts`:
+  - The push copy may carry `{{group}}` only in the two `…InGroup` strings (the DPIA R6 guard, deliberately widened).
+  - The group variant is used only when a group is given.
+  - The dedup tag gains the session/group reference.
+- [x] `tests/unit/notifyStudent.test.ts`: in-app rows carry `ref_id`, upsert on the five-column key, fall back to the four-column key on `42P10` (until the contract migration), and do not retry any other error.
+- [x] `tests/unit/notificationEvents.test.ts`: in-app copy uses the `…InGroup` key only when the row names a group; old rows keep their copy.
+- [x] `tests/unit/reports.test.ts`: default report author across groups (a tracking-group tutor before an Aqidah tutor, an Aqidah tutor for an Aqidah-only child, first by name, skipping a group with no tutor).
+- [x] `tests/unit/reportAccess.test.ts`: the PDF gate mirrors `fn_my_report_students`. An Aqidah tutor is refused when the child has a tracking group and allowed when not; an archived group no longer counts; a student assistant is refused their own report.
+- [x] `tests/unit/capabilities.test.ts`: pickers never offer an archived group; tracking-only for progress screens; the tutor count ignores archived groups.
+- [x] `tests/unit/roster.test.ts`: a roster is read through `class_members`.
+
 ### 4.6 Access control and delivery inside the Functions
 
 The three modules that decide who may make a Function act, and what
@@ -806,6 +858,12 @@ Run against Preview deploys with fixture data; auth mocked via Supabase test JWT
 | E2E-22 | Admin opens Beheer → the "Pengguna" / "Gebruikers" pill → the directory lists every account; typing in the search box filters by name/email and the role dropdown filters by role → **own row**: the role `<select>` is disabled with the "you cannot change your own role" hint, the name stays editable → renames a parent (role unchanged) → saves with no dialog, the list shows the new name → changes a tutor still assigned to groups to Orang Tua → a confirm dialog names those groups → confirms → the row shows the new role and that tutor is gone from the groups' tutor lists on the Grup screen; a `user_role_changes` row now exists → attempting to demote the last remaining admin is refused with an explanatory message (TAD ADR-042) | Admin |
 | E2E-23 | A guardian (signed into Google, so the form records a verified e-mail) submits the Daftar Ulang form for one child → within seconds the response-sheet row shows `Enrolment status = enrolled` and an invitation e-mail arrives → an admin opens Beheer and sees the new guardian account and the student (no Grup yet), linked guardian-to-child, and an `enrolment_submissions` row with `status = enrolled`, and **no** payment data anywhere → the guardian signs in with that Google account and sees only their own child → the guardian submits again for the same child with a **corrected spelling** → the sheet row shows `enrolled` and a second `students` row now exists (a name change is not treated as an update; same-day twins with different names must be allowed) → the admin removes the duplicate with **Hapus** on Beheer → Santri and the family view returns to one child. **Student self-login:** a submission that fills "Email siswa" with a fresh address → the sheet shows `enrolled`, the student receives their own `role = student` invitation, and after they sign in they see only their own record; a submission whose "Email siswa" is a differently-named existing student, or a non-student account's address → the sheet shows `needs_attention` and nothing is created (TAD ADR-043) | Guardian → Admin → Student |
 | E2E-24 | A bogus form submission creates a `parent` account + a student → an admin opens Beheer → Pengguna, finds the account, presses **Hapus** → the confirm dialog names it → confirm fails with *"still guards student records"* while the bogus student exists → admin deletes the student in Beheer → Santri, then **Hapus** on the account succeeds and it disappears from the directory; the account's row in `enrolment_submissions` remains with `parent_user_id` cleared. A **Hapus** on a tutor or admin row is not offered; on the admin's own row it is not offered (TAD ADR-043) | Admin |
+| E2E-25 | Admin creates an Aqidah group with tracking unticked → opens its members → Add students → filters by date-of-birth range → ticks several → the summary names the tutors who gain access → saves → members listed; the enrolment log holds one `added` row per student (PRD FR-009, AC-008/AC-017) | Admin |
+| E2E-26 | Admin archives a group that met in the last 7 days → the recent-session warning is shown → archived group moves to the Archived filter, its members page is read-only, and it is gone from every tutor picker → unarchive restores it; deleting a group with history shows the archive-instead notice (FR-010, AC-013) | Admin |
+| E2E-27 | Admin removes a child's last tracking group (student form, member removal, tracking switched off, or archive) → the Murajaah prompt lists the target as must-close → confirming closes it; a child with another tracking group may keep it (FR-001, AC-019) | Admin |
+| E2E-28 | Aqidah-only tutor: attendance and homework pickers offer the Aqidah group; the Yanbu'a/Al-Quran/Murajaah pickers offer nothing; a direct API insert of progress is refused (AC-003) | Tutor |
+| E2E-29 | A child in two groups: both tutors mark the child absent → the Yanbu'a tutor opens the child's history on the register and sees the Aqidah absence without its reason → the guardian sees both reasons, a rate per group plus overall, and homework labelled by group (FR-003/FR-006, AC-002/AC-012/AC-021) | Tutor → Tutor → Parent |
+| E2E-30 | Guardian of an Aqidah-only child opens Yanbu'a, Al-Quran and Murajaah → each shows the no-tracking explanation instead of an empty history (FR-007, AC-022) | Parent |
 
 *E2E-15…E2E-24 are specified but not implemented — this project has no
 authenticated Playwright harness yet (`e2e/sign-in.spec.ts` documents
@@ -1059,6 +1117,38 @@ guess. At 30s it was rejecting subscriptions FCM went on to serve — one
 was measured taking **32 seconds** — so a family on a slow day was shown
 "the push service is not responding" for something that worked. It is
 60s now, and the harness waits longer than the app does.
+
+
+### 6.x Multi-group enrolment — live verification (release 8a, TAD ADR-045)
+
+Run on 2026-09-26 against a **separate** local Supabase stack (its own project id and ports, so the developer's own local database was never reset or migrated), built from this branch's migrations.
+
+- **Backfill.** The previous `dev-fixture.sql` was loaded at migration 025, then 026 applied. Every `students.class_id` became exactly one `class_members` row (diff of the two listings: identical). The backfill wrote no audit rows, and both groups came out `tracks_progress = true`, active.
+- **Old app against 026.** The old app bundle's exact query shapes were replayed over REST with minted JWTs, 15/15:
+  - the single-group roster;
+  - the family meeting-days embed through `students.class_id`;
+  - the register (session insert and attendance upsert);
+  - homework create, statuses and completion;
+  - Yanbu'a recording;
+  - the six-argument `fn_admin_save_student`, mirrored into `class_members`;
+  - the four-column notification upsert;
+  - cross-family isolation.
+
+  **This run found a real defect.** With `class_members` keyed on `(class_id, student_id)`, PostgREST saw a second `students`→`classes` relationship and answered the old embed with `300 PGRST201`. It was fixed with a surrogate primary key (ADR-045(a)) and re-verified.
+- **New app, browser-driven** (Playwright, 390×844, Indonesian): 35 checks, with **zero console errors and zero failed requests** across Admin, Ustadzah Maryam (Aqidah-only tutor), Ustadz Ahmad, Ibu Siti and Bapak Rudi.
+  - **Admin:** create a group with tracking off; bulk-add by birth date (both additions audited); remove a member; archive, which shows the frozen notice and hides "add"; unarchive; delete refused for a group with history; the student filter by group; the Murajaah prompt (must-close, locked) closing Umar's target when he leaves his last tracking group; the no-group strip counting a new student.
+  - **Aqidah-only tutor:** records attendance and sets homework for her group, addressed to all its members. Her Yanbu'a picker is empty.
+  - **Yanbu'a tutor:** the child's history on the register shows both groups; the reason shows for his own group's absence and is **absent** for the Aqidah one.
+  - **Parent:** overall and per-group rates, history and homework labelled by group, both reasons visible, meeting days per group, and the no-tracking explanation for an Aqidah-only child.
+  - **Another family:** `fn_student_attendance_history` for Ali returns nothing.
+- **Functions, driven for real** (bundled as Netlify does, called with webhook-shaped requests):
+  - `notify-absence` writes the group name and the session as `ref_id`.
+  - Before the contract migration, two same-day absences in two groups share one in-app row via the legacy-key fallback. After a simulated key swap, one row per group, and a re-run does not duplicate.
+  - `notify-assignment` fans out over the Aqidah group's members only, and a wrong secret gets `401`.
+  - `send-murajaah-reminders` reminds for Ali's target and not for an Aqidah-only child's.
+  - `homework-due-reminders` skips homework in an archived group and reaches the Aqidah group through memberships.
+  - `generate-year-end-drafts` authors: Ali → Ustadz Ahmad (tracking group), Hana and Umar → Ustadzah Maryam (Aqidah-only).
+- **Real devices:** not run for 8a. The push payloads changed only by an optional group name in two strings, which is covered by the unit tests; the device rows of the matrix above are unchanged.
 
 ## 7. i18n completeness (automated)
 

@@ -21,7 +21,8 @@ is belegd bij het IT-team van PPME Den Haag, bereikbaar via `[e-mailadres]`.
 | Categorie | Gegevens | Van wie |
 |---|---|---|
 | Accountgegevens | Naam, e-mailadres, Google-account-ID, taalvoorkeur | Ouders, docenten, beheerders, leerlingen van 16+ met eigen account |
-| Leerlinggegevens | Naam, geboortedatum, inschrijfdatum, klas | Leerlingen (merendeels jonger dan 16) |
+| Leerlinggegevens | Naam, geboortedatum, inschrijfdatum, groep(en) | Leerlingen (merendeels jonger dan 16) |
+| Groepsindeling | Welke beheerder een leerling aan een groep heeft toegevoegd of eruit heeft gehaald, en wanneer | Leerlingen |
 | Aanwezigheid | Aanwezig/afwezig/te laat per les, eventuele reden (bijv. ziek) | Leerlingen |
 | Aanwezigheid van docenten | Aanwezig/afwezig/te laat per les, eventuele reden | Docenten |
 | Leervoortgang | Yanbu'a-niveau en -pagina's, Quran-leesvoortgang, memorisatie (murajaah), beoordelingen en notities van docenten | Leerlingen |
@@ -157,9 +158,28 @@ afgedwongen in de database zelf — niet alleen in het scherm:
 | Rol | Toegang |
 |---|---|
 | Ouder/verzorger | Uitsluitend de gegevens van de eigen kinderen |
-| Docent | Uitsluitend de leerlingen van de eigen klas(sen) |
+| Docent | De leerlingen van de eigen groep(en) — zie hieronder voor leerlingen die in meer dan één groep zitten |
 | Leerling van 16+ | Uitsluitend de eigen gegevens, die hij of zij niet zelf kan wijzigen |
 | Beheerder | Alle leerlingen en alle gegevens — ook wijzigen |
+
+**Leerlingen in meer dan één groep.** Een kind kan in meerdere groepen
+zitten, bijvoorbeeld een Yanbu'a/Al-Quran-groep en een Aqidah-groep. Een
+docent die zo'n kind lesgeeft, ziet dan ook de Yanbu'a/Al-Quran/Murajaah-
+voortgang van dat kind, het huiswerk van de andere groep (niet of het
+gemaakt is) en de aanwezigheid van dat kind in de andere groep — maar
+**nooit de reden van een afwezigheid** in een andere groep: die kan over
+gezondheid gaan en blijft bij de docenten van die groep, de beheerders
+en het gezin. De presentielijst van een andere groep als geheel is niet
+zichtbaar. Alleen de docenten van een groep die Yanbu'a/Al-Quran/Murajaah
+registreert, kunnen die voortgang ook vastleggen. Twee uitzonderingen
+beperken dit verder: de docent van een **gearchiveerde** groep (een groep
+van een vorig schooljaar) ziet van de vroegere leerlingen niets meer
+buiten die oude groep zelf, en een **leerling-assistent** (een leerling
+van 16+ die ook lesgeeft) ziet alleen wat bij de groep hoort die hij of
+zij lesgeeft. Het indelen van leerlingen in groepen doet alleen een
+beheerder, en elke toevoeging of verwijdering wordt vastgelegd (wie,
+wat, wanneer), omdat het bepaalt welke docenten de gegevens van een kind
+kunnen zien.
 
 **Aanwezigheid van docenten.** Op dezelfde presentielijst wordt ook
 vastgelegd of de docenten van de groep aanwezig waren, zodat de
@@ -267,7 +287,8 @@ PPME Den Haag, dapat dihubungi melalui `[alamat email]`.
 | Kategori | Data | Dari siapa |
 |---|---|---|
 | Data akun | Nama, alamat email, ID akun Google, preferensi bahasa | Orang tua, guru, admin, santri 16+ dengan akun sendiri |
-| Data santri | Nama, tanggal lahir, tanggal pendaftaran, kelas | Santri (sebagian besar di bawah 16 tahun) |
+| Data santri | Nama, tanggal lahir, tanggal pendaftaran, grup | Santri (sebagian besar di bawah 16 tahun) |
+| Pembagian grup | Admin mana memasukkan santri ke sebuah grup atau mengeluarkannya, dan kapan | Santri |
 | Kehadiran | Hadir/absen/terlambat per sesi, alasan (mis. sakit) | Santri |
 | Kehadiran guru | Hadir/absen/terlambat per sesi, alasan | Guru |
 | Progres belajar | Level dan halaman Yanbu'a, progres tilawah Al-Quran, hafalan (murajaah), penilaian dan catatan guru | Santri |
@@ -397,9 +418,27 @@ di dalam basis data — bukan hanya di tampilan aplikasi:
 | Peran | Akses |
 |---|---|
 | Orang tua/wali | Hanya data anak sendiri |
-| Guru | Hanya santri di kelas yang diampu |
+| Guru | Santri di grup yang diampu — lihat di bawah untuk santri yang ikut lebih dari satu grup |
 | Santri 16+ | Hanya data diri sendiri, dan tidak dapat mengubahnya |
 | Admin | Seluruh santri dan seluruh data — termasuk mengubahnya |
+
+**Santri yang ikut lebih dari satu grup.** Seorang anak dapat ikut
+beberapa grup, misalnya grup Yanbu'a/Al-Quran dan grup Aqidah. Guru yang
+mengajar anak tersebut juga dapat melihat progres Yanbu'a/Al-Quran/
+Murajaah anak itu, daftar tugas grup lainnya (bukan apakah tugas itu
+sudah dikerjakan), dan kehadiran anak itu di grup lainnya — tetapi
+**tidak pernah alasan ketidakhadiran** di grup lain: alasan itu bisa
+menyangkut kesehatan dan hanya terlihat oleh guru grup tersebut, admin,
+dan keluarga. Daftar hadir grup lain secara keseluruhan tidak terlihat.
+Hanya guru dari grup yang mencatat Yanbu'a/Al-Quran/Murajaah yang dapat
+mengisi progres tersebut. Dua pengecualian membatasi hal ini lebih jauh:
+guru dari grup yang **diarsipkan** (grup tahun ajaran sebelumnya) tidak
+lagi melihat apa pun tentang mantan santrinya di luar grup lama itu, dan
+**santri asisten** (santri 16+ yang juga mengajar) hanya melihat apa yang
+berkaitan dengan grup yang ia ajar. Pembagian santri ke dalam grup hanya
+dilakukan oleh admin, dan setiap penambahan atau pengeluaran dicatat
+(siapa, apa, kapan), karena hal itu menentukan guru mana yang dapat
+melihat data seorang anak.
 
 **Kehadiran guru.** Pada daftar hadir yang sama juga dicatat apakah
 para guru kelas itu hadir, agar pimpinan TPA dapat meninjaunya secara

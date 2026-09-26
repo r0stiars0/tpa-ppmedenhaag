@@ -160,6 +160,10 @@ export async function fetchTutorClassCount(
     .from('classes')
     .select('id', { count: 'exact', head: true })
     .contains('tutor_ids', [userId])
+    // An archived group is frozen and no longer counts as teaching anyone
+    // (PRD Feature 8 FR-010): a tutor of only archived groups gets no
+    // tutor screens, since every picker would be empty.
+    .is('archived_at', null)
   if (error) throw error
   return count ?? 0
 }
@@ -181,17 +185,26 @@ export async function fetchTutorClassCount(
  * and `attendance_tutor_insert` check the same function, so recording
  * against it fails with a policy error at save time.
  */
-export type TaughtClass = Pick<Tables<'classes'>, 'id' | 'name' | 'schedule' | 'meeting_days'>
+export type TaughtClass = Pick<Tables<'classes'>, 'id' | 'name' | 'schedule' | 'meeting_days' | 'tracks_progress'>
 
+/**
+ * Since PRD Feature 8 (ADR-045) two more things decide what a picker
+ * offers: an **archived** group is never offered — it is frozen, and
+ * the database would refuse any write to it — and a screen that records
+ * Yanbu'a/Quran/Murajaah asks for `trackingOnly`, since a group with
+ * tracking off (Aqidah) has nobody who may record progress through it.
+ * Attendance and homework offer every active group.
+ */
 export async function fetchTaughtClasses(
   client: SupabaseClient<Database>,
   userId: string,
-  options: { isAdmin: boolean },
+  options: { isAdmin: boolean; trackingOnly?: boolean },
 ): Promise<TaughtClass[]> {
-  const base = client.from('classes').select('id, name, schedule, meeting_days')
-  const { data, error } = await (options.isAdmin ? base : base.contains('tutor_ids', [userId])).order(
-    'name',
-  )
+  const base = client.from('classes').select('id, name, schedule, meeting_days, tracks_progress')
+  let query = options.isAdmin ? base : base.contains('tutor_ids', [userId])
+  query = query.is('archived_at', null)
+  if (options.trackingOnly) query = query.eq('tracks_progress', true)
+  const { data, error } = await query.order('name')
   if (error) throw error
   return data ?? []
 }

@@ -10,7 +10,7 @@ import {
   fetchAssignmentsByIds,
   fetchMyAssignmentStatuses,
   todayLocalDate,
-  type Assignment,
+  type FamilyAssignment,
   type AssignmentStatusRow,
 } from './api'
 
@@ -31,7 +31,7 @@ const STATUS_LABEL_KEY: Record<AssignmentDisplayStatus, string> = {
 }
 
 interface AssignmentWithStatus {
-  assignment: Assignment
+  assignment: FamilyAssignment
   status: AssignmentStatusRow
 }
 
@@ -146,6 +146,9 @@ export function FamilyAssignmentsView() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-medium text-ppme-text">{assignment.title}</p>
+                  {assignment.class && (
+                    <p className="text-xs font-medium text-ppme-primary/80">{assignment.class.name}</p>
+                  )}
                   {assignment.description && (
                     <p className="mt-1 text-xs text-ppme-text/60">{assignment.description}</p>
                   )}

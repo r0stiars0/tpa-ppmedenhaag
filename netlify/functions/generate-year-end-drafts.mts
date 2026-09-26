@@ -1,7 +1,7 @@
 import { academicYearWindow, isValidAcademicYear } from '../../src/lib/reports'
 import type { Database } from '../../src/lib/database.types'
 import { authenticateCaller, jsonError, jsonOk } from './lib/callerAuth'
-import { planDrafts } from './lib/draftPlan'
+import { planDrafts, type DraftGroup } from './lib/draftPlan'
 import { computeAttendanceStats } from './lib/reportStats'
 
 type AttendanceStatus = Database['public']['Enums']['attendance_status']
@@ -49,29 +49,46 @@ export default async (req: Request) => {
   }
 
   // ---- who gets a report, and which tutor authors it -----------------
-  // `year_end_reports.tutor_id` is NOT NULL, so a student whose class has
-  // no tutor assigned (or who has no class at all) simply cannot have a
-  // report generated for them. Those are reported back as
-  // `skipped_no_tutor` rather than silently dropped — it means someone
-  // has enrollment work to finish before the reports are complete.
-  const classQuery = admin.from('classes').select('id, tutor_ids')
-  const { data: classes, error: classesError } = classId
-    ? await classQuery.eq('id', classId)
-    : await classQuery
-  if (classesError) return jsonError(classesError.message, 500)
-  if (classId && (classes ?? []).length === 0) return jsonError('Class not found', 404)
-
-  const tutorByClass = new Map<string, string>()
-  for (const cls of classes ?? []) {
-    const tutorId = (cls.tutor_ids ?? [])[0]
-    if (tutorId) tutorByClass.set(cls.id, tutorId)
+  // `year_end_reports.tutor_id` is NOT NULL, so a student who is in no
+  // active group with a tutor simply cannot have a report generated for
+  // them. Those are reported back as `skipped_no_tutor` rather than
+  // silently dropped — it means someone has enrolment work to finish
+  // before the reports are complete.
+  //
+  // A child can be in several groups (PRD Feature 8, ADR-045): the author
+  // is chosen across all their ACTIVE groups by `defaultAuthor`, and the
+  // optional class scope selects which students get a draft, not which
+  // group's tutor authors it.
+  if (classId) {
+    const { data: scoped, error: scopedError } = await admin.from('classes').select('id').eq('id', classId)
+    if (scopedError) return jsonError(scopedError.message, 500)
+    if ((scoped ?? []).length === 0) return jsonError('Class not found', 404)
   }
 
-  const studentQuery = admin.from('students').select('id, class_id')
-  const { data: students, error: studentsError } = classId
-    ? await studentQuery.eq('class_id', classId)
-    : await studentQuery
+  const { data: memberRows, error: membersError } = await admin
+    .from('class_members')
+    .select('student_id, class_id, class:classes!inner(name, tracks_progress, archived_at, tutor_ids)')
+    .is('class.archived_at', null)
+  if (membersError) return jsonError(membersError.message, 500)
+
+  const tutorByClass = new Map<string, string>()
+  const groupsByStudent = new Map<string, DraftGroup[]>()
+  for (const row of memberRows ?? []) {
+    const cls = row.class
+    if (!cls) continue
+    const tutorId = (cls.tutor_ids ?? [])[0]
+    if (tutorId) tutorByClass.set(row.class_id, tutorId)
+    const groups = groupsByStudent.get(row.student_id) ?? []
+    groups.push({ class_id: row.class_id, name: cls.name, tracks_progress: cls.tracks_progress })
+    groupsByStudent.set(row.student_id, groups)
+  }
+
+  const studentQuery = admin.from('students').select('id')
+  const { data: allStudents, error: studentsError } = await studentQuery
   if (studentsError) return jsonError(studentsError.message, 500)
+  const students = (allStudents ?? [])
+    .filter((s) => !classId || (groupsByStudent.get(s.id) ?? []).some((g) => g.class_id === classId))
+    .map((s) => ({ id: s.id, groups: groupsByStudent.get(s.id) ?? [] }))
 
   // ---- skip students who already have a report for this year ---------
   const { data: existing, error: existingError } = await admin

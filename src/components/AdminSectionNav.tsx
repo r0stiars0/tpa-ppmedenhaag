@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ADMIN_SECTION_TABS } from './tabs'
+import { AdminAttentionStrip } from '../features/admin/AdminAttentionStrip'
 
 /**
  * Secondary nav *inside* the admin enrollment section, rendered at the
@@ -16,11 +17,16 @@ import { ADMIN_SECTION_TABS } from './tabs'
  * Scrolls horizontally rather than wrapping: three short labels fit on
  * any phone today, but a fourth enrollment screen shouldn't reflow the
  * page header to two lines.
+ *
+ * Under it sits the admin's standing to-do (students in no group, PRD
+ * Feature 8 FR-002) — here because this is the one element every admin
+ * screen renders first.
  */
 export function AdminSectionNav() {
   const { t } = useTranslation()
 
   return (
+    <>
     <nav
       className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1"
       aria-label={t('nav.kelola')}
@@ -41,5 +47,7 @@ export function AdminSectionNav() {
         </NavLink>
       ))}
     </nav>
+    <AdminAttentionStrip />
+    </>
   )
 }

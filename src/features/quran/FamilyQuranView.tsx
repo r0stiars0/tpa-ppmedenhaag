@@ -9,6 +9,8 @@ import { getErrorMessage } from '../../lib/errors'
 import { fetchQuranHistory, fetchSurahs, type QuranProgress } from './api'
 import { CurrentPositionCard } from './CurrentPositionCard'
 import { QuranTimeline } from './QuranTimeline'
+import { useHasTrackingGroup } from '../../hooks/useHasTrackingGroup'
+import { NoTrackingNotice } from '../../components/NoTrackingNotice'
 
 export function FamilyQuranView() {
   const { t } = useTranslation()
@@ -20,6 +22,7 @@ export function FamilyQuranView() {
   const [surahs, setSurahs] = useState<SurahRef[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const hasTracking = useHasTrackingGroup(studentId)
 
   useEffect(() => {
     fetchSurahs()
@@ -60,6 +63,8 @@ export function FamilyQuranView() {
       ? t('quran.childTitle', { name: selectedName })
       : t('quran.myTitle')
 
+  const untracked = hasTracking === false && !loading && history.length === 0
+
   if (studentsLoading) return <p className="text-ppme-text/60">{t('common.loading')}</p>
   if (students.length === 0) return <p className="text-ppme-text/60">{t('common.empty')}</p>
 
@@ -71,16 +76,22 @@ export function FamilyQuranView() {
 
       {error && <p className="rounded-lg bg-ppme-danger/10 p-3 text-sm text-ppme-danger">{error}</p>}
 
-      <CurrentPositionCard latest={history[0] ?? null} surahs={surahs} titleKey="quran.myCurrentPosition" />
+      {untracked ? (
+        <NoTrackingNotice />
+      ) : (
+        <>
+          <CurrentPositionCard latest={history[0] ?? null} surahs={surahs} titleKey="quran.myCurrentPosition" />
 
-      <div>
-        <h2 className="mb-2 text-sm font-semibold text-ppme-text/70">{t('quran.history')}</h2>
-        {loading ? (
-          <p className="text-ppme-text/60">{t('common.loading')}</p>
-        ) : (
-          <QuranTimeline entries={history} surahs={surahs} />
-        )}
-      </div>
+          <div>
+            <h2 className="mb-2 text-sm font-semibold text-ppme-text/70">{t('quran.history')}</h2>
+            {loading ? (
+              <p className="text-ppme-text/60">{t('common.loading')}</p>
+            ) : (
+              <QuranTimeline entries={history} surahs={surahs} />
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }

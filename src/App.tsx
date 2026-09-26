@@ -15,6 +15,7 @@ import { NotificationSettingsPage } from './features/notifications/NotificationS
 import { NotificationCentrePage } from './features/notifications/NotificationCentrePage'
 import { RegistrationsPage } from './features/admin/RegistrationsPage'
 import { ClassesPage } from './features/admin/ClassesPage'
+import { GroupMembersPage } from './features/admin/GroupMembersPage'
 import { StudentsPage } from './features/admin/StudentsPage'
 import { TutorAttendanceReviewPage } from './features/admin/TutorAttendanceReviewPage'
 import { UsersPage } from './features/admin/UsersPage'
@@ -82,6 +83,14 @@ function Gate() {
           element={
             <RequireAdmin>
               <ClassesPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/admin/classes/:id"
+          element={
+            <RequireAdmin>
+              <GroupMembersPage />
             </RequireAdmin>
           }
         />

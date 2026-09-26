@@ -145,9 +145,10 @@ admin pada grup tersebut (lihat [§12.2](#122-grup) → Hari pertemuan).
 
 | Elemen | Fungsi |
 |---|---|
-| **Pilih Grup** | Muncul hanya jika guru mengampu lebih dari satu grup. Memilih grup memuat ulang daftar santri dan sesinya. |
+| **Pilih Grup** | Muncul hanya jika guru mengampu lebih dari satu grup. Memilih grup memuat ulang daftar santri dan sesinya. Grup yang diarsipkan tidak muncul di sini. Seorang santri bisa ikut lebih dari satu grup (mis. grup Yanbu'a/Al-Quran dan grup Aqidah); ia muncul di daftar hadir setiap grup, dan kehadirannya dicatat terpisah di tiap grup. |
 | Baris tanggal dengan **‹** / **›** | Menampilkan tanggal sesi yang sedang dibuka (hari, tanggal, dan bulan; tahun ikut ditampilkan bila sesi bukan pada tahun kalender berjalan). Panah memindahkan sesi mengikuti hari pertemuan grup: **‹** mundur sampai 1 Agustus tahun ajaran berjalan, **›** maju sampai sesi terkini (tidak bisa lebih maju dari itu). Jika di bawah tanggal tertulis **belum diisi**, kehadiran untuk hari pertemuan itu belum dicatat — Anda masih bisa mencatatnya; sesinya dibuat saat Anda mengirim. Sesi yang sudah dicatat selalu bisa dikoreksi, termasuk yang tanggalnya bukan hari pertemuan. |
 | Baris santri + tombol **Hadir / Terlambat / Absen** | Tekan salah satu untuk menetapkan status santri tersebut. Warna hijau = status aktif yang tersimpan sementara di layar (belum terkirim ke server sampai ditekan **Kirim Kehadiran**). Status awal semua santri adalah "Hadir". |
+| **Riwayat kehadiran santri ini** | Membuka, di bawah baris itu, kehadiran santri tersebut di **semua grupnya**: persentase per grup dan sepuluh sesi terakhir beserta tanggal dan grup. Untuk ketidakhadiran di grup **lain** hanya tampil "Tidak Hadir", **tanpa alasan** — alasan itu hanya untuk guru grup tersebut. |
 
 Menekan **Absen** membuka kolom alasan tambahan:
 
@@ -183,9 +184,9 @@ Layar ini **hanya untuk melihat** — orang tua dan santri tidak bisa mengubah d
 | **Pilih Anak** | Muncul hanya jika akun memiliki lebih dari satu anak terkait. |
 | Judul | "Kehadiranku" (untuk santri yang melihat datanya sendiri) atau "Kehadiran {nama anak}". |
 | Kolom **Dari** / **Sampai** | Rentang tanggal untuk memfilter riwayat (default: 90 hari terakhir sampai hari ini). |
-| Angka persentase besar | Tingkat kehadiran pada rentang tanggal yang dipilih. |
-| **Hari pertemuan** | Baris hanya-baca di bawah persentase berisi hari dalam seminggu saat grup anak bertemu (mis. "Hari pertemuan: Sab"). Tidak muncul jika anak belum masuk grup. |
-| **Riwayat Kehadiran** | Daftar per tanggal dengan status **Hadir / Terlambat / Tidak Hadir**, dan alasan (jika ada) untuk yang tidak hadir. |
+| Angka persentase besar | Tingkat kehadiran pada rentang tanggal yang dipilih. Jika anak ikut lebih dari satu grup, angka ini disebut **Kehadiran keseluruhan** dan di bawahnya tampil persentase **per grup** — sehingga terlihat bila anak rajin di satu grup tetapi tidak di grup lainnya. |
+| **Hari pertemuan** | Baris hanya-baca di bawah persentase berisi hari dalam seminggu saat grup anak bertemu (mis. "Hari pertemuan: Sab"); untuk beberapa grup, satu baris per grup ("Hari pertemuan Aqidah 9–11 th: Ahad"). Tidak muncul jika anak belum masuk grup. |
+| **Riwayat Kehadiran** | Daftar per tanggal dengan status **Hadir / Terlambat / Tidak Hadir**, dan alasan (jika ada) untuk yang tidak hadir. Untuk beberapa grup, nama grup tampil di bawah tanggal. |
 
 ---
 
@@ -237,13 +238,15 @@ Hanya untuk melihat — status tugas hanya bisa diubah oleh guru.
 |---|---|
 | **Pilih Anak** | Sama seperti di Kehadiran. |
 | Baris jumlah tugas aktif | "{jumlah} tugas aktif" — menghitung tugas berstatus "Menunggu" atau yang sudah lewat tenggat. |
-| Kartu tiap tugas | Judul, deskripsi, batas waktu, catatan dari guru (jika ada), dan lencana status: **Menunggu / Selesai / Terlambat / Sebagian / Lewat Tenggat**. |
+| Kartu tiap tugas | Judul, **grup** yang memberi tugas (anak yang ikut beberapa grup menerima tugas dari setiap grup), deskripsi, batas waktu, catatan dari guru (jika ada), dan lencana status: **Menunggu / Selesai / Terlambat / Sebagian / Lewat Tenggat**. |
 
 ---
 
 ## 7. Yanbu'a
 
 Yanbu'a adalah metode belajar membaca Al-Qur'an bertahap (jilid 1–7 + halaman). Layar ini mencatat jilid, halaman, dan tingkat penguasaan bacaan santri.
+
+> **Hanya grup yang mencatat.** Yanbu'a, Al-Quran dan Murajaah hanya dicatat di grup yang oleh admin dicentang **Pencatatan Yanbu'a/Al-Quran/Murajaah** ([§12.2](#122-grup)). Jadi **Pilih Grup** di ketiga layar ini hanya menampilkan grup seperti itu; guru yang hanya mengajar grup Aqidah tidak melihat santri di sini. Guru seorang santri tetap boleh **melihat** riwayat Yanbu'a/Al-Quran/Murajaah santri tersebut, termasuk dari grup lain.
 
 ### 7.1 Tampilan Guru — Mencatat Progres
 
@@ -282,6 +285,10 @@ Hanya untuk melihat.
 | **Pilih Anak** | Sama seperti layar lain. |
 | Kartu **Level sekarang** | Jilid, halaman, dan penguasaan terkini. |
 | **Riwayat Sesi** | Sama seperti tampilan guru — daftar seluruh riwayat, tanpa kemampuan mengubah apa pun. |
+
+Jika anak hanya ikut grup yang tidak mencatat Yanbu'a/Al-Quran/Murajaah (misalnya hanya grup Aqidah), layar Yanbu'a, Al-Quran dan Murajaah menampilkan penjelasan singkat sebagai ganti riwayat kosong:
+
+<img src="./screenshots/id/yanbua-family-untracked.png" width="360" alt="Yanbu'a — penjelasan untuk anak tanpa grup yang mencatat">
 
 ---
 
@@ -428,7 +435,7 @@ Dibuka lewat ikon lonceng di bilah atas. Hanya tersedia (berisi data) untuk akun
 
 | Elemen | Fungsi |
 |---|---|
-| Daftar notifikasi | Setiap baris berupa satu peristiwa: santri tidak hadir, tugas baru, pengingat tenggat, jilid Yanbu'a selesai, surah baru dihafal, pengingat murajaah, rapor siap, atau ringkasan mingguan. Tekan salah satu untuk membuka layar terkait. |
+| Daftar notifikasi | Setiap baris berupa satu peristiwa: santri tidak hadir, tugas baru, pengingat tenggat, jilid Yanbu'a selesai, surah baru dihafal, pengingat murajaah, rapor siap, atau ringkasan mingguan. Jika anak ikut lebih dari satu grup, notifikasi ketidakhadiran dan tugas baru menyebut **grupnya** (mis. "… tidak hadir hari ini di grup Aqidah 9–11 th"), sehingga dua ketidakhadiran pada hari yang sama bisa dibedakan. Tekan salah satu untuk membuka layar terkait. |
 | Membaca notifikasi | Semua notifikasi otomatis ditandai "sudah dibaca" begitu halaman ini dibuka — tidak ada tombol tersendiri untuk itu. |
 | Tautan **Pengaturan notifikasi** | Membuka [§11.2](#112-pengaturan-notifikasi). |
 
@@ -481,11 +488,18 @@ Hanya bisa diakses oleh akun dengan peran Admin, lewat ubin **Kelola** di Berand
 
 <img src="./screenshots/id/admin-classes.png" width="360" alt="Kelola — daftar Grup">
 
+Ada dua jenis grup: **grup Yanbu'a/Al-Quran** (dibagi menurut tingkat bacaan) dan **grup Aqidah** (dibagi menurut usia). Seorang santri bisa ikut keduanya, dan sebanyak grup yang diperlukan. Perbedaan kedua jenis itu adalah satu pengaturan per grup: **Pencatatan Yanbu'a/Al-Quran/Murajaah**.
+
 | Elemen | Fungsi |
 |---|---|
 | **+ Grup Baru** | Membuka formulir grup baru (lihat gambar di bawah). |
-| Kartu tiap grup | Nama, jadwal, hari pertemuan (mis. "Rab, Sab"), dan daftar guru pengampu. |
+| **Aktif** / **Diarsipkan** | Menampilkan grup aktif atau grup yang diarsipkan. |
+| Kartu tiap grup | Nama, bila ada lencana **"Tanpa pencatatan Yanbu'a"** (mis. grup Aqidah; lengkapnya: tanpa pencatatan Yanbu'a, Al-Quran dan Murajaah) atau **"Diarsipkan"**, jadwal, hari pertemuan (mis. "Rab, Sab"), dan daftar guru pengampu. |
+| **Santri (jumlah)** | Membuka daftar santri grup, tempat menambah dan mengeluarkan santri (lihat [§12.2.1](#1221-santri-dalam-grup)). |
 | **Ubah** | Membuka formulir edit untuk grup tersebut, terisi data yang sudah ada. |
+| **Arsipkan** | Untuk grup tahun ajaran sebelumnya atau grup yang dibubarkan. Grup yang diarsipkan **dibekukan**: tidak bisa lagi diisi sesi, kehadiran, tugas atau santri baru, oleh siapa pun (termasuk admin). Riwayatnya tetap tersimpan dan terlihat, tetapi grup hilang dari semua pilihan grup, dan guru grup itu tidak lagi melihat data mantan santrinya di luar grup itu sendiri. Jika grup masih bertemu dalam 7 hari terakhir, aplikasi memberi peringatan: guru yang mengisi kehadiran secara offline dan belum terkirim tidak dapat mengirimnya lagi setelah diarsipkan. |
+| **Aktifkan kembali** | Mengaktifkan kembali grup yang diarsipkan, misalnya untuk memperbaiki sesuatu. |
+| **Hapus** | Hanya untuk grup **tanpa riwayat** (mis. terbuat tanpa sengaja). Jika grup sudah punya sesi atau tugas, grup tidak bisa dihapus — aplikasi memberi tahu dan menyarankan untuk mengarsipkannya. |
 
 Formulir Grup (sama untuk buat baru maupun ubah):
 
@@ -493,13 +507,32 @@ Formulir Grup (sama untuk buat baru maupun ubah):
 
 | Kolom | Fungsi |
 |---|---|
-| **Nama Grup** | Wajib diisi. |
+| **Nama Grup** | Wajib diisi. Misalnya "Grup A" atau "Aqidah 9–11 th" — namanya bebas, aplikasi hanya melihat pengaturan di bawah ini. |
 | **Jadwal** | Opsional, teks bebas untuk waktu (mis. "Sabtu 10:00-12:00"). |
-| **Hari pertemuan** | Daftar centang Senin sampai Ahad. Pada grup baru, **Sabtu** sudah tercentang; boleh lebih dari satu hari. Minimal satu hari harus dipilih — jika tidak, tombol **Simpan** nonaktif dengan pesan *"Pilih minimal satu hari"*. Hari-hari inilah yang menentukan pada tanggal berapa daftar hadir dapat membuat sesi. |
+| **Hari pertemuan** | Daftar centang Senin sampai Ahad. Pada grup baru, **Sabtu** sudah tercentang; boleh lebih dari satu hari. Minimal satu hari harus dipilih — jika tidak, tombol **Simpan** nonaktif dengan pesan *"Pilih minimal satu hari"*. Hari-hari ini menentukan tanggal mana yang bisa dibuatkan sesi di daftar hadir. |
+| **Pencatatan Yanbu'a** + tombol **ⓘ** | Lengkapnya: *Pencatatan Yanbu'a/Al-Quran/Murajaah*. Secara bawaan **tercentang** (grup Yanbu'a/Al-Quran). **Hilangkan centang untuk grup Aqidah**: gurunya tetap mengisi kehadiran dan tugas, tetapi tidak mencatat Yanbu'a, Al-Quran atau Murajaah. Ketuk **ⓘ** untuk membaca penjelasan ini dalam jendela kecil; ketuk lagi atau di luar jendela untuk menutupnya. |
 | **Guru Pengampu** | Daftar centang — bisa memilih lebih dari satu guru, atau tidak memilih sama sekali. |
 | **Simpan** / **Batal** | Menyimpan atau membatalkan. |
 
-> Tidak ada tombol hapus grup di aplikasi ini.
+**Target murajaah saat mengubah grup.** Jika sebuah perubahan membuat santri tidak lagi berada di **satu pun** grup yang mencatat — Anda menghilangkan centang pencatatan sebuah grup, mengarsipkan grup seperti itu, atau mengeluarkan santri darinya — tidak ada lagi yang dapat mengelola target Murajaah aktifnya. Aplikasi lebih dulu menampilkan target tersebut:
+
+<img src="./screenshots/id/admin-murajaah-prompt.png" width="360" alt="Kelola — target murajaah yang terdampak">
+
+Target yang **harus ditutup** sudah tercentang dan tidak bisa diubah. Jika santri masih punya grup lain yang mencatat, target **boleh dipertahankan** (tidak tercentang). Pilih **Lanjutkan** untuk menjalankan perubahan dan menutup target yang dicentang, atau **Batal** untuk tidak mengubah apa pun.
+
+#### 12.2.1 Santri dalam grup
+
+<img src="./screenshots/id/admin-group-members.png" width="360" alt="Kelola — menambah santri ke grup">
+
+| Elemen | Fungsi |
+|---|---|
+| **+ Tambah santri** | Membuka daftar pilihan untuk menambahkan beberapa santri sekaligus — berguna di awal tahun ajaran, daripada mengubah data santri satu per satu. |
+| Saringan **Nama**, **Lahir dari** / **Lahir sampai**, **Grup saat ini** | Mempersempit daftar. Menyaring menurut tanggal lahir adalah alat bantu untuk menemukan kelompok usia; aplikasi **tidak** menyarankan grup. Dengan **Grup saat ini → Tanpa grup** Anda menemukan santri yang belum ditempatkan. |
+| Daftar dengan centang | Setiap santri dengan tanggal lahir dan grup saat ini. Santri yang sudah ada di grup ini tidak tercantum. |
+| **Tambahkan ({jumlah})** | Meminta konfirmasi lebih dulu: aplikasi menyebut berapa santri yang ditambahkan dan **guru mana yang dengan itu mendapat akses** ke data mereka (riwayat Yanbu'a/Al-Quran/Murajaah, kehadiran, dan kontak orang tua). Setiap penambahan dicatat (siapa, apa, kapan). |
+| Daftar santri dengan **Keluarkan** | Mengeluarkan santri dari grup, setelah konfirmasi. Kehadiran dan tugas santri sebelumnya tetap tersimpan dan terlihat oleh keluarga; pengumuman dan materi grup tidak lagi. |
+
+Grup yang diarsipkan hanya menampilkan santrinya di sini, dengan keterangan bahwa grup telah diarsipkan.
 
 ### 12.3 Santri
 
@@ -508,7 +541,8 @@ Formulir Grup (sama untuk buat baru maupun ubah):
 | Elemen | Fungsi |
 |---|---|
 | **+ Santri Baru** | Membuka formulir santri baru. |
-| Kartu tiap santri | Nama, lencana **"Akun sendiri"** (jika santri punya login Google sendiri, misalnya santri 16+), grup, dan nama orang tua/wali yang tertaut. |
+| **Tampilkan** | Saringan: semua grup, **Tanpa grup**, atau santri satu grup. |
+| Kartu tiap santri | Nama, lencana **"Akun sendiri"** (jika santri punya login Google sendiri, misalnya santri 16+), grup — atau **"Tanpa grup"** — dan nama orang tua/wali yang tertaut. |
 | **Ubah** | Membuka formulir edit. |
 | **Hapus** | Menghapus data santri **secara permanen**, beserta seluruh kehadiran, progres, dan rapornya (muncul pertanyaan konfirmasi lebih dulu). Gunakan hanya untuk membersihkan data ganda — misalnya jika orang tua mengirim ulang formulir pendaftaran dengan ejaan nama yang diperbaiki, sehingga muncul dua data untuk satu anak. |
 
@@ -521,11 +555,11 @@ Formulir Santri:
 | **Nama Lengkap** | Wajib diisi. |
 | **Tanggal Lahir** | Wajib diisi. |
 | **Orang tua / wali** | Wajib — **minimal satu**. Pilih tiap orang tua/wali dari daftar pengguna terdaftar, dan gunakan **"+ Tambah orang tua / wali"** untuk menambah yang kedua (atau lebih) bila perlu. Tiap baris boleh diberi keterangan hubungan opsional (mis. "ibu", "ayah", "wali"). Semua orang tua/wali yang tertaut memperoleh akses **yang sama**: melihat perkembangan, menerima notifikasi, dan mengonfirmasi latihan di rumah — tidak ada orang tua "utama". Tombol hapus **−** nonaktif selama baris tinggal satu; seorang anak harus selalu punya minimal satu orang tua/wali. Melepas tautan orang tua/wali langsung mengakhiri aksesnya; catatan bahwa tautan itu pernah ada tetap disimpan untuk audit. |
-| **Grup** | Opsional — bisa dikosongkan jika belum ditempatkan di grup. |
+| **Grup** | Daftar centang semua grup aktif — seorang santri bisa ikut **beberapa** grup (mis. grup Yanbu'a/Al-Quran dan grup Aqidah), atau (belum) satu pun. Grup tanpa pencatatan berlencana "Tanpa pencatatan Yanbu'a". Grup yang diarsipkan tempat santri pernah ikut tampil di bawahnya sebagai riwayat dan tetap dipertahankan saat disimpan. |
 | **Tautkan Akun Login Mandiri** | Opsional — hanya muncul jika ada akun bertipe "santri" yang belum tertaut ke santri manapun. Ini cara untuk menghubungkan login Google milik santri (biasanya yang sudah 16+) ke data santri yang sudah ada, misalnya saat santri baru saja membuat akunnya sendiri. |
 | **Simpan** / **Batal** | Menyimpan atau membatalkan. |
 
-> Tidak ada tombol hapus santri di aplikasi ini.
+**Tanpa grup.** Santri yang masuk lewat formulir pendaftaran belum ikut grup mana pun dan belum terlihat oleh guru mana pun. Selama masih ada santri seperti itu, di bagian atas setiap layar Kelola tampil pemberitahuan dengan segitiga peringatan, **"⚠ Santri tanpa grup: {jumlah}"**; ketuk untuk melihat mereka.
 
 ### 12.4 Kehadiran Guru
 
@@ -611,7 +645,10 @@ Untuk memudahkan komunikasi dua bahasa di lingkungan TPA, berikut padanan istila
 | Kelola | Beheer | Menu khusus admin. |
 | Pendaftaran | Registraties | — |
 | Pengguna | Gebruikers | Sub-halaman admin untuk mengubah nama dan peran akun. |
+| Pencatatan Yanbu'a/Al-Quran/Murajaah | Registratie Yanbu'a/Al-Quran/Murajaah | Pengaturan per grup: aktif untuk grup Yanbu'a/Al-Quran, nonaktif untuk grup Aqidah. |
+| Arsipkan | Archiveren | Membekukan grup dan menghapusnya dari pilihan grup; riwayatnya tetap ada. |
+| Santri (dalam grup) | Leerlingen (van een groep) | Santri yang ikut sebuah grup. |
 
 ---
 
-*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **12.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026), serta **§5.1 dilengkapi dengan bagian "Kehadiran guru"** dan **§12.4 ditambahkan untuk layar peninjauan "Kehadiran Guru" admin** (ADR-041, September 2026), dan **§12.5 ditambahkan untuk layar "Pengguna" admin** (ADR-042, September 2026). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF dibuat ulang dari teks ini dengan `scripts/gen-manual-pdf.mjs`; layar §12.4 dan §12.5 belum memiliki tangkapan layar.*
+*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **12.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026), serta **§5.1 dilengkapi dengan bagian "Kehadiran guru"** dan **§12.4 ditambahkan untuk layar peninjauan "Kehadiran Guru" admin** (ADR-041, September 2026), **§12.5 ditambahkan untuk layar "Pengguna" admin** (ADR-042, September 2026), dan diperbarui untuk **santri yang ikut beberapa grup** (ADR-045, September 2026): §5, §6.2, §7, §11.1, §12.2 (dengan §12.2.1 "Santri dalam grup" yang baru) dan §12.3. Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF dibuat ulang dari teks ini dengan `scripts/gen-manual-pdf.mjs`; layar §12.4 dan §12.5 belum memiliki tangkapan layar.*

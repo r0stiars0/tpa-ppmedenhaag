@@ -25,7 +25,7 @@ const MASTERY_OPTIONS: { value: YanbuahMastery; labelKey: string }[] = [
 export function TutorYanbuaView() {
   const { t } = useTranslation()
   const { profile } = useAuth()
-  const { classes, loading: classesLoading } = useMyClasses()
+  const { classes, loading: classesLoading } = useMyClasses({ trackingOnly: true })
   const { selfStudentId } = useViewScope()
 
   const [classId, setClassId] = useState<string | null>(null)

@@ -4519,6 +4519,598 @@ insert into _tap_log(line) select is(
 
 reset role;
 
+-- ======================================================================
+-- RLS-122…RLS-142: multi-group enrolment (migration 026, TAD ADR-045,
+-- PRD Feature 8 release 8a)
+--
+-- A student belongs to any number of groups (`class_members`); a group's
+-- `tracks_progress` switch decides whether its tutors may RECORD
+-- Yanbu'a/Quran/Murajaah; `archived_at` freezes a group. These cases pin
+-- every access rule ADR-045 (c)/(d) rewrote, on an isolated fixture
+-- island (f8a…) so no earlier case's counts move:
+--
+--   Groups   GY1 (tracking on, TY)   GY3 (tracking on, TY)
+--            GAQ (tracking OFF — "Aqidah", tutors TQ and SA)
+--            GY2 (tracking on, TOLD — archived part-way through)
+--            GEMPTY (no history — the one group that may be deleted)
+--   Kids     K1: GY1 + GAQ   (guardian PA)      K2: GY1          (PB)
+--            K3: GAQ → leaves (PC)               K4: GY2 + GY1    (PD)
+--            K5: GAQ only    (PE)                K6: GAQ + GY3    (PE)
+--            K7: GY1 + GY2   (PA)                SAS: GY1 — SA's own
+--            student record; SA is a 16+ student assistant who TUTORS GAQ.
+-- ======================================================================
+reset role;
+-- The previous block's persona outlives `reset role` (set local lasts to
+-- the end of the transaction). Clear it, or auth.uid() would stamp that
+-- admin as `changed_by` on the audit rows these fixture inserts write.
+set local request.jwt.claim.sub to '';
+
+insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous, created_at, updated_at)
+select ('f8a00000-0000-0000-0000-0000000000' || n)::uuid, 'authenticated', 'authenticated', 'f8a' || n || '@test.local', '', now(), '{}', '{}', false, false, now(), now()
+from unnest(array['01','02','03','04','11','12','13','14','15','16']) n;
+
+insert into public.users (id, email, full_name, role, locale) values
+  ('f8a00000-0000-0000-0000-000000000001', 'f8a01@test.local', 'MG Tutor Y',       'tutor',   'id'),
+  ('f8a00000-0000-0000-0000-000000000002', 'f8a02@test.local', 'MG Tutor Aqidah',  'tutor',   'id'),
+  ('f8a00000-0000-0000-0000-000000000003', 'f8a03@test.local', 'MG Tutor Old',     'tutor',   'id'),
+  ('f8a00000-0000-0000-0000-000000000004', 'f8a04@test.local', 'MG Assistant',     'student', 'id'),
+  ('f8a00000-0000-0000-0000-000000000011', 'f8a11@test.local', 'MG Parent A',      'parent',  'id'),
+  ('f8a00000-0000-0000-0000-000000000012', 'f8a12@test.local', 'MG Parent B',      'parent',  'id'),
+  ('f8a00000-0000-0000-0000-000000000013', 'f8a13@test.local', 'MG Parent C',      'parent',  'id'),
+  ('f8a00000-0000-0000-0000-000000000014', 'f8a14@test.local', 'MG Parent D',      'parent',  'id'),
+  ('f8a00000-0000-0000-0000-000000000015', 'f8a15@test.local', 'MG Parent E',      'parent',  'id'),
+  ('f8a00000-0000-0000-0000-000000000016', 'f8a16@test.local', 'MG Parent S',      'parent',  'id');
+
+insert into public.classes (id, name, meeting_days, tutor_ids, tracks_progress) values
+  ('f8ac0000-0000-0000-0000-000000000001', 'MG Yanbua 1', '{0,1,2,3,4,5,6}', array['f8a00000-0000-0000-0000-000000000001']::uuid[], true),
+  ('f8ac0000-0000-0000-0000-000000000003', 'MG Yanbua 3', '{0,1,2,3,4,5,6}', array['f8a00000-0000-0000-0000-000000000001']::uuid[], true),
+  ('f8ac0000-0000-0000-0000-00000000000a', 'MG Aqidah',   '{0,1,2,3,4,5,6}', array['f8a00000-0000-0000-0000-000000000002','f8a00000-0000-0000-0000-000000000004']::uuid[], false),
+  ('f8ac0000-0000-0000-0000-000000000002', 'MG Yanbua Old','{0,1,2,3,4,5,6}', array['f8a00000-0000-0000-0000-000000000003']::uuid[], true),
+  ('f8ac0000-0000-0000-0000-00000000000e', 'MG Empty',    '{0,1,2,3,4,5,6}', '{}'::uuid[], true);
+
+insert into public.students (id, user_id, full_name, date_of_birth) values
+  ('f8ad0000-0000-0000-0000-000000000001', null, 'MG K1', '2016-01-01'),
+  ('f8ad0000-0000-0000-0000-000000000002', null, 'MG K2', '2016-01-01'),
+  ('f8ad0000-0000-0000-0000-000000000003', null, 'MG K3', '2016-01-01'),
+  ('f8ad0000-0000-0000-0000-000000000004', null, 'MG K4', '2016-01-01'),
+  ('f8ad0000-0000-0000-0000-000000000005', null, 'MG K5', '2016-01-01'),
+  ('f8ad0000-0000-0000-0000-00000000000b', null, 'MG K6', '2016-01-01'),
+  ('f8ad0000-0000-0000-0000-000000000007', null, 'MG K7', '2016-01-01'),
+  ('f8ad0000-0000-0000-0000-000000000006', 'f8a00000-0000-0000-0000-000000000004', 'MG SA (student record)', '2009-01-01');
+
+insert into public.student_guardians (student_id, user_id) values
+  ('f8ad0000-0000-0000-0000-000000000001', 'f8a00000-0000-0000-0000-000000000011'),
+  ('f8ad0000-0000-0000-0000-000000000002', 'f8a00000-0000-0000-0000-000000000012'),
+  ('f8ad0000-0000-0000-0000-000000000003', 'f8a00000-0000-0000-0000-000000000013'),
+  ('f8ad0000-0000-0000-0000-000000000004', 'f8a00000-0000-0000-0000-000000000014'),
+  ('f8ad0000-0000-0000-0000-000000000005', 'f8a00000-0000-0000-0000-000000000015'),
+  ('f8ad0000-0000-0000-0000-00000000000b', 'f8a00000-0000-0000-0000-000000000015'),
+  ('f8ad0000-0000-0000-0000-000000000007', 'f8a00000-0000-0000-0000-000000000011'),
+  ('f8ad0000-0000-0000-0000-000000000006', 'f8a00000-0000-0000-0000-000000000016');
+
+insert into public.class_members (class_id, student_id) values
+  ('f8ac0000-0000-0000-0000-000000000001', 'f8ad0000-0000-0000-0000-000000000001'),  -- K1 GY1
+  ('f8ac0000-0000-0000-0000-00000000000a', 'f8ad0000-0000-0000-0000-000000000001'),  -- K1 GAQ
+  ('f8ac0000-0000-0000-0000-000000000001', 'f8ad0000-0000-0000-0000-000000000002'),  -- K2 GY1
+  ('f8ac0000-0000-0000-0000-00000000000a', 'f8ad0000-0000-0000-0000-000000000003'),  -- K3 GAQ
+  ('f8ac0000-0000-0000-0000-000000000002', 'f8ad0000-0000-0000-0000-000000000004'),  -- K4 GY2
+  ('f8ac0000-0000-0000-0000-000000000001', 'f8ad0000-0000-0000-0000-000000000004'),  -- K4 GY1
+  ('f8ac0000-0000-0000-0000-00000000000a', 'f8ad0000-0000-0000-0000-000000000005'),  -- K5 GAQ
+  ('f8ac0000-0000-0000-0000-00000000000a', 'f8ad0000-0000-0000-0000-00000000000b'),  -- K6 GAQ
+  ('f8ac0000-0000-0000-0000-000000000003', 'f8ad0000-0000-0000-0000-00000000000b'),  -- K6 GY3
+  ('f8ac0000-0000-0000-0000-000000000001', 'f8ad0000-0000-0000-0000-000000000007'),  -- K7 GY1
+  ('f8ac0000-0000-0000-0000-000000000002', 'f8ad0000-0000-0000-0000-000000000007'),  -- K7 GY2
+  ('f8ac0000-0000-0000-0000-000000000001', 'f8ad0000-0000-0000-0000-000000000006');  -- SAS GY1
+
+-- Registers. SY1 (GY1): K1 absent with a reason, K2 present. SQ1 (GAQ):
+-- K1 present, K3 absent, K5 present. SY2 (GY2, archived later): K4.
+-- SY3 (GY3): K6.
+insert into public.sessions (id, class_id, date, tutor_id) values
+  ('f8ae0000-0000-0000-0000-000000000001', 'f8ac0000-0000-0000-0000-000000000001', current_date - 30, 'f8a00000-0000-0000-0000-000000000001'),
+  ('f8ae0000-0000-0000-0000-00000000000a', 'f8ac0000-0000-0000-0000-00000000000a', current_date - 30, 'f8a00000-0000-0000-0000-000000000002'),
+  ('f8ae0000-0000-0000-0000-000000000002', 'f8ac0000-0000-0000-0000-000000000002', current_date - 30, 'f8a00000-0000-0000-0000-000000000003'),
+  ('f8ae0000-0000-0000-0000-000000000003', 'f8ac0000-0000-0000-0000-000000000003', current_date - 30, 'f8a00000-0000-0000-0000-000000000001');
+insert into public.attendance (session_id, student_id, status, reason) values
+  ('f8ae0000-0000-0000-0000-000000000001', 'f8ad0000-0000-0000-0000-000000000001', 'absent',  'MG health reason'),
+  ('f8ae0000-0000-0000-0000-000000000001', 'f8ad0000-0000-0000-0000-000000000002', 'present', null),
+  ('f8ae0000-0000-0000-0000-00000000000a', 'f8ad0000-0000-0000-0000-000000000001', 'present', null),
+  ('f8ae0000-0000-0000-0000-00000000000a', 'f8ad0000-0000-0000-0000-000000000003', 'absent',  'MG family reason'),
+  ('f8ae0000-0000-0000-0000-00000000000a', 'f8ad0000-0000-0000-0000-000000000005', 'present', null),
+  ('f8ae0000-0000-0000-0000-000000000002', 'f8ad0000-0000-0000-0000-000000000004', 'present', null),
+  ('f8ae0000-0000-0000-0000-000000000003', 'f8ad0000-0000-0000-0000-00000000000b', 'present', null);
+
+-- Homework. AY1 (GY1), AQ1 (GAQ), AY3 (GY3), AY2 (GY2).
+insert into public.assignments (id, class_id, tutor_id, title, due_date) values
+  ('f8af0000-0000-0000-0000-000000000001', 'f8ac0000-0000-0000-0000-000000000001', 'f8a00000-0000-0000-0000-000000000001', 'MG AY1', current_date + 7),
+  ('f8af0000-0000-0000-0000-00000000000a', 'f8ac0000-0000-0000-0000-00000000000a', 'f8a00000-0000-0000-0000-000000000002', 'MG AQ1', current_date + 7),
+  ('f8af0000-0000-0000-0000-000000000003', 'f8ac0000-0000-0000-0000-000000000003', 'f8a00000-0000-0000-0000-000000000001', 'MG AY3', current_date + 7),
+  ('f8af0000-0000-0000-0000-000000000002', 'f8ac0000-0000-0000-0000-000000000002', 'f8a00000-0000-0000-0000-000000000003', 'MG AY2', current_date + 7);
+insert into public.assignment_status (assignment_id, student_id, status) values
+  ('f8af0000-0000-0000-0000-000000000001', 'f8ad0000-0000-0000-0000-000000000001', 'pending'),
+  ('f8af0000-0000-0000-0000-000000000001', 'f8ad0000-0000-0000-0000-000000000002', 'pending'),
+  ('f8af0000-0000-0000-0000-00000000000a', 'f8ad0000-0000-0000-0000-000000000001', 'pending'),
+  ('f8af0000-0000-0000-0000-00000000000a', 'f8ad0000-0000-0000-0000-000000000003', 'pending'),
+  ('f8af0000-0000-0000-0000-00000000000a', 'f8ad0000-0000-0000-0000-000000000005', 'pending'),
+  ('f8af0000-0000-0000-0000-000000000003', 'f8ad0000-0000-0000-0000-00000000000b', 'pending'),
+  ('f8af0000-0000-0000-0000-000000000002', 'f8ad0000-0000-0000-0000-000000000004', 'pending');
+
+-- Progress history recorded earlier by the tracking-group tutors.
+insert into public.yanbua_progress (student_id, tutor_id, jilid, page, mastery) values
+  ('f8ad0000-0000-0000-0000-000000000001', 'f8a00000-0000-0000-0000-000000000001', 2, 10, 'lancar'),
+  ('f8ad0000-0000-0000-0000-00000000000b', 'f8a00000-0000-0000-0000-000000000001', 3, 5,  'lancar'),
+  ('f8ad0000-0000-0000-0000-000000000004', 'f8a00000-0000-0000-0000-000000000003', 1, 20, 'lancar');
+insert into public.murajaah_assignments (student_id, tutor_id, surah_num, ayah_from, ayah_to) values
+  ('f8ad0000-0000-0000-0000-000000000001', 'f8a00000-0000-0000-0000-000000000001', 114, 1, 6);
+
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+
+-- ---- RLS-122: the transitional sync trigger (ADR-045(a0)). Until the
+-- contract migration drops students.class_id, a write to it from an old
+-- app bundle is mirrored into class_members: set → added, changed →
+-- moved.
+reset role;
+insert into public.students (id, full_name, date_of_birth, class_id)
+values ('f8ad0000-0000-0000-0000-0000000000cc', 'MG Sync Kid', '2016-01-01', 'f8ac0000-0000-0000-0000-000000000001');
+insert into public.student_guardians (student_id, user_id) values ('f8ad0000-0000-0000-0000-0000000000cc', 'f8a00000-0000-0000-0000-000000000012');
+insert into _tap_log(line) select is(
+  (select array_agg(class_id) from public.class_members where student_id = 'f8ad0000-0000-0000-0000-0000000000cc'),
+  array['f8ac0000-0000-0000-0000-000000000001']::uuid[],
+  'RLS-122: writing students.class_id (old app) adds the matching class_members row'
+);
+update public.students set class_id = 'f8ac0000-0000-0000-0000-000000000003' where id = 'f8ad0000-0000-0000-0000-0000000000cc';
+insert into _tap_log(line) select is(
+  (select array_agg(class_id) from public.class_members where student_id = 'f8ad0000-0000-0000-0000-0000000000cc'),
+  array['f8ac0000-0000-0000-0000-000000000003']::uuid[],
+  'RLS-122: …and changing it moves the membership (old single-group semantics)'
+);
+delete from public.students where id = 'f8ad0000-0000-0000-0000-0000000000cc';
+
+-- ---- RLS-123: who reads class_members; only an admin writes it.
+set local role authenticated;
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000001';  -- TY
+insert into _tap_log(line) select is(
+  (select count(*) from public.class_members where class_id = 'f8ac0000-0000-0000-0000-000000000001'), 5::bigint,
+  'RLS-123: a tutor reads their own group''s memberships (GY1: K1, K2, K4, K7, SAS)'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.class_members where class_id = 'f8ac0000-0000-0000-0000-00000000000a'), 0::bigint,
+  'RLS-123: …and none of a group they do not teach'
+);
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000012';  -- PB
+insert into _tap_log(line) select is(
+  (select count(*) from public.class_members), 1::bigint,
+  'RLS-123: a guardian reads only their own child''s memberships'
+);
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000001';  -- TY
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.class_members (class_id, student_id) values ('f8ac0000-0000-0000-0000-000000000001', 'f8ad0000-0000-0000-0000-000000000005') $$,
+  '42501', null, 'RLS-123: a tutor cannot enrol a student (admin-only)'
+);
+delete from public.class_members where class_id = 'f8ac0000-0000-0000-0000-000000000001';
+reset role;
+insert into _tap_log(line) select is(
+  (select count(*) from public.class_members where class_id = 'f8ac0000-0000-0000-0000-000000000001'), 5::bigint,
+  'RLS-123: …nor remove one (a tutor DELETE matches nothing)'
+);
+
+-- ---- RLS-124: tracking off means no progress WRITES — the core fix.
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000002';  -- TQ, Aqidah only
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.yanbua_progress (student_id, tutor_id, jilid, page, mastery)
+     values ('f8ad0000-0000-0000-0000-000000000001', 'f8a00000-0000-0000-0000-000000000002', 2, 11, 'lancar') $$,
+  '42501', null, 'RLS-124: an Aqidah-only tutor cannot record Yanbu''a for a shared student'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.quran_progress (student_id, tutor_id, surah_num, ayah_from, ayah_to, quality)
+     values ('f8ad0000-0000-0000-0000-000000000005', 'f8a00000-0000-0000-0000-000000000002', 1, 1, 7, 'jayyid') $$,
+  '42501', null, 'RLS-124: …nor Quran, even for a student who is in no tracking group at all'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.murajaah_assignments (student_id, tutor_id, surah_num, ayah_from, ayah_to)
+     values ('f8ad0000-0000-0000-0000-000000000001', 'f8a00000-0000-0000-0000-000000000002', 113, 1, 5) $$,
+  '42501', null, 'RLS-124: …nor set a Murajaah target'
+);
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000001';  -- TY, tracking group
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.yanbua_progress (student_id, tutor_id, jilid, page, mastery)
+     values ('f8ad0000-0000-0000-0000-000000000001', 'f8a00000-0000-0000-0000-000000000001', 2, 12, 'lancar') $$,
+  'RLS-124: the same child''s Yanbu''a/Quran tutor still records'
+);
+
+-- ---- RLS-125: any current tutor READS the child's progress history.
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000002';  -- TQ
+insert into _tap_log(line) select is(
+  (select count(*) from public.yanbua_progress where student_id = 'f8ad0000-0000-0000-0000-000000000001'), 2::bigint,
+  'RLS-125: an Aqidah tutor reads a shared student''s Yanbu''a history'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.murajaah_assignments where student_id = 'f8ad0000-0000-0000-0000-000000000001'), 1::bigint,
+  'RLS-125: …and their Murajaah targets (massign_tutor_read)'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.yanbua_progress where student_id = 'f8ad0000-0000-0000-0000-000000000002'), 0::bigint,
+  'RLS-125: …but nothing for a child they do not teach'
+);
+
+-- ---- RLS-126: the attendance TABLE is scoped to the session's group.
+insert into _tap_log(line) select is(
+  (select count(*) from public.attendance where session_id = 'f8ae0000-0000-0000-0000-000000000001'), 0::bigint,
+  'RLS-126: an Aqidah tutor reads no rows of the Yanbu''a group''s register, even for a shared child'
+);
+update public.attendance set status = 'present' where session_id = 'f8ae0000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select is(
+  (select count(*) from public.attendance where session_id = 'f8ae0000-0000-0000-0000-00000000000a'), 3::bigint,
+  'RLS-126: …while reading their own group''s register in full'
+);
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000001';  -- TY
+insert into _tap_log(line) select is(
+  (select status::text from public.attendance where session_id = 'f8ae0000-0000-0000-0000-000000000001' and student_id = 'f8ad0000-0000-0000-0000-000000000001'),
+  'absent', 'RLS-126: …and their UPDATE of another group''s register changed nothing'
+);
+
+-- ---- RLS-127: fn_student_attendance_history — the child's own
+-- attendance crosses groups, the absence reason never does.
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000002';  -- TQ
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_student_attendance_history('f8ad0000-0000-0000-0000-000000000001')), 2::bigint,
+  'RLS-127: an Aqidah tutor sees the shared child''s attendance from both groups'
+);
+insert into _tap_log(line) select is(
+  (select status::text || '/' || coalesce(reason, 'NULL') from public.fn_student_attendance_history('f8ad0000-0000-0000-0000-000000000001')
+     where class_id = 'f8ac0000-0000-0000-0000-000000000001'),
+  'absent/NULL', 'RLS-127: …the other group''s absence shows as absent, with the reason withheld'
+);
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000001';  -- TY
+insert into _tap_log(line) select is(
+  (select reason from public.fn_student_attendance_history('f8ad0000-0000-0000-0000-000000000001')
+     where class_id = 'f8ac0000-0000-0000-0000-000000000001'),
+  'MG health reason', 'RLS-127: the session''s own group tutor sees the reason'
+);
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000011';  -- PA
+insert into _tap_log(line) select is(
+  (select reason from public.fn_student_attendance_history('f8ad0000-0000-0000-0000-000000000001')
+     where class_id = 'f8ac0000-0000-0000-0000-000000000001'),
+  'MG health reason', 'RLS-127: the child''s guardian sees the reason'
+);
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000012';  -- PB
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_student_attendance_history('f8ad0000-0000-0000-0000-000000000001')), 0::bigint,
+  'RLS-127: another family gets zero rows, not an error'
+);
+
+-- ---- RLS-128: a register row needs the student to be a member of THAT
+-- session's group, not merely of one of the caller's groups.
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000002';  -- TQ
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.attendance (session_id, student_id, status)
+     values ('f8ae0000-0000-0000-0000-00000000000a', 'f8ad0000-0000-0000-0000-000000000002', 'present') $$,
+  '42501', null, 'RLS-128: a tutor cannot mark a non-member on their group''s register'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.attendance (session_id, student_id, status)
+     values ('f8ae0000-0000-0000-0000-00000000000a', 'f8ad0000-0000-0000-0000-00000000000b', 'late') $$,
+  'RLS-128: …and marks a member as before'
+);
+
+-- ---- RLS-129: homework — the list crosses groups, completion does not.
+insert into _tap_log(line) select is(
+  (select count(*) from public.assignments where id = 'f8af0000-0000-0000-0000-000000000001'), 1::bigint,
+  'RLS-129: an Aqidah tutor reads the shared child''s other group''s homework list'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.assignment_status where assignment_id = 'f8af0000-0000-0000-0000-000000000001'), 0::bigint,
+  'RLS-129: …but none of its completion marks'
+);
+update public.assignment_status set status = 'completed' where assignment_id = 'f8af0000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.assignment_status (assignment_id, student_id, status)
+     values ('f8af0000-0000-0000-0000-00000000000a', 'f8ad0000-0000-0000-0000-000000000002', 'pending') $$,
+  '42501', null, 'RLS-129: a tutor cannot set homework status for a non-member of the homework''s group'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.assignments (class_id, tutor_id, title, due_date)
+     values ('f8ac0000-0000-0000-0000-000000000001', 'f8a00000-0000-0000-0000-000000000002', 'MG intrude', current_date) $$,
+  '42501', null, 'RLS-129: …nor create homework in a group they only read'
+);
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000001';  -- TY
+insert into _tap_log(line) select is(
+  (select count(*) from public.assignment_status where assignment_id = 'f8af0000-0000-0000-0000-000000000001' and status = 'pending'), 2::bigint,
+  'RLS-129: …and their UPDATE of another group''s completion marks changed nothing'
+);
+update public.assignment_status set status = 'completed'
+ where assignment_id = 'f8af0000-0000-0000-0000-000000000001' and student_id = 'f8ad0000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select is(
+  (select status::text from public.assignment_status where assignment_id = 'f8af0000-0000-0000-0000-000000000001' and student_id = 'f8ad0000-0000-0000-0000-000000000001'),
+  'completed', 'RLS-129: the homework''s own group tutor marks completion'
+);
+
+-- ---- RLS-130: a family reads every one of its child's groups, and
+-- nothing of a group its children are not in.
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000011';  -- PA (K1, K7)
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where id in ('f8ae0000-0000-0000-0000-000000000001', 'f8ae0000-0000-0000-0000-00000000000a')), 2::bigint,
+  'RLS-130: a guardian reads the sessions of both of their child''s groups'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.assignments where id in ('f8af0000-0000-0000-0000-000000000001', 'f8af0000-0000-0000-0000-00000000000a')), 2::bigint,
+  'RLS-130: …and the homework of both'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.classes where id in ('f8ac0000-0000-0000-0000-000000000001', 'f8ac0000-0000-0000-0000-00000000000a')), 2::bigint,
+  'RLS-130: …and both group names'
+);
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000012';  -- PB (K2: GY1 only)
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where id = 'f8ae0000-0000-0000-0000-00000000000a')
+  + (select count(*) from public.assignments where id = 'f8af0000-0000-0000-0000-00000000000a')
+  + (select count(*) from public.classes where id = 'f8ac0000-0000-0000-0000-00000000000a'), 0::bigint,
+  'RLS-130: a guardian with no child in the Aqidah group reads none of its sessions, homework or name'
+);
+
+-- ---- RLS-131: leaving a group. The child's own history stays readable
+-- (dated and named); the group's new content does not.
+set local role authenticated;
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+delete from public.class_members
+ where class_id = 'f8ac0000-0000-0000-0000-00000000000a' and student_id = 'f8ad0000-0000-0000-0000-000000000003';
+reset role;
+insert into public.assignments (id, class_id, tutor_id, title, due_date) values
+  ('f8af0000-0000-0000-0000-0000000000a2', 'f8ac0000-0000-0000-0000-00000000000a', 'f8a00000-0000-0000-0000-000000000002', 'MG AQ2 after K3 left', current_date + 7);
+set local role authenticated;
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000013';  -- PC (K3 left GAQ)
+insert into _tap_log(line) select is(
+  (select count(*) from public.sessions where id = 'f8ae0000-0000-0000-0000-00000000000a'), 1::bigint,
+  'RLS-131: after leaving, the family still reads the session their child attended'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.assignments where id = 'f8af0000-0000-0000-0000-00000000000a'), 1::bigint,
+  'RLS-131: …and the homework their child had'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.classes where id = 'f8ac0000-0000-0000-0000-00000000000a'), 1::bigint,
+  'RLS-131: …and the group''s name, so that history stays labelled'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.assignments where id = 'f8af0000-0000-0000-0000-0000000000a2'), 0::bigint,
+  'RLS-131: …but not homework the group set after the child left'
+);
+
+-- ---- RLS-132: tutors read the names of their students' other groups.
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000002';  -- TQ
+insert into _tap_log(line) select is(
+  (select count(*) from public.classes where id in ('f8ac0000-0000-0000-0000-000000000001', 'f8ac0000-0000-0000-0000-000000000003')), 2::bigint,
+  'RLS-132: an Aqidah tutor reads the names of their students'' other groups'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.assignments where id = 'f8af0000-0000-0000-0000-000000000003'), 1::bigint,
+  'RLS-132: …and those groups'' homework lists'
+);
+
+-- ---- RLS-133: a student assistant gets no cross-group reads (Resolved
+-- Decision 26). SA tutors GAQ (tracking off) and is enrolled in GY1.
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000004';  -- SA
+insert into _tap_log(line) select is(
+  (select count(*) from public.attendance where session_id = 'f8ae0000-0000-0000-0000-00000000000a'), 4::bigint,
+  'RLS-133: a student assistant reads the register of the group they teach'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_student_guardians('f8ad0000-0000-0000-0000-000000000005')), 1::bigint,
+  'RLS-133: …and the guardians of that group''s members'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.yanbua_progress where student_id = 'f8ad0000-0000-0000-0000-00000000000b'), 0::bigint,
+  'RLS-133: …but no Yanbu''a history of those children (they teach no tracking group)'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_student_attendance_history('f8ad0000-0000-0000-0000-00000000000b')
+     where class_id = 'f8ac0000-0000-0000-0000-000000000003'), 0::bigint,
+  'RLS-133: …no attendance from the child''s other group'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.assignments where id = 'f8af0000-0000-0000-0000-000000000003')
+  + (select count(*) from public.classes where id = 'f8ac0000-0000-0000-0000-000000000003'), 0::bigint,
+  'RLS-133: …and neither the homework nor the name of the child''s other group'
+);
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000002';  -- TQ, same group, adult
+insert into _tap_log(line) select is(
+  (select count(*) from public.yanbua_progress where student_id = 'f8ad0000-0000-0000-0000-00000000000b'), 1::bigint,
+  'RLS-133: (control) an adult co-tutor of the same group does read that history'
+);
+
+-- ---- RLS-134: archiving freezes a group, for every role.
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+update public.classes set archived_at = now() where id = 'f8ac0000-0000-0000-0000-000000000002';
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.sessions (class_id, date, tutor_id) values ('f8ac0000-0000-0000-0000-000000000002', current_date - 1, 'f8a00000-0000-0000-0000-000000000003') $$,
+  '23514', null, 'RLS-134: no new session in an archived group, not even by an admin'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ update public.attendance set status = 'late' where session_id = 'f8ae0000-0000-0000-0000-000000000002' $$,
+  '23514', null, 'RLS-134: …no attendance change'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.tutor_attendance (session_id, tutor_id, status) values ('f8ae0000-0000-0000-0000-000000000002', 'f8a00000-0000-0000-0000-000000000003', 'present') $$,
+  '23514', null, 'RLS-134: …no tutor attendance'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.assignments (class_id, tutor_id, title, due_date) values ('f8ac0000-0000-0000-0000-000000000002', 'f8a00000-0000-0000-0000-000000000003', 'MG frozen', current_date) $$,
+  '23514', null, 'RLS-134: …no new homework'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ update public.assignment_status set status = 'completed' where assignment_id = 'f8af0000-0000-0000-0000-000000000002' $$,
+  '23514', null, 'RLS-134: …no completion change'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.class_members (class_id, student_id) values ('f8ac0000-0000-0000-0000-000000000002', 'f8ad0000-0000-0000-0000-000000000002') $$,
+  '23514', null, 'RLS-134: …and no new member'
+);
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000003';  -- TOLD
+insert into _tap_log(line) select throws_ok(
+  $$ update public.attendance set status = 'late' where session_id = 'f8ae0000-0000-0000-0000-000000000002' $$,
+  '23514', null, 'RLS-134: the group''s own tutor cannot change its register either'
+);
+
+-- ---- RLS-135: an archived group stops counting as "teaching" its
+-- members (Resolved Decision 24) — while its own register stays readable.
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_student_guardians('f8ad0000-0000-0000-0000-000000000004')), 0::bigint,
+  'RLS-135: a former tutor gets no guardian contact details for a member of their archived group'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.yanbua_progress where student_id = 'f8ad0000-0000-0000-0000-000000000004'), 0::bigint,
+  'RLS-135: …no progress history, not even the entry they recorded'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_student_attendance_history('f8ad0000-0000-0000-0000-000000000004')), 0::bigint,
+  'RLS-135: …and no cross-group attendance'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.attendance where session_id = 'f8ae0000-0000-0000-0000-000000000002')
+  + (select count(*) from public.sessions where id = 'f8ae0000-0000-0000-0000-000000000002')
+  + (select count(*) from public.students where id = 'f8ad0000-0000-0000-0000-000000000004'), 3::bigint,
+  'RLS-135: …while still reading the archived group''s own register, session and member names'
+);
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000001';  -- TY, K4's current tutor
+insert into _tap_log(line) select is(
+  (select coalesce(reason, 'NULL') from public.fn_student_attendance_history('f8ad0000-0000-0000-0000-000000000004')
+     where class_id = 'f8ac0000-0000-0000-0000-000000000002'),
+  'NULL', 'RLS-135: a current tutor still sees the child''s archived-group attendance, without a reason'
+);
+
+-- ---- RLS-136: enrolment is audited; the log is admin-read, never written by a client.
+reset role;
+insert into _tap_log(line) select is(
+  (select action || '/' || changed_by::text from public.class_member_changes
+     where class_id = 'f8ac0000-0000-0000-0000-00000000000a' and student_id = 'f8ad0000-0000-0000-0000-000000000003'
+       and action = 'removed'),
+  'removed/a0000000-0000-0000-0000-000000000000', 'RLS-136: removing a member logs who removed whom'
+);
+insert into _tap_log(line) select is(
+  (select action || '/' || changed_by::text from public.class_member_changes
+     where class_id = 'f8ac0000-0000-0000-0000-000000000002' and student_id is null and action = 'archived'),
+  'archived/a0000000-0000-0000-0000-000000000000', 'RLS-136: archiving a group is logged too'
+);
+set local role authenticated;
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000001';  -- TY
+insert into _tap_log(line) select is(
+  (select count(*) from public.class_member_changes), 0::bigint, 'RLS-136: a tutor reads no audit rows'
+);
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+insert into _tap_log(line) select ok(
+  (select count(*) from public.class_member_changes) >= 2, 'RLS-136: an admin reads the audit log'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.class_member_changes (class_id, student_id, action) values ('f8ac0000-0000-0000-0000-000000000001', 'f8ad0000-0000-0000-0000-000000000002', 'added') $$,
+  '42501', null, 'RLS-136: …but cannot write it directly'
+);
+
+-- ---- RLS-137: fn_admin_save_student with p_class_ids replaces the
+-- student's ACTIVE memberships and leaves archived ones as history.
+insert into _tap_log(line) select lives_ok(
+  $$ select public.fn_admin_save_student('MG K7', date '2016-01-01',
+       '[{"user_id":"f8a00000-0000-0000-0000-000000000011"}]'::jsonb,
+       'f8ad0000-0000-0000-0000-000000000007', null, null,
+       array['f8ac0000-0000-0000-0000-00000000000a']::uuid[]) $$,
+  'RLS-137: an admin saves a student''s group set'
+);
+reset role;
+insert into _tap_log(line) select is(
+  (select array_agg(class_id order by class_id) from public.class_members where student_id = 'f8ad0000-0000-0000-0000-000000000007'),
+  array['f8ac0000-0000-0000-0000-000000000002', 'f8ac0000-0000-0000-0000-00000000000a']::uuid[],
+  'RLS-137: …GY1 removed, GAQ added, and the archived GY2 membership kept'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.class_member_changes where student_id = 'f8ad0000-0000-0000-0000-000000000007'
+     and changed_by = 'a0000000-0000-0000-0000-000000000000'), 2::bigint,
+  'RLS-137: …with both changes in the audit log'
+);
+set local role authenticated;
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+insert into _tap_log(line) select lives_ok(
+  $$ select public.fn_admin_save_student('MG K2', date '2016-01-01',
+       '[{"user_id":"f8a00000-0000-0000-0000-000000000012"}]'::jsonb,
+       'f8ad0000-0000-0000-0000-000000000002', 'f8ac0000-0000-0000-0000-000000000003', null) $$,
+  'RLS-137: the old single-group call (no p_class_ids) still works during the transition'
+);
+reset role;
+insert into _tap_log(line) select is(
+  (select count(*) from public.class_members where student_id = 'f8ad0000-0000-0000-0000-000000000002'
+     and class_id = 'f8ac0000-0000-0000-0000-000000000003'), 1::bigint,
+  'RLS-137: …and its group is mirrored into class_members'
+);
+
+-- ---- RLS-138: a report for a child in no tracking group is authored
+-- by a tutor of one of their groups (fn_my_report_students).
+set local role authenticated;
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000002';  -- TQ
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.year_end_reports (student_id, academic_year, tutor_id)
+     values ('f8ad0000-0000-0000-0000-000000000005', '2025/2026', 'f8a00000-0000-0000-0000-000000000002') $$,
+  'RLS-138: an Aqidah tutor may author the report of an Aqidah-only child'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ insert into public.year_end_reports (student_id, academic_year, tutor_id)
+     values ('f8ad0000-0000-0000-0000-000000000001', '2025/2026', 'f8a00000-0000-0000-0000-000000000002') $$,
+  '42501', null, 'RLS-138: …but not of a child who has a Yanbu''a/Quran group'
+);
+
+-- ---- RLS-139: a student's erasure still cascades through a frozen group.
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+insert into _tap_log(line) select lives_ok(
+  $$ delete from public.students where id = 'f8ad0000-0000-0000-0000-000000000004' $$,
+  'RLS-139: an admin can erase a student whose records sit in an archived group'
+);
+reset role;
+insert into _tap_log(line) select is(
+  (select count(*) from public.attendance where student_id = 'f8ad0000-0000-0000-0000-000000000004')
+  + (select count(*) from public.class_members where student_id = 'f8ad0000-0000-0000-0000-000000000004'), 0::bigint,
+  'RLS-139: …and their attendance and memberships go with them'
+);
+
+-- ---- RLS-140: a group with history cannot be deleted; an empty one can.
+set local role authenticated;
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+insert into _tap_log(line) select throws_ok(
+  $$ delete from public.classes where id = 'f8ac0000-0000-0000-0000-000000000002' $$,
+  '23503', null, 'RLS-140: deleting a group with sessions and homework is refused (restrict, not cascade)'
+);
+insert into _tap_log(line) select lives_ok(
+  $$ delete from public.classes where id = 'f8ac0000-0000-0000-0000-00000000000e' $$,
+  'RLS-140: …an empty group can still be deleted'
+);
+
+-- ---- RLS-141: unarchiving restores writes.
+update public.classes set archived_at = null where id = 'f8ac0000-0000-0000-0000-000000000002';
+insert into _tap_log(line) select lives_ok(
+  $$ insert into public.sessions (class_id, date, tutor_id) values ('f8ac0000-0000-0000-0000-000000000002', current_date - 2, 'f8a00000-0000-0000-0000-000000000003') $$,
+  'RLS-141: after unarchiving, the group takes sessions again'
+);
+reset role;
+insert into _tap_log(line) select is(
+  (select count(*) from public.class_member_changes where class_id = 'f8ac0000-0000-0000-0000-000000000002' and action = 'unarchived'), 1::bigint,
+  'RLS-141: …and the unarchive is logged'
+);
+
+-- ---- RLS-142: the tracking switch is admin-only, and new groups default to on.
+set local role authenticated;
+set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000001';  -- TY
+update public.classes set tracks_progress = false where id = 'f8ac0000-0000-0000-0000-000000000001';
+reset role;
+insert into _tap_log(line) select is(
+  (select tracks_progress from public.classes where id = 'f8ac0000-0000-0000-0000-000000000001'), true,
+  'RLS-142: a tutor cannot switch their group''s tracking off'
+);
+insert into public.classes (id, name) values ('f8ac0000-0000-0000-0000-0000000000dd', 'MG default');
+insert into _tap_log(line) select is(
+  (select tracks_progress::text || '/' || coalesce(archived_at::text, 'active') from public.classes where id = 'f8ac0000-0000-0000-0000-0000000000dd'),
+  'true/active', 'RLS-142: a new group starts with tracking on and active'
+);
+
+reset role;
+
 -- ---------- done ----------
 reset role;
 insert into _tap_log(line) select * from finish();

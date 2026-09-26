@@ -13,17 +13,41 @@ import type { Caller, ServiceClient } from './callerAuth'
  * on that row* to say which object to sign.
  */
 
+export interface ReportGroup {
+  tutor_ids: string[]
+  tracks_progress: boolean
+  archived: boolean
+}
+
 export interface ReportAccessInput {
   status: string
   student_id: string
   user_id: string | null
-  class_id: string | null
+  /** Every group the student is a member of (`class_members`, ADR-045). */
+  groups: ReportGroup[]
+}
+
+/**
+ * The tutor half of `fn_my_report_students()` (migration 026), restated:
+ * the caller teaches one of the student's ACTIVE groups, and either that
+ * group has tracking on, or the student is in no active tracking group at
+ * all (an Aqidah-only child, whose report an Aqidah tutor authors) — and
+ * the student is not the caller themselves (ADR-023).
+ */
+function tutorMayAuthor(callerId: string, report: ReportAccessInput): boolean {
+  if (report.user_id === callerId) return false
+  const active = report.groups.filter((g) => !g.archived)
+  const hasTrackingGroup = active.some((g) => g.tracks_progress)
+  return active.some(
+    (g) => g.tutor_ids.includes(callerId) && (g.tracks_progress || !hasTrackingGroup),
+  )
 }
 
 /**
  * Mirrors `year_end_reports` RLS:
  *   - admin  → any report, any status (drafts too) — `yer_admin_all`
- *   - tutor  → students in their own classes, any status — `yer_tutor_rw`
+ *   - tutor  → students they may author for, any status — `yer_tutor_rw`
+ *     over `fn_my_report_students()` (see `tutorMayAuthor`)
  *   - parent → children they are an active guardian of, published only
  *     — `yer_parent_read`, which rides `fn_my_children()` (ADR-040)
  *   - student (16+ self-login) → own record, published only — `yer_student_read`
@@ -38,16 +62,8 @@ export async function isReportAuthorized(
   switch (caller.role) {
     case 'admin':
       return true
-    case 'tutor': {
-      if (!report.class_id) return false
-      const { data } = await admin
-        .from('classes')
-        .select('id')
-        .eq('id', report.class_id)
-        .contains('tutor_ids', [caller.id])
-        .maybeSingle()
-      return Boolean(data)
-    }
+    case 'tutor':
+      return tutorMayAuthor(caller.id, report)
     case 'parent': {
       if (!published) return false
       const { data } = await admin

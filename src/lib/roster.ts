@@ -6,15 +6,21 @@ export interface RosterStudent {
   full_name: string
 }
 
-/** Students in a tutor/admin's class — RLS scopes this via `fn_my_classes()`. */
+/**
+ * Students in a tutor/admin's group — RLS scopes this via
+ * `fn_my_roster_students()`. Membership comes from `class_members`
+ * (PRD Feature 8, ADR-045): a child can be in several groups and is on
+ * each group's roster. The inner join makes the filter a membership test
+ * rather than a column on `students`.
+ */
 export async function fetchClassRoster(classId: string): Promise<RosterStudent[]> {
   const { data, error } = await supabase
     .from('students')
-    .select('id, full_name')
-    .eq('class_id', classId)
+    .select('id, full_name, member:class_members!inner(class_id)')
+    .eq('member.class_id', classId)
     .order('full_name')
   if (error) throw error
-  return data ?? []
+  return (data ?? []).map(({ id, full_name }) => ({ id, full_name }))
 }
 
 /**

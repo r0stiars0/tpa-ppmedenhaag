@@ -91,7 +91,12 @@ describe('resolveReportPdfPath', () => {
 })
 
 describe('isReportAuthorized — the access matrix report-pdf.mts restates from RLS', () => {
-  const draft = { status: 'draft', student_id: 'student-1', user_id: 'student-1', class_id: 'class-1' }
+  const group = (tutor: string, tracks_progress = true, archived = false) => ({
+    tutor_ids: [tutor],
+    tracks_progress,
+    archived,
+  })
+  const draft = { status: 'draft', student_id: 'student-1', user_id: 'student-1', groups: [group('caller-1')] }
   const published = { ...draft, status: 'published' }
 
   it('admin → any status, drafts included, with no class lookup', async () => {
@@ -100,23 +105,48 @@ describe('isReportAuthorized — the access matrix report-pdf.mts restates from 
     await expect(isReportAuthorized(admin, caller('admin'), published)).resolves.toBe(true)
   })
 
-  it('tutor of the class → any status, drafts included', async () => {
-    const admin = fakeAdmin(true)
+  it('tutor of the student\'s tracking group → any status, drafts included', async () => {
+    const admin = fakeAdmin(false)
     await expect(isReportAuthorized(admin, caller('tutor'), draft)).resolves.toBe(true)
     await expect(isReportAuthorized(admin, caller('tutor'), published)).resolves.toBe(true)
   })
 
-  it('tutor NOT of the class → refused, any status', async () => {
+  it('tutor of none of the student\'s groups → refused, any status', async () => {
     const admin = fakeAdmin(false)
-    await expect(isReportAuthorized(admin, caller('tutor'), draft)).resolves.toBe(false)
-    await expect(isReportAuthorized(admin, caller('tutor'), published)).resolves.toBe(false)
+    const other = { ...draft, groups: [group('someone-else')] }
+    await expect(isReportAuthorized(admin, caller('tutor'), other)).resolves.toBe(false)
+    await expect(isReportAuthorized(admin, caller('tutor'), { ...other, status: 'published' })).resolves.toBe(false)
   })
 
-  it('tutor with no class_id on the report → refused without querying', async () => {
-    const admin = fakeAdmin(true) // would wrongly pass if queried
-    await expect(
-      isReportAuthorized(admin, caller('tutor'), { ...draft, class_id: null }),
-    ).resolves.toBe(false)
+  it('a student in no group → refused', async () => {
+    await expect(isReportAuthorized(fakeAdmin(true), caller('tutor'), { ...draft, groups: [] })).resolves.toBe(false)
+  })
+
+  describe('several groups (PRD Feature 8, mirrors fn_my_report_students)', () => {
+    it('an Aqidah tutor is refused when the child also has a Yanbu\'a/Quran group', async () => {
+      const report = { ...draft, groups: [group('caller-1', false), group('tutor-yanbua', true)] }
+      await expect(isReportAuthorized(fakeAdmin(false), caller('tutor'), report)).resolves.toBe(false)
+    })
+
+    it('…but authorised for an Aqidah-only child, whose report they author', async () => {
+      const report = { ...draft, groups: [group('caller-1', false)] }
+      await expect(isReportAuthorized(fakeAdmin(false), caller('tutor'), report)).resolves.toBe(true)
+    })
+
+    it('a tutor of an archived group no longer counts as teaching the child', async () => {
+      const report = { ...draft, groups: [group('caller-1', true, true), group('tutor-new', true)] }
+      await expect(isReportAuthorized(fakeAdmin(false), caller('tutor'), report)).resolves.toBe(false)
+    })
+
+    it('an archived tracking group does not make the child "have a tracking group"', async () => {
+      const report = { ...draft, groups: [group('caller-1', false), group('tutor-old', true, true)] }
+      await expect(isReportAuthorized(fakeAdmin(false), caller('tutor'), report)).resolves.toBe(true)
+    })
+
+    it('a student assistant is refused their own report through the tutor branch (ADR-023)', async () => {
+      const report = { ...draft, user_id: 'caller-1', groups: [group('caller-1', true)] }
+      await expect(isReportAuthorized(fakeAdmin(false), caller('tutor'), report)).resolves.toBe(false)
+    })
   })
 
   it('parent → own child (an active guardian link), published only', async () => {

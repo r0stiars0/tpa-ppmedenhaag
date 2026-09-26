@@ -1,20 +1,36 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { murajaahImpact, type TargetImpact } from '../../lib/groups'
 import { AdminSectionNav } from '../../components/AdminSectionNav'
 import { getErrorMessage } from '../../lib/errors'
 import { PARENT_LINK_ROLES, selfLoginAccountsToOffer } from '../../lib/enrolmentLinks'
 import {
+  closeMurajaahTargets,
   deleteStudent,
+  fetchActiveMurajaahTargets,
   fetchAllClasses,
   fetchAllStudents,
   fetchUnlinkedStudentAccounts,
   fetchUsersForLink,
   saveStudent,
+  type ActiveMurajaahTarget,
   type AdminClass,
   type AdminStudent,
   type DirectoryUser,
 } from './api'
+import { MurajaahTargetPrompt } from './MurajaahTargetPrompt'
 import { StudentForm, type StudentFormValue } from './StudentForm'
+
+/** The Santri list's group filter: every student, those in no group, or one group's members. */
+const ALL = ''
+const NO_GROUP = 'none'
+
+interface PendingPrompt {
+  impacts: TargetImpact[]
+  targets: ActiveMurajaahTarget[]
+  run: (closeIds: string[]) => Promise<void>
+}
 
 export function StudentsPage() {
   const { t } = useTranslation()
@@ -28,6 +44,19 @@ export function StudentsPage() {
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [prompt, setPrompt] = useState<PendingPrompt | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const groupFilter = searchParams.get('group') ?? ALL
+
+  const visible = useMemo(() => {
+    if (groupFilter === ALL) return students
+    if (groupFilter === NO_GROUP) return students.filter((s) => s.groups.every((g) => g.archived))
+    return students.filter((s) => s.groups.some((g) => g.id === groupFilter))
+  }, [students, groupFilter])
+
+  function setGroupFilter(value: string) {
+    setSearchParams(value === ALL ? {} : { group: value }, { replace: true })
+  }
 
   function load() {
     setLoading(true)
@@ -68,18 +97,46 @@ export function StudentsPage() {
     }
   }
 
-  async function handleUpdate(id: string, data: StudentFormValue) {
+  async function runSaving(work: () => Promise<void>) {
     setSaving(true)
     setError(null)
     try {
-      await saveStudent({ ...data, id })
-      setEditingId(null)
-      load()
+      await work()
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {
       setSaving(false)
     }
+  }
+
+  /**
+   * Saving a student's group set can take them out of their last group
+   * with tracking on, which would orphan their Murajaah targets (PRD
+   * Feature 8 FR-001). Asked first; the save and the chosen closures run
+   * only once the admin has decided.
+   */
+  function handleUpdate(id: string, data: StudentFormValue) {
+    const student = students.find((s) => s.id === id)
+    const save = async (closeIds: string[]) => {
+      await saveStudent({ ...data, id })
+      await closeMurajaahTargets(closeIds)
+      setPrompt(null)
+      setEditingId(null)
+      load()
+    }
+    void runSaving(async () => {
+      const trackingClassIds = data.class_ids.filter((cid) =>
+        classes.some((c) => c.id === cid && c.tracks_progress && c.archived_at === null),
+      )
+      const targets = await fetchActiveMurajaahTargets([id])
+      const impacts = murajaahImpact(targets, student?.memberships ?? [], {
+        kind: 'setGroups',
+        studentId: id,
+        trackingClassIds,
+      })
+      if (impacts.length > 0) setPrompt({ impacts, targets, run: save })
+      else await save([])
+    })
   }
 
   async function handleDelete(student: AdminStudent) {
@@ -118,6 +175,35 @@ export function StudentsPage() {
 
       {error && <p className="rounded-lg bg-ppme-danger/10 p-3 text-sm text-ppme-danger">{error}</p>}
 
+      {prompt && (
+        <MurajaahTargetPrompt
+          impacts={prompt.impacts}
+          targets={prompt.targets}
+          busy={saving}
+          onConfirm={(closeIds) => void runSaving(() => prompt.run(closeIds))}
+          onCancel={() => setPrompt(null)}
+        />
+      )}
+
+      <label className="block text-xs font-medium text-ppme-text/70">
+        {t('admin.filterByGroup')}
+        <select
+          value={groupFilter}
+          onChange={(e) => setGroupFilter(e.target.value)}
+          className="mt-1 min-h-11 w-full rounded-lg border border-black/10 bg-white px-3 text-sm text-ppme-text"
+        >
+          <option value={ALL}>{t('admin.allGroups')}</option>
+          <option value={NO_GROUP}>{t('admin.noGroup')}</option>
+          {classes
+            .filter((c) => c.archived_at === null)
+            .map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+        </select>
+      </label>
+
       <div className="rounded-lg bg-white p-4 shadow-sm">
         {creating ? (
           <StudentForm
@@ -144,11 +230,11 @@ export function StudentsPage() {
 
       {loading ? (
         <p className="text-ppme-text/60">{t('common.loading')}</p>
-      ) : students.length === 0 ? (
+      ) : visible.length === 0 ? (
         <p className="text-ppme-text/60">{t('common.empty')}</p>
       ) : (
         <ul className="space-y-2">
-          {students.map((s) => (
+          {visible.map((s) => (
             <li key={s.id} className="rounded-lg bg-white p-4 shadow-sm">
               {editingId === s.id ? (
                 <StudentForm
@@ -183,7 +269,13 @@ export function StudentsPage() {
                       )}
                     </div>
                     <p className="mt-0.5 text-sm text-ppme-text/60">
-                      {s.class?.name ?? '—'} ·{' '}
+                      {s.groups.some((g) => !g.archived)
+                        ? s.groups
+                            .filter((g) => !g.archived)
+                            .map((g) => g.name)
+                            .join(', ')
+                        : t('admin.noGroup')}{' '}
+                      ·{' '}
                       {s.guardians.length > 0
                         ? s.guardians.map((g) => g.full_name).join(', ')
                         : '—'}

@@ -145,9 +145,10 @@ de beheerder in bij de groep (zie [§12.2](#122-groepen) → Lesdagen).
 
 | Element | Functie |
 |---|---|
-| **Kies groep** | Verschijnt alleen als de docent meer dan één groep begeleidt. Bij het wisselen worden de leerlingenlijst en de les opnieuw geladen. |
+| **Kies groep** | Verschijnt alleen als de docent meer dan één groep begeleidt. Bij het wisselen worden de leerlingenlijst en de les opnieuw geladen. Een gearchiveerde groep staat er niet tussen. Een leerling kan in meer dan één groep zitten (bijv. een Yanbu'a/Al-Quran-groep en een Aqidah-groep) en staat dan op de presentielijst van elke groep; in elke groep wordt apart geregistreerd. |
 | Datumbalk met **‹** / **›** | Toont de datum van de getoonde les (weekdag, dag en maand; het jaartal erbij als de les niet in het huidige kalenderjaar valt). Met de pijlen stapt u door de lesdagen van de groep: **‹** terug tot 1 augustus van het huidige schooljaar, **›** vooruit tot en met de huidige les (verder vooruit kan niet). Staat er **niet ingevuld** onder de datum, dan is voor die lesdag nog geen aanwezigheid vastgelegd — u kunt dat alsnog doen; de les wordt aangemaakt zodra u verstuurt. Een al vastgelegde les blijft altijd te corrigeren, ook een die niet op een lesdag valt. |
 | Leerlingregel + knoppen **Aanwezig / Te laat / Afwezig** | Tik op een van de knoppen om de status van die leerling in te stellen. Groen = de status die op dit moment op het scherm staat (nog niet naar de server verstuurd totdat u op **Aanwezigheid versturen** tikt). De standaardstatus voor elke leerling is "Aanwezig". |
+| **Aanwezigheidsgeschiedenis van deze leerling** | Klapt onder de regel de aanwezigheid van die leerling open in **al zijn/haar groepen**: het percentage per groep en de laatste tien lessen met datum en groep. Bij een afwezigheid in een **andere** groep ziet u alleen "Niet aanwezig", **zonder reden** — die blijft bij de docenten van die groep. |
 
 Als u op **Afwezig** tikt, verschijnt een extra veld voor de reden:
 
@@ -183,9 +184,9 @@ Dit scherm is **alleen om te bekijken** — ouders en leerlingen kunnen de aanwe
 | **Kies kind** | Verschijnt alleen als het account meer dan één gekoppeld kind heeft. |
 | Titel | "Mijn aanwezigheid" (voor een leerling die de eigen gegevens bekijkt) of "Aanwezigheid {naam kind}". |
 | Velden **Van** / **Tot** | Datumbereik om de geschiedenis te filteren (standaard: de laatste 90 dagen tot vandaag). |
-| Groot percentage | Aanwezigheidspercentage binnen het gekozen datumbereik. |
-| **Lesdagen** | Alleen-lezen regel onder het percentage met de weekdag(en) waarop de groep van het kind samenkomt (bijv. "Lesdagen: za"). Verschijnt niet als het kind nog niet in een groep zit. |
-| **Aanwezigheidsgeschiedenis** | Lijst per datum met status **Aanwezig / Te laat / Niet aanwezig**, en de reden (indien opgegeven) bij afwezigheid. |
+| Groot percentage | Aanwezigheidspercentage binnen het gekozen datumbereik. Zit het kind in meer dan één groep, dan heet het **Totale aanwezigheid** en staat eronder het percentage **per groep** — zo valt op als een kind de ene groep wel en de andere niet bezoekt. |
+| **Lesdagen** | Alleen-lezen regel(s) onder het percentage met de weekdag(en) waarop de groep van het kind samenkomt (bijv. "Lesdagen: za"); bij meerdere groepen één regel per groep ("Lesdagen Aqidah 9–11 th: zo"). Verschijnt niet als het kind nog niet in een groep zit. |
+| **Aanwezigheidsgeschiedenis** | Lijst per datum met status **Aanwezig / Te laat / Niet aanwezig**, en de reden (indien opgegeven) bij afwezigheid. Bij meerdere groepen staat de naam van de groep onder de datum. |
 
 ---
 
@@ -237,13 +238,15 @@ Alleen om te bekijken — de status kan alleen door de docent worden gewijzigd.
 |---|---|
 | **Kies kind** | Zoals bij Aanwezigheid. |
 | Regel met aantal actieve opdrachten | "{aantal} actieve huiswerkopdrachten" — telt opdrachten met status "In afwachting" of waarvan de deadline is verstreken. |
-| Kaart per opdracht | Titel, beschrijving, deadline, notities van de docent (indien aanwezig), en statuslabel: **In afwachting / Voltooid / Te laat / Gedeeltelijk / Termijn Verlopen**. |
+| Kaart per opdracht | Titel, de **groep** die de opdracht gaf (een kind in meer groepen krijgt huiswerk van elke groep), beschrijving, deadline, notities van de docent (indien aanwezig), en statuslabel: **In afwachting / Voltooid / Te laat / Gedeeltelijk / Termijn Verlopen**. |
 
 ---
 
 ## 7. Yanbu'a
 
 Yanbu'a is een stapsgewijze leesmethode voor het Arabisch/Koranlezen (jilid 1–7 + pagina's). Dit scherm registreert de jilid, pagina en het beheersingsniveau van de leerling.
+
+> **Alleen groepen met registratie.** Yanbu'a, Al-Quran en Murajaah worden alleen vastgelegd in groepen waarbij de beheerder **Registratie Yanbu'a/Al-Quran/Murajaah** heeft aangevinkt ([§12.2](#122-groepen)). Bij **Kies groep** op deze drie schermen staan dus alleen zulke groepen; een docent die alleen een Aqidah-groep lesgeeft, ziet hier geen leerlingen. Een docent van een leerling mag de Yanbu'a/Al-Quran/Murajaah-geschiedenis van die leerling wel **inzien**, ook vanuit een andere groep.
 
 ### 7.1 Docentweergave — Voortgang registreren
 
@@ -282,6 +285,10 @@ Alleen om te bekijken.
 | **Kies kind** | Zoals bij andere schermen. |
 | Kaart **Huidig niveau** | Actuele jilid, pagina en beheersing. |
 | **Sessiegeschiedenis** | Net als bij de docentweergave — de volledige geschiedenis, zonder mogelijkheid om iets te wijzigen. |
+
+Zit het kind alleen in groepen die Yanbu'a/Al-Quran/Murajaah niet registreren (bijvoorbeeld alleen een Aqidah-groep), dan tonen de schermen Yanbu'a, Al-Quran en Murajaah in plaats van een lege geschiedenis een korte uitleg:
+
+<img src="./screenshots/nl/yanbua-family-untracked.png" width="360" alt="Yanbu'a — uitleg voor een kind zonder groep met registratie">
 
 ---
 
@@ -428,7 +435,7 @@ Wordt geopend via het belletje in de bovenbalk. Bevat alleen gegevens voor accou
 
 | Element | Functie |
 |---|---|
-| Meldingenlijst | Elke regel is één gebeurtenis: leerling afwezig, nieuw huiswerk, deadline-herinnering, Yanbu'a-jilid voltooid, nieuwe surah gememoriseerd, murajaah-herinnering, rapport klaar, of het wekelijkse overzicht. Tik op een regel om het bijbehorende scherm te openen. |
+| Meldingenlijst | Elke regel is één gebeurtenis: leerling afwezig, nieuw huiswerk, deadline-herinnering, Yanbu'a-jilid voltooid, nieuwe surah gememoriseerd, murajaah-herinnering, rapport klaar, of het wekelijkse overzicht. Zit een kind in meer dan één groep, dan noemen de melding over afwezigheid en die over nieuw huiswerk de **groep** (bijv. "… niet aanwezig bij groep Aqidah 9–11 th"), zodat u twee afwezigheden op dezelfde dag uit elkaar houdt. Tik op een regel om het bijbehorende scherm te openen. |
 | Meldingen lezen | Alle meldingen worden automatisch als "gelezen" gemarkeerd zodra deze pagina wordt geopend — er is geen aparte knop hiervoor. |
 | Link **Meldingsinstellingen** | Opent [§11.2](#112-meldingsinstellingen). |
 
@@ -481,11 +488,18 @@ Alleen toegankelijk voor een account met de rol Beheerder, via de tegel **Beheer
 
 <img src="./screenshots/nl/admin-classes.png" width="360" alt="Beheer — groepenlijst">
 
+Er zijn twee soorten groepen: **Yanbu'a/Al-Quran-groepen** (ingedeeld naar leesniveau) en **Aqidah-groepen** (ingedeeld naar leeftijd). Een leerling kan in beide zitten, en in zoveel groepen als nodig. Het verschil tussen de twee soorten is één instelling per groep: **Registratie Yanbu'a/Al-Quran/Murajaah**.
+
 | Element | Functie |
 |---|---|
 | **+ Nieuwe groep** | Opent het formulier voor een nieuwe groep (zie afbeelding hieronder). |
-| Kaart per groep | Naam, rooster, lesdagen (bijv. "wo, za"), en lijst van toegewezen docenten. |
+| **Actief** / **Gearchiveerd** | Toont de actieve groepen of de gearchiveerde groepen. |
+| Kaart per groep | Naam, eventueel het label **"Geen registratie Yanbu'a"** (bijv. een Aqidah-groep; voluit: geen registratie van Yanbu'a, Al-Quran en Murajaah) of **"Gearchiveerd"**, rooster, lesdagen (bijv. "wo, za"), en lijst van toegewezen docenten. |
+| **Leerlingen (aantal)** | Opent de leerlingenlijst van de groep, waar u leerlingen toevoegt en verwijdert (zie [§12.2.1](#1221-leerlingen-van-een-groep)). |
 | **Bewerken** | Opent het bewerkingsformulier voor die groep, al ingevuld met bestaande gegevens. |
+| **Archiveren** | Voor een groep van een vorig schooljaar of een opgeheven groep. Een gearchiveerde groep wordt **bevroren**: geen nieuwe lessen, aanwezigheid, huiswerk of leerlingen meer, voor niemand (ook niet voor de beheerder). De geschiedenis blijft bewaard en zichtbaar, maar de groep verdwijnt uit alle keuzelijsten, en de docenten van de groep zien geen gegevens van de vroegere leerlingen meer buiten die groep zelf. Had de groep in de afgelopen 7 dagen nog les, dan waarschuwt de app: een docent die offline aanwezigheid heeft ingevuld die nog niet is verstuurd, kan die na het archiveren niet meer versturen. |
+| **Heractiveren** | Maakt een gearchiveerde groep weer actief, bijvoorbeeld om iets te corrigeren. |
+| **Verwijderen** | Alleen voor een groep **zonder geschiedenis** (bijv. per ongeluk aangemaakt). Heeft de groep al lessen of huiswerk, dan kan hij niet worden verwijderd — de app zegt dat en raadt aan hem te archiveren. |
 
 Groepsformulier (hetzelfde voor nieuw aanmaken of bewerken):
 
@@ -493,13 +507,32 @@ Groepsformulier (hetzelfde voor nieuw aanmaken of bewerken):
 
 | Veld | Functie |
 |---|---|
-| **Groepsnaam** | Verplicht. |
+| **Groepsnaam** | Verplicht. Bijvoorbeeld "Grup A" of "Aqidah 9–11 th" — de naam is vrij, de app kijkt alleen naar de instelling hieronder. |
 | **Rooster** | Optioneel, vrije tekst voor de tijd (bijv. "Sabtu 10:00-12:00"). |
 | **Lesdagen** | Aanvinklijst maandag t/m zondag. Bij een nieuwe groep staat **zaterdag** al aangevinkt; meerdere dagen mag. Er moet minstens één dag gekozen zijn — anders is **Opslaan** uitgeschakeld met de melding *"Kies minstens één dag"*. Deze dagen bepalen op welke datums de aanwezigheidslijst een les kan aanmaken. |
+| **Registratie Yanbu'a** + knop **ⓘ** | Voluit: *Registratie Yanbu'a/Al-Quran/Murajaah*. Standaard **aangevinkt** (een Yanbu'a/Al-Quran-groep). **Vink uit voor een Aqidah-groep**: de docenten registreren dan wel aanwezigheid en huiswerk, maar geen Yanbu'a, Al-Quran of Murajaah. Tik op **ⓘ** om deze uitleg in een venstertje te lezen; tik nogmaals of ernaast om het te sluiten. |
 | **Toegewezen docenten** | Aanvinklijst — er kan meer dan één docent worden gekozen, of geen enkele. |
 | **Opslaan** / **Annuleren** | Opslaan of annuleren. |
 
-> Er is geen knop om een groep te verwijderen in deze app.
+**Murajaah-doelen bij het wijzigen van groepen.** Zou een wijziging ervoor zorgen dat een leerling in **geen enkele** groep met registratie meer zit — u vinkt de registratie van een groep uit, archiveert zo'n groep, of haalt de leerling eruit — dan kan niemand haar/zijn actieve Murajaah-doelen nog beheren. De app toont dan eerst deze doelen:
+
+<img src="./screenshots/nl/admin-murajaah-prompt.png" width="360" alt="Beheer — Murajaah-doelen die worden geraakt">
+
+Een doel dat **moet worden afgesloten** is al aangevinkt en niet te wijzigen. Heeft de leerling nog een andere groep met registratie, dan **mag** het doel blijven (niet aangevinkt). Kies **Doorgaan** om de wijziging uit te voeren en de aangevinkte doelen af te sluiten, of **Annuleren** om niets te wijzigen.
+
+#### 12.2.1 Leerlingen van een groep
+
+<img src="./screenshots/nl/admin-group-members.png" width="360" alt="Beheer — leerlingen aan een groep toevoegen">
+
+| Element | Functie |
+|---|---|
+| **+ Leerlingen toevoegen** | Opent de keuzelijst om meerdere leerlingen tegelijk aan de groep toe te voegen — handig aan het begin van het schooljaar, in plaats van elke leerling apart te bewerken. |
+| Filters **Naam**, **Geboren vanaf** / **Geboren tot en met**, **Huidige groep** | Beperken de lijst. Filteren op geboortedatum is een hulpmiddel om bijvoorbeeld een leeftijdsgroep te vinden; de app stelt zelf **geen** groep voor. Met **Huidige groep → Nog geen groep** vindt u leerlingen die nog nergens zijn ingedeeld. |
+| Lijst met vinkjes | Elke leerling met geboortedatum en huidige groep(en). Leerlingen die al lid zijn, staan er niet in. |
+| **Toevoegen ({aantal})** | Vraagt eerst om bevestiging: de app noemt hoeveel leerlingen worden toegevoegd en **welke docenten daardoor toegang krijgen** tot hun gegevens (Yanbu'a/Al-Quran/Murajaah-geschiedenis, aanwezigheid en contactgegevens van ouders). Elke toevoeging wordt vastgelegd (wie, wat, wanneer). |
+| Leerlingenlijst met **Uit groep halen** | Haalt een leerling uit de groep, na bevestiging. De eerdere aanwezigheid en het huiswerk van de leerling blijven bewaard en zichtbaar voor het gezin; berichten en materiaal van de groep niet meer. |
+
+Een gearchiveerde groep toont hier alleen de leerlingen, met de melding dat de groep is gearchiveerd.
 
 ### 12.3 Leerlingen
 
@@ -508,7 +541,8 @@ Groepsformulier (hetzelfde voor nieuw aanmaken of bewerken):
 | Element | Functie |
 |---|---|
 | **+ Nieuwe leerling** | Opent het formulier voor een nieuwe leerling. |
-| Kaart per leerling | Naam, label **"Eigen account"** (als de leerling een eigen Google-login heeft, bijvoorbeeld een leerling van 16+), groep, en de namen van de gekoppelde ouders/verzorgers. |
+| **Tonen** | Filter: alle groepen, **Nog geen groep**, of de leerlingen van één groep. |
+| Kaart per leerling | Naam, label **"Eigen account"** (als de leerling een eigen Google-login heeft, bijvoorbeeld een leerling van 16+), groep(en) — of **"Nog geen groep"** — en de namen van de gekoppelde ouders/verzorgers. |
 | **Bewerken** | Opent het bewerkingsformulier. |
 | **Verwijderen** | Verwijdert de leerlinggegevens **permanent**, inclusief alle aanwezigheid, voortgang en rapporten (met een bevestigingsvraag vooraf). Alleen gebruiken om een dubbele registratie op te ruimen — bijvoorbeeld wanneer een ouder het inschrijfformulier opnieuw instuurt met een gecorrigeerde spelling van de naam, waardoor er twee records voor één kind ontstaan. |
 
@@ -521,11 +555,11 @@ Leerlingformulier:
 | **Volledige naam** | Verplicht. |
 | **Geboortedatum** | Verplicht. |
 | **Ouders / verzorgers** | Verplicht — **minstens één**. Kies elke ouder/verzorger uit de lijst van geregistreerde gebruikers en voeg met **"+ Ouder / verzorger toevoegen"** zo nodig een tweede (of meer) toe. Per regel kan een optionele relatie worden ingevuld (bijv. "moeder", "vader", "voogd"). Alle gekoppelde ouders/verzorgers krijgen **dezelfde** toegang: zij zien de voortgang, ontvangen de meldingen en kunnen thuisoefening bevestigen — er is geen "hoofd"-ouder. De verwijderknop **−** is uitgeschakeld zolang er nog maar één regel is; een kind moet altijd minstens één ouder/verzorger houden. Een ouder/verzorger verwijderen laat de toegang direct vervallen; dat de koppeling ooit heeft bestaan blijft geregistreerd voor controle. |
-| **Groep** | Optioneel — kan leeg blijven als de leerling nog niet in een groep is geplaatst. |
+| **Groepen** | Aanvinklijst van alle actieve groepen — een leerling kan in **meerdere** groepen zitten (bijv. een Yanbu'a/Al-Quran-groep én een Aqidah-groep), of (nog) in geen. Een groep zonder registratie heeft het label "Geen registratie Yanbu'a". Gearchiveerde groepen waarin de leerling zat, staan eronder als geschiedenis en blijven bij opslaan behouden. |
 | **Koppel zelfstandig account** | Optioneel — verschijnt alleen als er een account van het type "leerling" bestaat dat nog aan geen enkele leerling is gekoppeld. Dit is de manier om de Google-login van een leerling (meestal 16+) te koppelen aan bestaande leerlinggegevens, bijvoorbeeld wanneer de leerling net een eigen account heeft aangemaakt. |
 | **Opslaan** / **Annuleren** | Opslaan of annuleren. |
 
-> Er is geen knop om een leerling te verwijderen in deze app.
+**Nog geen groep.** Leerlingen die via het inschrijfformulier binnenkomen, zitten nog in geen enkele groep en zijn voor geen docent zichtbaar. Zolang er zulke leerlingen zijn, staat bovenaan elk Beheer-scherm een melding met een waarschuwingsdriehoek, **"⚠ Leerlingen zonder groep: {aantal}"**; tik erop om ze te zien.
 
 ### 12.4 Aanwezigheid docenten
 
@@ -611,7 +645,10 @@ Om tweetalige communicatie binnen de TPA te vergemakkelijken, hier de belangrijk
 | Beheer | Kelola | Menu alleen voor de beheerder. |
 | Registraties | Pendaftaran | — |
 | Gebruikers | Pengguna | Beheersubpagina om naam en rol van een account te wijzigen. |
+| Registratie Yanbu'a/Al-Quran/Murajaah | Pencatatan Yanbu'a/Al-Quran/Murajaah | Instelling per groep: aan voor een Yanbu'a/Al-Quran-groep, uit voor een Aqidah-groep. |
+| Archiveren | Arsipkan | Een groep bevriezen en uit de keuzelijsten halen; de geschiedenis blijft. |
+| Leerlingen (van een groep) | Santri (dalam grup) | De leerlingen die in een groep zitten. |
 
 ---
 
-*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **12.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026), met **§5.1 aangevuld voor de sectie "Aanwezigheid docenten"** en **§12.4 toegevoegd voor het beheerdersscherm "Aanwezigheid docenten"** (ADR-041, september 2026), en met **§12.5 toegevoegd voor het beheerdersscherm "Gebruikers"** (ADR-042, september 2026). De indeling kan in latere app-versies licht afwijken. De PDF-versie is uit deze tekst opnieuw gegenereerd met `scripts/gen-manual-pdf.mjs`; de schermen van §12.4 en §12.5 hebben nog geen schermafbeelding.*
+*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **12.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026), met **§5.1 aangevuld voor de sectie "Aanwezigheid docenten"** en **§12.4 toegevoegd voor het beheerdersscherm "Aanwezigheid docenten"** (ADR-041, september 2026), met **§12.5 toegevoegd voor het beheerdersscherm "Gebruikers"** (ADR-042, september 2026), en bijgewerkt voor **leerlingen in meerdere groepen** (ADR-045, september 2026): §5, §6.2, §7, §11.1, §12.2 (met het nieuwe §12.2.1 "Leerlingen van een groep") en §12.3. De indeling kan in latere app-versies licht afwijken. De PDF-versie is uit deze tekst opnieuw gegenereerd met `scripts/gen-manual-pdf.mjs`; de schermen van §12.4 en §12.5 hebben nog geen schermafbeelding.*
