@@ -829,6 +829,7 @@ the `student_guardians` `ON DELETE RESTRICT` invariant is in §3.8 RLS-116.
   - `isEdited` gives the "diubah" label.
   - `groupContentNotice`: an announcement is one per announcement with its title in the in-app row; a material is one per group per day with no title; both use the Amsterdam date.
   - `orphanedMaterialObjects` takes only unreferenced objects over 24 hours old.
+- [x] `tests/unit/authSession.test.ts`: an auth event for the same account (the page becoming visible, a token refresh) does not reload the profile; a first sign-in, a different account and a sign-out do.
 - [x] `tests/unit/notifications.test.ts`: both new events always name the group in the push, in both languages, first name only.
 - [x] `tests/unit/notificationEvents.test.ts`: in-app copy uses the `…InGroup` key for both events. The enum, copy, route, tone and icon coverage extends to them automatically.
 
@@ -1251,6 +1252,7 @@ Run on 2026-09-26 on the separate local stack, rebuilt from this branch's migrat
   - **Isolation:** Fatimah (16+, Grup A only) and Aisyah (student assistant of Grup B, whose pupils are in Aqidah) get "not found". In the database they read 0 announcements, 0 materials and 0 files of the Aqidah group, while Bapak Rudi (Umar is in Aqidah) reads all of it.
   - **Admin:** the storage line on Beheer → Grup; a takedown of a tutor's material.
   - **Found and fixed during the run:** the meeting day showed as "Ah"; the group page now writes the day out.
+  - **Found on a real Android phone afterwards:** after choosing a file, the phone returned to the group page with the form closed. A diagnostic on the demo server showed no page reload; the profile was simply re-read on return: supabase-js re-announces the session when the page becomes visible, and `AuthContext` restarted the app on every auth event. Fixed (`needsProfileReload`); re-checked by re-announcing the same session with a form open (the form and its typed title survive), by signing in, out and in as another account, and by rerunning the 36 checks (all pass).
 - **Functions, driven for real:**
   - `notify-group-content` for an announcement reaches exactly the active guardians of the group's members, and its tutor gets nothing. The in-app rows carry the title, the group, and the announcement as `ref_id`. Two announcements on one day are two rows.
   - Two materials on one day are one row per child, with no title.

@@ -3,11 +3,13 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { needsProfileReload } from '../lib/authSession'
 import type { Database } from '../lib/database.types'
 
 type UserProfile = Database['public']['Tables']['users']['Row']
@@ -34,6 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [unregistered, setUnregistered] = useState(false)
+  // Whose profile is loaded; read by the auth listener without re-subscribing.
+  const currentUserId = useRef<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -43,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(nextSession)
 
       if (!nextSession) {
+        currentUserId.current = null
         setProfile(null)
         setUnregistered(false)
         setLoading(false)
@@ -67,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setProfile(data)
       setUnregistered(!data)
+      currentUserId.current = data ? nextSession.user.id : null
       setLoading(false)
     }
 
@@ -75,6 +81,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      // The same account announced again (the page became visible, a
+      // token was refreshed): keep the new tokens, but stay mounted, or
+      // every screen restarts and an open form is lost.
+      if (!needsProfileReload(currentUserId.current, nextSession)) {
+        setSession(nextSession)
+        return
+      }
       setLoading(true)
       void loadProfile(nextSession)
     })
