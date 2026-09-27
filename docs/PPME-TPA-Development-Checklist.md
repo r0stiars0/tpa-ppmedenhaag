@@ -673,7 +673,7 @@ user manual (both languages), test-plan §3.6 + §4.5g + E2E-20/21. **PR 2**
 adds the admin per-tutor review timeline (`/admin/tutor-attendance`, a
 4th `ADMIN_SECTION_TABS` entry).
 
-**Post-milestone change (TAD ADR-041(g)) — PR 2 of 2:** the admin
+**Post-milestone change (TAD ADR-041(g)) — PR 2 of 2 (superseded by ADR-046, below: the review moved to Hadir › Guru):** the admin
 per-tutor **review timeline**. `/admin/tutor-attendance`
 (`TutorAttendanceReviewPage`, `RequireAdmin` on the route, a 4th
 `AdminSectionNav` pill "Kehadiran Guru"): the head picks a tutor and sees
@@ -934,3 +934,17 @@ Docs: ADR-045 status + findings, PRD implementation-status lines, `openapi.yaml`
 4. Tell the TPA coordinator. Year-end drafts are generated in early-to-mid July; the Aqidah tutors fill in their sections before the authors publish.
 
 **Rollback, 8b-2:** a Netlify rollback to the previous deploy. 029 is additive, so no database rollback is needed.
+
+**Post-milestone change (TAD ADR-046, no migration): attendance at a glance, and tutor statistics moved into Hadir.** Designs chosen on a canvas (A for the group, E for tutors, dots for families; the scope switch styled like Santri | Guru). PRD Feature 1 FR-006/FR-008.
+- [x] **Tutors and admins:** a "Kehadiran santri" tile above the register — the latest recorded session's rate, "x of y", a sparkline of the last 8 recorded sessions, tap for the list and the average. It refreshes after a submit and never shows tutor attendance.
+- [x] **Admins:** Hadir gains a Santri | Guru switch (`?view=guru`).
+  - Santri is the register for any group; the groups the admin teaches are listed first.
+  - Guru is the all-tutors overview: 8 marks per tutor, the rate over the range, group and date filters, and a detail card per tutor.
+  - The Beheer "Kehadiran Guru" pill and `TutorAttendanceReviewPage` are removed; `/admin/tutor-attendance` redirects to Guru.
+- [x] **Tutors** see no tutor statistics. The register's "Kehadiran guru" block says who may record there and that the overview is for admins. RLS unchanged (ADR-046(f)).
+- [x] **Families:** every child in one card with 8 marks and a rate over the chosen range, replacing the child picker; tap a mark for its date, group, status and reason. A 16+ student alone sees their own marks in their rate card.
+- [x] **One switch style:** `SegmentedSwitch`, used by the scope switch and Santri | Guru. New colour token `ppme-tutor` (#c2610c) for tutor marks.
+- [x] **Verified:** unit tests, both typechecks and the build; live checks listed in test-plan §6.v.
+- [x] **Docs:** ADR-046 (ADR-041(g) marked superseded), PRD FR-006/FR-008, openapi, DPIA R15, test-plan §4.5h and E2E-21/41…44, the bilingual user manual.
+
+**Production:** no migration. Merging deploys it. Tell the TPA coordinator that tutor attendance statistics are now under Hadir › Guru, not Beheer.

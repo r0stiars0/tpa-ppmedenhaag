@@ -730,17 +730,28 @@ assertions in §4.5 change target and two new properties appear.
 - [x] a `tutor_attendance` queue entry replays through `submitTutorAttendance` (not `submitAttendance`) and is removed on success
 - [x] a real (non-network) failure is recorded on the entry via `markAttempt` rather than dropping it — the same "a genuine rejection must not sit in the queue pretending to be handled" rule the other kinds follow; the `(session_id, tutor_id)` upsert makes a lost-response replay a harmless no-op, so there is no unique-violation-is-success branch to test as there is for murajaah/yanbua/quran
 
-### 4.5h Admin tutor-attendance review (TAD ADR-041(g))
+### 4.5h Attendance graphs and the tutor overview (TAD ADR-046; replaces the ADR-041(g) review page)
 
-`tests/unit/tutorAttendanceReview.test.ts`, against
-`src/features/attendance/api.ts` — the two reads behind
-`/admin/tutor-attendance`. No new policy: both lean on the admin's
-existing `tutor_attendance` / `users` / `classes` grants.
+The per-tutor review page and its two reads are gone; its test file
+(`tutorAttendanceReview.test.ts`) went with them. No new policy: every
+read below uses a grant the caller already holds.
 
-- [x] `fetchReviewableTutors` dedupes by `tutor_id`, keeps the embedded name, and sorts by name — the picker is driven by *recorded* rows, so a group's student-assistant (no rows, since `fn_class_tutors` already omits them) never appears
-- [x] …returns `[]` when nothing is recorded, and rethrows a query error rather than reporting an empty roster
-- [x] `fetchTutorAttendanceHistory` filters on `tutor_id`, stitches in the session date **and group name** from a second `sessions` query, and sorts newest-first — the `fetchAttendanceHistory` contract, extended with `className`
-- [x] …returns `[]` without a second query when the tutor has no rows, and rethrows a sessions-query error
+- [x] `tests/unit/attendanceStats.test.ts`, against `src/lib/attendanceStats.ts`:
+  - `groupSessionSeries` (the "Kehadiran santri" tile): skips a session with nothing recorded (the one the register opens today is not a 0%), keeps the last 8 oldest-first, counts late as attended, and pools the 8-session average; nothing to draw when no session is recorded.
+  - `sparklinePoints`: 100% at the top, points spread across the width, a single point centred.
+  - `lastMarks` (the family strip): the latest n rows oldest-first, whatever order they arrive in.
+  - `worstStatus`: absent beats late beats present.
+  - `tutorOverview` (Hadir › Guru):
+    - columns are the held dates, shared by every row, oldest-first, last n only;
+    - per tutor and date: the recorded status, else "not recorded" if a group they teach today held a session, else "no session";
+    - a tutor with no current group shows only their recorded rows, never "not recorded";
+    - the worst status when marked in two groups on one day;
+    - the rate covers recorded rows only, late as attended; no rate without rows;
+    - a tutor with no group in the filter and no rows is left out; rows sorted by name.
+  - `overviewTutors`: the tutors of the filtered groups with the groups they teach, plus anyone with rows in range and no current group.
+- [x] `tests/unit/attendanceGraphsApi.test.ts`, against `src/features/attendance/api.ts`:
+  - `fetchGroupSessionStats` reads one group's sessions with `attendance(status)` and maps them to statuses; rethrows a query error.
+  - `fetchTutorOverviewData` reads classes, sessions in range (with embedded counts) and tutor rows in range (filtered on the embedded session date); calls `fn_class_tutors` for active groups only; marks a session held only when a student or tutor row exists; collects the names of everyone with a row; rethrows a query error.
 
 ### 4.5i Admin user directory (TAD ADR-042)
 
@@ -960,7 +971,7 @@ Run against Preview deploys with fixture data; auth mocked via Supabase test JWT
 | E2E-18 | Unregistered Google account signs in → Unauthorized screen shows the name + context form with `full_name` prefilled from the Google profile → user edits the name and adds context → submits → screen switches to the "request received" state, and reloading keeps it → admin opens Registrations and sees the edited name prefilled and the context read-only → admin approves → the `registration_requests` row is cleaned up (a second unregistered account that submits nothing still appears with blank fields) (TAD ADR-038) | Unregistered → Admin |
 | E2E-19 | Admin opens Registrations → clicks **Reject** on a pending entry → the `window.confirm` naming the email → confirms → the entry disappears from the list, and its `registration_requests` row (if any) is gone with the `auth.users` row → rejecting an entry whose id already has a profile is refused (`409`) → the same Google account signing in again reappears as a fresh pending entry, since GoTrue re-creates `auth.users` (intended — no blocklist) (TAD ADR-039) | Admin |
 | E2E-20 | Tutor opens Attendance → below the student roster a tutor section ("Kehadiran guru" / "Aanwezigheid docenten") lists the class's tutors → tutor marks a co-tutor absent with a reason and marks themselves present → submits → the confirm dialog names the student count and the tutor count on separate lines → an admin opens the same session and sees those tutor statuses; the affected tutor's own family view (if they are also a parent) shows nothing new, and a parent of a child in the class sees no tutor attendance anywhere (TAD ADR-041) | Tutor → Admin → Parent |
-| E2E-21 | Admin opens Beheer → the "Kehadiran Guru" pill → picks a tutor → sees a present-rate, present/late/absent counts, and a dated list (date · group · status) spanning every group that tutor teaches, with a group filter once more than one group appears; narrowing the date range recomputes the rate; the picker lists only tutors with recorded rows (no student-assistant); a non-admin visiting `/admin/tutor-attendance` directly is redirected home by `RequireAdmin` (TAD ADR-041(g)) | Admin, Tutor |
+| E2E-21 | Admin opens Hadir → the Santri \| Guru switch shows (a tutor never sees it) → Guru lists every tutor with 8 marks and a rate; the group filter and date range recompute both; a tutor who was held but not marked shows a dashed ring; tapping a row opens the detail (rate, counts, every session with group, status, reason) → the Beheer strip has no "Kehadiran Guru" pill and `/admin/tutor-attendance` lands on Guru (TAD ADR-046(d)/(e)) | Admin |
 | E2E-22 | Admin opens Beheer → the "Pengguna" / "Gebruikers" pill → the directory lists every account; typing in the search box filters by name/email and the role dropdown filters by role → **own row**: the role `<select>` is disabled with the "you cannot change your own role" hint, the name stays editable → renames a parent (role unchanged) → saves with no dialog, the list shows the new name → changes a tutor still assigned to groups to Orang Tua → a confirm dialog names those groups → confirms → the row shows the new role and that tutor is gone from the groups' tutor lists on the Grup screen; a `user_role_changes` row now exists → attempting to demote the last remaining admin is refused with an explanatory message (TAD ADR-042) | Admin |
 | E2E-23 | A guardian (signed into Google, so the form records a verified e-mail) submits the Daftar Ulang form for one child → within seconds the response-sheet row shows `Enrolment status = enrolled` and an invitation e-mail arrives → an admin opens Beheer and sees the new guardian account and the student (no Grup yet), linked guardian-to-child, and an `enrolment_submissions` row with `status = enrolled`, and **no** payment data anywhere → the guardian signs in with that Google account and sees only their own child → the guardian submits again for the same child with a **corrected spelling** → the sheet row shows `enrolled` and a second `students` row now exists (a name change is not treated as an update; same-day twins with different names must be allowed) → the admin removes the duplicate with **Hapus** on Beheer → Santri and the family view returns to one child. **Student self-login:** a submission that fills "Email siswa" with a fresh address → the sheet shows `enrolled`, the student receives their own `role = student` invitation, and after they sign in they see only their own record; a submission whose "Email siswa" is a differently-named existing student, or a non-student account's address → the sheet shows `needs_attention` and nothing is created (TAD ADR-043) | Guardian → Admin → Student |
 | E2E-24 | A bogus form submission creates a `parent` account + a student → an admin opens Beheer → Pengguna, finds the account, presses **Hapus** → the confirm dialog names it → confirm fails with *"still guards student records"* while the bogus student exists → admin deletes the student in Beheer → Santri, then **Hapus** on the account succeeds and it disappears from the directory; the account's row in `enrolment_submissions` remains with `parent_user_id` cleared. A **Hapus** on a tutor or admin row is not offered; on the admin's own row it is not offered (TAD ADR-043) | Admin |
@@ -980,8 +991,12 @@ Run against Preview deploys with fixture data; auth mocked via Supabase test JWT
 | E2E-38 | The Aqidah tutor lists her group's sections (author and status per child) → fills one in → after the author publishes, it shows as published and locked, corrections through an admin | Tutor |
 | E2E-39 | The family sees the Aqidah section in the report and in the PDF | Parent |
 | E2E-40 | Admin: the author picker lists the adult tutors of the child's groups, not a student assistant; an admin publishes with an empty section left out after ticking a confirmation, and corrects a published section and re-publishes | Admin |
+| E2E-41 | Tutor opens Hadir → the "Kehadiran santri" tile shows the latest recorded session's rate, "x of y" and a sparkline → tapping it lists the sessions with the average → the tutor submits the register and the tile updates; the "Kehadiran guru" note says the statistics are for admins, and there is no Guru view (ADR-046(a)/(f)) | Tutor |
+| E2E-42 | Parent with three children opens Hadir → one card shows every child with 8 marks and a rate, no child picker → tapping a mark shows date, group, status and reason → tapping a name switches the rate card and history below; the row's rate equals the card's rate (ADR-046(b)) | Parent |
+| E2E-43 | 16+ student with their own login opens Hadir → no children card; their own 8 marks sit inside their rate card with a legend (ADR-046(b)) | Student |
+| E2E-44 | Admin who teaches and is a parent: the scope switch and Santri \| Guru share one style; "Grup saya" gives the admin Hadir with the groups they teach listed first; "Anak saya" gives the family view with no Guru (ADR-046(g)) | Admin + Tutor + Parent |
 
-*E2E-15…E2E-40 are specified but not implemented (E2E-25…40 were run as scripted browser checks against a local stack, §6.x, §6.z and §6.w) — this project has no
+*E2E-15…E2E-44 are specified but not implemented (E2E-25…44 were run as scripted browser checks against a local stack, §6.x, §6.z and §6.w) — this project has no
 authenticated Playwright harness yet (`e2e/sign-in.spec.ts` documents
 why the E2E-01…E2E-14 suite is also still unbuilt). The flows are
 covered at the unit layer (§4.5d, §4.5e, §4.5g, §4.5i, §4.5j, §4.5k,
@@ -1332,6 +1347,35 @@ Run on 2026-09-26 on the local stack rebuilt from migrations 001–029, with `de
 - **Also found and fixed:** a tutor with a single group (an Aqidah-only tutor) saw an empty white card at the top of every tutor screen, because `ClassPicker` rendered nothing inside it. It now names that group. Checked in the browser for Ustadzah Maryam (one group: named) and Ustadz Ahmad (two: dropdown) on Hadir, Tugas and Rapor, with no console errors.
 - **The 36 8b-1 checks** were rerun afterwards: all pass.
 
+
+### 6.v Attendance graphs and Hadir › Guru — live verification (TAD ADR-046, no migration)
+
+Run against a local stack at 029, with the dev fixture plus 34 sessions of generated student and tutor attendance (1 Aug–26 Sep 2026, about 10% of tutor rows left unrecorded). A scripted browser at 390px signed in as each fixture account. 41 checks passed, with **zero console errors and zero failed requests**:
+
+- **Tutor (Ustadz Ahmad):**
+  - the tile shows the latest recorded session and "x of y", and expands to the 8 sessions with the average;
+  - no Santri | Guru switch, and `?view=guru` changes nothing;
+  - the "Kehadiran guru" note says the overview is for admins;
+  - submitting the register with one student absent moves the tile from 100% to 80% ("4 of 5") without a reload.
+- **Admin (Admin Dev):**
+  - Santri is pressed by default, with the tile and register;
+  - "Buka rekap guru" switches to Guru (`?view=guru`);
+  - 7 tutor rows and the full legend, including "Belum dicatat";
+  - a row opens the detail card;
+  - the group filter narrows the rows (7 → 1 for Aqidah), and a changed date range recomputes;
+  - `/admin/tutor-attendance` lands on `/attendance?view=guru`, and Beheer has no Kehadiran Guru pill;
+  - the student assistant Aisyah is off the Grup A list (she attends it) and on Grup B's (she tutors it), matching `fn_class_tutors`.
+- **Admin + tutor + parent (Ustadzah Laila):**
+  - the scope switch and Santri | Guru have the same computed style;
+  - the picker lists "Grup yang Anda ajar: Grup A" first and opens on it;
+  - "Anak saya" gives the family view without Guru.
+- **Parent (Ibu Siti, four children), in Indonesian and Dutch:**
+  - one card with a row per child and no child picker;
+  - a mark opens its date, group and status;
+  - a name switches the rate card and heading;
+  - the row's rate equals the card's rate.
+- **16+ student (Fatimah):** no children card; her 8 marks sit in her rate card.
+- **pgTAP:** 592/592 on a clean `supabase db reset`. With the dev fixture loaded, RLS-14 and RLS-96 fail as they always do, because they count fixture-free students and admins; this change touches no policy.
 ## 7. i18n completeness (automated)
 
 - [x] CI script asserts `id.json` and `nl.json` have identical key sets (`tests/unit/i18n-parity.test.ts`)

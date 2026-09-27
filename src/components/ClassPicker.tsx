@@ -5,6 +5,12 @@ interface ClassPickerProps {
   classes: ClassOption[]
   value: string | null
   onChange: (classId: string) => void
+  /**
+   * An admin's own user id: the groups they teach are listed first under
+   * their own heading, the rest under "other groups" (TAD ADR-046(d)).
+   * Omitted for a tutor, whose list is only their own groups anyway.
+   */
+  taughtBy?: string
 }
 
 /**
@@ -13,7 +19,7 @@ interface ClassPickerProps {
  * card, and a one-group tutor (an Aqidah-only tutor, common since PRD
  * Feature 8) otherwise saw an empty white card.
  */
-export function ClassPicker({ classes, value, onChange }: ClassPickerProps) {
+export function ClassPicker({ classes, value, onChange, taughtBy }: ClassPickerProps) {
   const { t } = useTranslation()
 
   if (classes.length === 0) return null
@@ -28,6 +34,15 @@ export function ClassPicker({ classes, value, onChange }: ClassPickerProps) {
     )
   }
 
+  const taught = taughtBy ? classes.filter((c) => c.tutor_ids?.includes(taughtBy)) : []
+  const others = taughtBy ? classes.filter((c) => !c.tutor_ids?.includes(taughtBy)) : classes
+  const renderOption = (c: ClassOption) => (
+    <option key={c.id} value={c.id}>
+      {c.name}
+      {c.schedule ? ` — ${c.schedule}` : ''}
+    </option>
+  )
+
   return (
     <label className="block text-sm font-medium text-ppme-text">
       {t('common.selectClass')}
@@ -36,12 +51,14 @@ export function ClassPicker({ classes, value, onChange }: ClassPickerProps) {
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
       >
-        {classes.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
-            {c.schedule ? ` — ${c.schedule}` : ''}
-          </option>
-        ))}
+        {taught.length > 0 && others.length > 0 ? (
+          <>
+            <optgroup label={t('attendance.taughtGroups')}>{taught.map(renderOption)}</optgroup>
+            <optgroup label={t('attendance.otherGroups')}>{others.map(renderOption)}</optgroup>
+          </>
+        ) : (
+          classes.map(renderOption)
+        )}
       </select>
     </label>
   )
