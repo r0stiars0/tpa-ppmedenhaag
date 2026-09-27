@@ -14,6 +14,8 @@
   --color-ppme-text: #333333;
   --color-ppme-danger: #d32f2f;
   --color-ppme-success: #4caf50;
+  /* Tutor attendance marks only (TAD ADR-046(c)); students use primary. */
+  --color-ppme-tutor: #c2610c;
 
   --font-sans: "Open Sans", ui-sans-serif, system-ui, sans-serif;
 }

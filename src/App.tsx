@@ -19,7 +19,6 @@ import { RegistrationsPage } from './features/admin/RegistrationsPage'
 import { ClassesPage } from './features/admin/ClassesPage'
 import { GroupMembersPage } from './features/admin/GroupMembersPage'
 import { StudentsPage } from './features/admin/StudentsPage'
-import { TutorAttendanceReviewPage } from './features/admin/TutorAttendanceReviewPage'
 import { UsersPage } from './features/admin/UsersPage'
 import { RequireAdmin } from './components/RequireAdmin'
 
@@ -106,14 +105,9 @@ function Gate() {
             </RequireAdmin>
           }
         />
-        <Route
-          path="/admin/tutor-attendance"
-          element={
-            <RequireAdmin>
-              <TutorAttendanceReviewPage />
-            </RequireAdmin>
-          }
-        />
+        {/* The tutor attendance review moved into Hadir › Guru (TAD
+            ADR-046(d)); the old address keeps working for saved links. */}
+        <Route path="/admin/tutor-attendance" element={<Navigate to="/attendance?view=guru" replace />} />
         <Route
           path="/admin/users"
           element={

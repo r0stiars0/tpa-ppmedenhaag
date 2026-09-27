@@ -1,9 +1,10 @@
 import { useViewScope } from '../../context/ViewScopeContext'
 import { TutorAttendanceView } from './TutorAttendanceView'
+import { AdminAttendanceView } from './AdminAttendanceView'
 import { FamilyAttendanceView } from './FamilyAttendanceView'
 
 export function AttendancePage() {
-  const { scope } = useViewScope()
+  const { scope, capabilities } = useViewScope()
 
   // Which shape renders is the scope, not the role column (ADR-025).
   // The two things that were true before this change are still true:
@@ -42,5 +43,11 @@ export function AttendancePage() {
   // this page now only chooses the shape, and each view names itself —
   // the arrangement the other five two-shaped screens already use, and
   // for exactly this reason (see `QuranPage`).
-  return scope === 'class' ? <TutorAttendanceView /> : <FamilyAttendanceView />
+  //
+  // ── An admin gets "Santri | Guru" (ADR-046(d)) ─────────────────────
+  // Same register, plus the tutor overview that used to be a Beheer
+  // page. Decided by `capabilities.isAdmin`, the same source the scope
+  // itself uses; a tutor never reaches the overview, whatever the URL.
+  if (scope !== 'class') return <FamilyAttendanceView />
+  return capabilities.isAdmin ? <AdminAttendanceView /> : <TutorAttendanceView />
 }

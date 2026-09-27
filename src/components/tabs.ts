@@ -48,11 +48,9 @@ export const ADMIN_SECTION_TABS = [
   { to: '/admin/registrations', key: 'nav.pendaftaran' },
   { to: '/admin/classes', key: 'nav.kelas' },
   { to: '/admin/students', key: 'nav.santri' },
-  // Per-tutor attendance review (ADR-041 part 2). `AdminSectionNav`
-  // already scrolls horizontally, so a fourth pill does not reflow the
-  // header; `tabs.test.ts` only checks each entry is an `/admin/*` path.
-  { to: '/admin/tutor-attendance', key: 'nav.kehadiranGuru' },
+  // The per-tutor attendance review that sat here (ADR-041(g)) moved to
+  // Hadir › Guru (ADR-046(d)): Beheer holds setup screens only.
   // User directory — inline name + role editing for every account
-  // (ADR-042). 5th pill; the strip keeps scrolling.
+  // (ADR-042).
   { to: '/admin/users', key: 'nav.pengguna' },
 ] as const

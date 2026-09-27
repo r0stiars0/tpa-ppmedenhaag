@@ -91,7 +91,7 @@ Lima tab tetap, sama untuk semua peran termasuk admin:
 Menu **Rapor** dan **Kelola** (khusus admin) tidak ada di bilah bawah — keduanya diakses lewat ubin di Beranda, karena hanya ada ruang untuk lima tombol yang nyaman disentuh di layar ponsel.
 
 ### Saklar Tampilan (Scope Switch)
-Muncul di atas konten, **hanya untuk akun dengan lebih dari satu hubungan** (misalnya guru yang juga orang tua), dan **hanya** pada enam layar berikut: Hadir, Tugas, Yanbu'a, Al-Quran, Murajaah, Rapor. Lihat [§14](#14-akun-dengan-peran-ganda) untuk detail lengkap.
+Muncul di atas konten, **hanya untuk akun dengan lebih dari satu hubungan** (misalnya guru yang juga orang tua), dan **hanya** pada enam layar berikut: Hadir, Tugas, Yanbu'a, Al-Quran, Murajaah, Rapor. Bentuknya sama dengan saklar **Santri | Guru** admin: saklar tampilan selalu di atas judul layar, saklar Santri | Guru di bawahnya. Lihat [§14](#14-akun-dengan-peran-ganda) untuk detail lengkap.
 
 ---
 
@@ -148,6 +148,7 @@ admin pada grup tersebut (lihat [§13.2](#132-grup) → Hari pertemuan).
 | Elemen | Fungsi |
 |---|---|
 | **Pilih Grup** | Muncul hanya jika guru mengampu lebih dari satu grup. Memilih grup memuat ulang daftar santri dan sesinya. Grup yang diarsipkan tidak muncul di sini. Seorang santri bisa ikut lebih dari satu grup (mis. grup Yanbu'a/Al-Quran dan grup Aqidah); ia muncul di daftar hadir setiap grup, dan kehadirannya dicatat terpisah di tiap grup. |
+| **Kehadiran santri** | Kartu di bawah pemilih grup: persentase kehadiran santri pada **pertemuan terakhir yang sudah dicatat**, "x dari y hadir" dengan tanggalnya, dan garis kecil 8 pertemuan terakhir (terbaru di kanan). Tekan kartu untuk melihat daftar 8 pertemuan itu beserta rata-ratanya; tekan lagi untuk menutup. Terlambat dihitung hadir. Pertemuan yang belum dicatat tidak dihitung. Setelah Anda mengirim kehadiran, angkanya langsung diperbarui. Kartu ini hanya tentang santri — tidak pernah memuat kehadiran guru. |
 | Baris tanggal dengan **‹** / **›** | Menampilkan tanggal sesi yang sedang dibuka (hari, tanggal, dan bulan; tahun ikut ditampilkan bila sesi bukan pada tahun kalender berjalan). Panah memindahkan sesi mengikuti hari pertemuan grup: **‹** mundur sampai 1 Agustus tahun ajaran berjalan, **›** maju sampai sesi terkini (tidak bisa lebih maju dari itu). Jika di bawah tanggal tertulis **belum diisi**, kehadiran untuk hari pertemuan itu belum dicatat — Anda masih bisa mencatatnya; sesinya dibuat saat Anda mengirim. Sesi yang sudah dicatat selalu bisa dikoreksi, termasuk yang tanggalnya bukan hari pertemuan. |
 | Baris santri + tombol **Hadir / Terlambat / Absen** | Tekan salah satu untuk menetapkan status santri tersebut. Warna hijau = status aktif yang tersimpan sementara di layar (belum terkirim ke server sampai ditekan **Kirim Kehadiran**). Status awal semua santri adalah "Hadir". |
 | **Riwayat kehadiran santri ini** | Membuka, di bawah baris itu, kehadiran santri tersebut di **semua grupnya**: persentase per grup dan sepuluh sesi terakhir beserta tanggal dan grup. Untuk ketidakhadiran di grup **lain** hanya tampil "Tidak Hadir", **tanpa alasan** — alasan itu hanya untuk guru grup tersebut. |
@@ -171,7 +172,7 @@ Di bagian bawah:
 
 **Catatan khusus — santri asisten**: jika seorang santri berusia 16+ juga membantu mengajar di grup itu, namanya tetap muncul di daftar hadir dengan status yang sudah tersimpan (tanda "Hadir" default), tetapi baris itu **tidak bisa diubah olehnya sendiri** — hanya guru lain atau admin yang bisa mencatat kehadirannya. Keterangan ini muncul langsung di bawah namanya di layar. Namanya **tidak** muncul lagi di bagian "Kehadiran guru": kehadirannya cukup dicatat sekali, sebagai santri.
 
-**Kehadiran guru**: di bawah daftar santri ada bagian **"Kehadiran guru"** yang memuat setiap guru grup itu dengan tombol **Hadir / Terlambat / Absen** yang sama (dan kolom alasan yang sama saat Absen). Bagian ini dikirim bersama daftar santri saat Anda menekan **Kirim Kehadiran**. Seorang guru boleh mencatat kehadirannya sendiri maupun rekan segrupnya. Jika grup belum punya guru terdaftar, muncul keterangan untuk menetapkannya lewat menu **Kelola**. Catatan kehadiran guru **hanya terlihat oleh admin dan oleh guru lain di grup yang sama** — tidak pernah oleh orang tua atau santri — dan dipakai pimpinan TPA untuk meninjau kehadiran guru secara berkala.
+**Kehadiran guru**: di bawah daftar santri ada bagian **"Kehadiran guru"** yang memuat setiap guru grup itu dengan tombol **Hadir / Terlambat / Absen** yang sama (dan kolom alasan yang sama saat Absen). Bagian ini dikirim bersama daftar santri saat Anda menekan **Kirim Kehadiran**. Seorang guru boleh mencatat kehadirannya sendiri maupun rekan segrupnya. Jika grup belum punya guru terdaftar, muncul keterangan untuk menetapkannya lewat menu **Kelola**. Di bawah judul bagian ini tertulis: *"Setiap guru grup ini dapat mencatat kehadiran guru grup ini. Rekap kehadiran guru hanya dilihat admin."* Status per pertemuan terlihat oleh guru grup itu di daftar hadir (agar bisa dilengkapi dan dikoreksi), tetapi **rekap dan persentase kehadiran guru hanya untuk admin**, di **Kehadiran › Guru** ([§5.3](#53-tampilan-admin--santri--guru)). Orang tua dan santri tidak pernah melihat kehadiran guru.
 
 **Status offline**: jika koneksi internet terputus saat mengirim, aplikasi menyimpan data itu di perangkat dan menampilkan pesan *"Anda sedang offline. Data akan dikirim saat kembali online."* — data akan otomatis terkirim begitu koneksi kembali, tanpa perlu mencatat ulang.
 
@@ -183,12 +184,46 @@ Layar ini **hanya untuk melihat** — orang tua dan santri tidak bisa mengubah d
 
 | Elemen | Fungsi |
 |---|---|
-| **Pilih Anak** | Muncul hanya jika akun memiliki lebih dari satu anak terkait. |
 | Judul | "Kehadiranku" (untuk santri yang melihat datanya sendiri) atau "Kehadiran {nama anak}". |
-| Kolom **Dari** / **Sampai** | Rentang tanggal untuk memfilter riwayat (default: 90 hari terakhir sampai hari ini). |
+| Kolom **Dari** / **Sampai** | Rentang tanggal untuk memfilter kartu anak, persentase dan riwayat (default: 90 hari terakhir sampai hari ini). |
+| Kartu **Anak · 8 pertemuan terakhir** | **Semua anak dalam satu kartu** — menggantikan pemilih anak. Satu baris per anak: nama dan grupnya, 8 pertemuan terakhir yang tercatat dalam rentang tanggal sebagai tanda (● hadir, ○ terlambat, ✕ tidak hadir; terbaru di kanan), dan persentase kehadiran — angka yang sama dengan kartu persentase di bawah. **Tekan nama** anak untuk menampilkan persentase dan riwayat anak itu di bawah. **Tekan sebuah tanda** untuk melihat tanggal, grup, status dan (jika tidak hadir) alasannya. Dengan satu anak, kartu ini berisi satu baris. |
 | Angka persentase besar | Tingkat kehadiran pada rentang tanggal yang dipilih. Jika anak ikut lebih dari satu grup, angka ini disebut **Kehadiran keseluruhan** dan di bawahnya tampil persentase **per grup** — sehingga terlihat bila anak rajin di satu grup tetapi tidak di grup lainnya. |
 | **Hari pertemuan** | Baris hanya-baca di bawah persentase berisi hari dalam seminggu saat grup anak bertemu (mis. "Hari pertemuan: Sab"); untuk beberapa grup, satu baris per grup ("Hari pertemuan Aqidah 9–11 th: Ahad"). Tidak muncul jika anak belum masuk grup. |
 | **Riwayat Kehadiran** | Daftar per tanggal dengan status **Hadir / Terlambat / Tidak Hadir**, dan alasan (jika ada) untuk yang tidak hadir. Untuk beberapa grup, nama grup tampil di bawah tanggal. |
+
+**Santri 16+ dengan akun sendiri** tidak melihat kartu anak. Delapan tanda pertemuan terakhirnya ada **di dalam kartu persentase**, dengan keterangan yang sama:
+
+<img src="./screenshots/id/attendance-student.png" width="360" alt="Kehadiran — santri 16+">
+
+### 5.3 Tampilan Admin — Santri | Guru
+
+Admin melihat saklar **Santri | Guru** di bawah judul Kehadiran. Saklar ini hanya untuk admin; guru tidak pernah melihatnya.
+
+- **Santri** adalah daftar hadir persis seperti milik guru ([§5.1](#51-tampilan-guru--mencatat-kehadiran)), untuk grup mana pun — termasuk kartu **Kehadiran santri** dan bagian **Kehadiran guru**. Admin yang menggantikan guru mencatat santri dan guru di satu tempat. Jika admin juga mengajar, grup yang ia ajar tampil paling atas di **Pilih Grup** (di bawah "Grup yang Anda ajar", sisanya di bawah "Grup lain") dan layar terbuka pada grup itu. Di bagian Kehadiran guru ada tombol **Buka rekap guru** yang langsung ke tab Guru.
+- **Guru** adalah rekap kehadiran semua guru. Layar ini **hanya untuk melihat** — setiap guru mencatat kehadiran guru grupnya sendiri di daftar hadir.
+
+<img src="./screenshots/id/attendance-admin-guru.png" width="360" alt="Kehadiran — Guru, semua guru sekaligus">
+
+| Elemen | Fungsi |
+|---|---|
+| **Pilih Grup** | **Semua grup** (standar) atau satu grup. Grup yang diarsipkan hanya muncul jika bertemu dalam rentang tanggal. |
+| **Dari** / **Sampai** | Rentang tanggal. Standar: 1 Agustus tahun ajaran berjalan sampai hari ini. |
+| Baris per guru | Nama, **8 pertemuan terakhir** sebagai tanda, dan persentase kehadiran pada rentang terpilih. Kolom tanda sama untuk semua guru: satu kolom = satu hari pertemuan. |
+| Tanda | ● **Hadir** · ○ **Terlambat** · ✕ **Tidak hadir** · ◌ (lingkaran putus-putus) **Belum dicatat** — grup yang ia ajar bertemu, tetapi kehadirannya tidak diisi · • (titik kecil abu-abu) **Tidak ada jadwal** — tidak ada grupnya yang bertemu hari itu. |
+| Persentase | Terlambat dihitung hadir; hanya Tidak hadir yang mengurangi. "Belum dicatat" tidak dihitung. Guru yang belum pernah dicatat dalam rentang itu menampilkan **Belum ada**. |
+
+"Belum dicatat" dan "Tidak ada jadwal" dihitung dari grup yang **saat ini** diajar guru tersebut. Guru yang pindah grup di tengah tahun menampilkan "Tidak ada jadwal" untuk pekan di grup lamanya yang tidak pernah dicatat; catatan yang ada selalu tampil.
+
+Tekan baris seorang guru untuk rinciannya:
+
+<img src="./screenshots/id/attendance-admin-guru-detail.png" width="360" alt="Kehadiran — rincian seorang guru">
+
+| Elemen | Fungsi |
+|---|---|
+| Kartu guru | Persentase dan rincian **{n} hadir · {n} terlambat · {n} absen**. |
+| **Semua pertemuan dalam periode ini** | Semua pertemuan guru itu dalam rentang tanggal sebagai tanda, yang terlama di kiri. |
+| Daftar | Per pertemuan: tanggal, grup, status (atau **Belum dicatat**), dan alasan jika tidak hadir. Untuk mengoreksi, buka daftar hadir grup itu di tab Santri. |
+| **Tutup rincian** | Menutup kartu rincian. |
 
 ---
 
@@ -238,7 +273,7 @@ Hanya untuk melihat — status tugas hanya bisa diubah oleh guru.
 
 | Elemen | Fungsi |
 |---|---|
-| **Pilih Anak** | Sama seperti di Kehadiran. |
+| **Pilih Anak** | Muncul hanya jika akun memiliki lebih dari satu anak terkait. |
 | Baris jumlah tugas aktif | "{jumlah} tugas aktif" — menghitung tugas berstatus "Menunggu" atau yang sudah lewat tenggat. |
 | Kartu tiap tugas | Judul, **grup** yang memberi tugas (anak yang ikut beberapa grup menerima tugas dari setiap grup), deskripsi, batas waktu, catatan dari guru (jika ada), dan lencana status: **Menunggu / Selesai / Terlambat / Sebagian / Lewat Tenggat**. |
 
@@ -526,7 +561,7 @@ Jika peramban memblokir izin notifikasi, layar menampilkan penjelasan untuk memb
 
 ## 13. Kelola (Khusus Admin)
 
-Hanya bisa diakses oleh akun dengan peran Admin, lewat ubin **Kelola** di Beranda. Terdiri dari lima sub-halaman dengan menu tab di bagian atas: **Pendaftaran · Grup · Santri · Kehadiran Guru · Pengguna**.
+Hanya bisa diakses oleh akun dengan peran Admin, lewat ubin **Kelola** di Beranda. Terdiri dari empat sub-halaman dengan menu tab di bagian atas: **Pendaftaran · Grup · Santri · Pengguna**. Rekap kehadiran guru, yang dulu ada di sini, kini ada di **Kehadiran › Guru** ([§5.3](#53-tampilan-admin--santri--guru)); alamat lamanya langsung membuka layar itu.
 
 ### 13.1 Pendaftaran
 
@@ -630,21 +665,7 @@ Formulir Santri:
 
 **Tanpa grup.** Santri yang masuk lewat formulir pendaftaran belum ikut grup mana pun dan belum terlihat oleh guru mana pun. Selama masih ada santri seperti itu, di bagian atas setiap layar Kelola tampil pemberitahuan dengan segitiga peringatan, **"⚠ Santri tanpa grup: {jumlah}"**; ketuk untuk melihat mereka.
 
-### 13.4 Kehadiran Guru
-
-Layar untuk meninjau kehadiran seorang guru secara berkala. Kehadiran guru dicatat oleh guru atau admin di layar **Kehadiran** biasa (lihat [§5.1](#51-tampilan-guru--mencatat-kehadiran) → "Kehadiran guru").
-
-| Elemen | Fungsi |
-|---|---|
-| **Pilih guru** | Daftar guru yang sudah pernah tercatat kehadirannya. Guru yang belum pernah dicatat tidak muncul; jika belum ada satu pun, muncul keterangan "Belum ada kehadiran guru yang tercatat." |
-| **Pilih grup** *(muncul bila guru mengampu lebih dari satu grup)* | Menyaring daftar ke satu grup, atau **"Semua grup"**. |
-| **Dari** / **Sampai** | Rentang tanggal. Standar: 1 Agustus tahun ajaran berjalan sampai hari ini. |
-| Kartu persentase | Persentase kehadiran pada rentang terpilih (Terlambat dihitung hadir; hanya Absen yang mengurangi), diikuti rincian **{n} hadir · {n} terlambat · {n} absen**. |
-| **Riwayat Kehadiran** | Daftar per tanggal: tanggal, nama grup, dan status **Hadir / Terlambat / Tidak Hadir** (beserta alasan jika tidak hadir). |
-
-Layar ini **hanya untuk melihat** — koreksi kehadiran dilakukan di layar Kehadiran grup yang bersangkutan. Orang tua dan santri tidak pernah melihat kehadiran guru.
-
-### 13.5 Pengguna
+### 13.4 Pengguna
 
 Daftar semua akun yang sudah terdaftar, untuk memperbaiki **nama** atau **peran** seseorang. Pembuatan akun tetap dilakukan di [§13.1 Pendaftaran](#131-pendaftaran).
 
@@ -689,7 +710,7 @@ Elemen berikut muncul berulang di banyak layar dan dijelaskan sekali di sini aga
 | Elemen | Kapan muncul | Fungsi |
 |---|---|---|
 | **Pilih Grup** | Layar guru manapun | Muncul hanya jika guru mengampu lebih dari satu grup. |
-| **Pilih Anak** | Layar keluarga manapun | Muncul hanya jika akun memiliki lebih dari satu anak terkait. |
+| **Pilih Anak** | Layar keluarga manapun (kecuali Kehadiran) | Muncul hanya jika akun memiliki lebih dari satu anak terkait. Di Kehadiran, semua anak tampil dalam satu kartu ([§5.2](#52-tampilan-keluarga--melihat-riwayat-kehadiran)). |
 | *"Memuat…"* | Semua layar | Data sedang diambil dari server. |
 | *"Belum ada data"* | Semua layar | Tidak ada data untuk ditampilkan pada kondisi saat ini. |
 | *"Anda belum ditugaskan ke grup manapun"* | Layar guru | Akun guru belum diberi grup oleh admin. |
@@ -720,4 +741,4 @@ Untuk memudahkan komunikasi dua bahasa di lingkungan TPA, berikut padanan istila
 
 ---
 
-*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **13.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026), serta **§5.1 dilengkapi dengan bagian "Kehadiran guru"** dan **§13.4 ditambahkan untuk layar peninjauan "Kehadiran Guru" admin** (ADR-041, September 2026), **§13.5 ditambahkan untuk layar "Pengguna" admin** (ADR-042, September 2026), dan diperbarui untuk **santri yang ikut beberapa grup** (ADR-045, September 2026): §5, §6.2, §7, §12.1, §13.2 (dengan §13.2.1 "Santri dalam grup" yang baru) dan §13.3, serta **§11 ditambahkan untuk "Pengumuman & Materi"** (ADR-045 rilis 8b-1, September 2026; bab-bab sesudahnya bergeser satu nomor), dan **§10 diperbarui untuk bagian per grup di rapor akhir tahun** (§10.1.1 baru; ADR-045 rilis 8b-2, September 2026). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF dibuat ulang dari teks ini dengan `scripts/gen-manual-pdf.mjs`; layar §13.4 dan §13.5 belum memiliki tangkapan layar.*
+*Dokumen ini dibuat berdasarkan tangkapan layar aplikasi versi Agustus 2026, tampilan ponsel (mobile), dengan layar untuk **5. Kehadiran** dan **13.2 Grup** diambil ulang untuk hari pertemuan grup dan daftar hadir yang mengikuti jadwal (ADR-037, September 2026), serta **§5.1 dilengkapi dengan bagian "Kehadiran guru"** dan **§13.4 ditambahkan untuk layar peninjauan "Kehadiran Guru" admin** (ADR-041, September 2026), **§13.5 ditambahkan untuk layar "Pengguna" admin** (ADR-042, September 2026), dan diperbarui untuk **santri yang ikut beberapa grup** (ADR-045, September 2026): §5, §6.2, §7, §12.1, §13.2 (dengan §13.2.1 "Santri dalam grup" yang baru) dan §13.3, serta **§11 ditambahkan untuk "Pengumuman & Materi"** (ADR-045 rilis 8b-1, September 2026; bab-bab sesudahnya bergeser satu nomor), dan **§10 diperbarui untuk bagian per grup di rapor akhir tahun** (§10.1.1 baru; ADR-045 rilis 8b-2, September 2026). **§5 diperbarui untuk grafik kehadiran** (kartu Kehadiran santri, kartu semua anak, §5.3 Santri | Guru yang baru) dan rekap kehadiran guru dipindahkan dari §13.4 ke §5.3, sehingga "Pengguna" kini §13.4 (ADR-046, September 2026). Tata letak dapat sedikit berbeda pada versi aplikasi yang lebih baru. Versi PDF dibuat ulang dari teks ini dengan `scripts/gen-manual-pdf.mjs`; layar §13.4 belum memiliki tangkapan layar.*

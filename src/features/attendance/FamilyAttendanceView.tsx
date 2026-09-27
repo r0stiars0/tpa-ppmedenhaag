@@ -3,10 +3,11 @@ import { useTranslation } from 'react-i18next'
 import { useMyStudents } from '../../hooks/useMyStudents'
 import { useViewScope } from '../../context/ViewScopeContext'
 import { isSelfRecord } from '../../lib/capabilities'
-import { ChildPicker } from '../../components/ChildPicker'
 import { ratesByGroup } from '../../lib/attendance'
 import { getErrorMessage } from '../../lib/errors'
 import { formatDayList } from '../../lib/weekdays'
+import { AttendanceLegend } from './AttendanceMark'
+import { AttendanceStrip, ChildrenAttendanceCard } from './FamilyAttendanceStrip'
 import {
   fetchAttendanceHistory,
   fetchStudentGroups,
@@ -36,42 +37,47 @@ export function FamilyAttendanceView() {
   const { selfStudentId } = useViewScope()
 
   const [studentId, setStudentId] = useState<string | null>(null)
-  const [history, setHistory] = useState<AttendanceHistoryRow[]>([])
+  const [histories, setHistories] = useState<Record<string, AttendanceHistoryRow[]>>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [from, setFrom] = useState(() => daysAgo(90))
   const [to, setTo] = useState(() => todayLocalDate())
-  const [groups, setGroups] = useState<StudentGroupOption[]>([])
+  const [groupsByStudent, setGroupsByStudent] = useState<Record<string, StudentGroupOption[]>>({})
 
   useEffect(() => {
     if (!studentId && students.length > 0) setStudentId(students[0].id)
   }, [students, studentId])
 
+  // Every child at once, not only the selected one: the card at the top
+  // shows them all side by side (TAD ADR-046(b)). A family has a handful
+  // of children, so this is a handful of the same calls the screen made
+  // one at a time before.
   useEffect(() => {
-    if (!studentId) return
+    if (students.length === 0) return
     let active = true
-    setGroups([])
-    fetchStudentGroups(studentId)
-      .then((rows) => {
-        if (active) setGroups(rows)
-      })
-      .catch(() => {
-        // A non-fatal extra: the history below is the screen's job.
-        if (active) setGroups([])
-      })
+    Promise.all(
+      students.map((s) =>
+        fetchStudentGroups(s.id).catch(
+          // A non-fatal extra: the history below is the screen's job.
+          () => [] as StudentGroupOption[],
+        ),
+      ),
+    ).then((lists) => {
+      if (active) setGroupsByStudent(Object.fromEntries(students.map((s, i) => [s.id, lists[i]])))
+    })
     return () => {
       active = false
     }
-  }, [studentId])
+  }, [students])
 
   useEffect(() => {
-    if (!studentId) return
+    if (students.length === 0) return
     let active = true
     setLoading(true)
     setError(null)
-    fetchAttendanceHistory(studentId)
-      .then((data) => {
-        if (active) setHistory(data)
+    Promise.all(students.map((s) => fetchAttendanceHistory(s.id)))
+      .then((lists) => {
+        if (active) setHistories(Object.fromEntries(students.map((s, i) => [s.id, lists[i]])))
       })
       .catch((err) => {
         if (active) setError(getErrorMessage(err))
@@ -82,12 +88,17 @@ export function FamilyAttendanceView() {
     return () => {
       active = false
     }
-  }, [studentId])
+  }, [students])
 
-  const filtered = useMemo(
-    () => history.filter((r) => r.date >= from && r.date <= to),
-    [history, from, to],
+  const inRange = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(histories).map(([id, rows]) => [id, rows.filter((r) => r.date >= from && r.date <= to)]),
+      ),
+    [histories, from, to],
   )
+  const filtered = useMemo(() => (studentId ? inRange[studentId] ?? [] : []), [inRange, studentId])
+  const groups = useMemo(() => (studentId ? groupsByStudent[studentId] ?? [] : []), [groupsByStudent, studentId])
   // One rate per group as well as the overall (PRD Feature 8 FR-003): a
   // single combined figure hides a child who attends one group and skips
   // the other.
@@ -121,6 +132,8 @@ export function FamilyAttendanceView() {
    * account that is both a parent and a santri — their own row is
    * theirs, their children's are not.
    */
+  const selfOnly = students.length === 1 && isSelfRecord(students[0].id, selfStudentId)
+
   const title =
     !isSelfRecord(studentId, selfStudentId) && selectedName
       ? t('attendance.childTitle', { name: selectedName })
@@ -133,15 +146,10 @@ export function FamilyAttendanceView() {
     <div className="space-y-4">
       <h1 className="text-lg font-bold text-ppme-primary">{title}</h1>
 
-      <ChildPicker students={students} value={studentId} onChange={setStudentId} />
-
       {/*
-        The date range keeps its own card. It used to share one with the
-        picker above, which is why this screen never showed the empty box
-        the other five did — the card had the filter to fall back on. Now
-        that `ChildPicker` carries its own card, sharing would nest one
-        inside the other, so the two are siblings and a single-child
-        family sees exactly what it saw before: this card alone.
+        The date range sits above the children card because that card
+        follows it: each child's marks and rate are for this range, so the
+        rate in a child's row is the same number as the rate card below.
       */}
       <div className="rounded-lg bg-white p-4 shadow-sm">
         <div className="grid grid-cols-2 gap-3">
@@ -169,7 +177,28 @@ export function FamilyAttendanceView() {
         </div>
       </div>
 
+      {/*
+        Every child in one card, replacing the child picker (ADR-046(b)).
+        A 16+ santri alone on this screen has nothing to pick between, so
+        their own strip goes inside the rate card below instead.
+      */}
+      {!selfOnly && !loading && (
+        <ChildrenAttendanceCard
+          students={students.map((s) => ({
+            id: s.id,
+            name: s.full_name,
+            groups: (groupsByStudent[s.id] ?? []).map((g) => g.name),
+            rows: inRange[s.id] ?? [],
+          }))}
+          selectedId={studentId}
+          onSelect={setStudentId}
+        />
+      )}
+
       <div className="rounded-lg bg-white p-4 text-center shadow-sm">
+        {!selfOnly && selectedName && (
+          <p className="mb-1 text-xs font-semibold text-ppme-text/70">{selectedName}</p>
+        )}
         <p className="text-3xl font-bold text-ppme-primary">{rates.overall}%</p>
         <p className="mt-1 text-sm text-ppme-text/70">
           {showGroups ? t('attendance.overallRate') : t('attendance.attendanceRate')}
@@ -192,6 +221,14 @@ export function FamilyAttendanceView() {
                 : `${t('attendance.meetingDaysLabel')}: ${formatDayList(group.meeting_days, t)}`}
             </p>
           ) : null,
+        )}
+        {selfOnly && !loading && (
+          <div className="mt-3 space-y-2 border-t border-black/5 pt-3 text-left">
+            <p className="text-xs font-semibold text-ppme-text/70">{t('attendance.lastSessions', { count: 8 })}</p>
+            <AttendanceStrip rows={filtered} size={16} />
+            <AttendanceLegend tone="student" marks={['present', 'late', 'absent']} />
+            <p className="text-xs text-ppme-text/60">{t('attendance.newestRight')}</p>
+          </div>
         )}
       </div>
 

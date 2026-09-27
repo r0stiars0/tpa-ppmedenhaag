@@ -30,6 +30,7 @@ import {
   type RosterStudent,
 } from './api'
 import { StudentAttendanceHistory } from './StudentAttendanceHistory'
+import { GroupAttendanceTile } from './GroupAttendanceTile'
 
 type AttendanceStatus = Database['public']['Enums']['attendance_status']
 
@@ -81,7 +82,15 @@ interface RowState {
  * 16+ students never see any of this — the table simply has no policy
  * for them.
  */
-export function TutorAttendanceView() {
+export function TutorAttendanceView({
+  onShowTutorStats,
+  heading = true,
+}: {
+  /** Admin only: the "Kehadiran guru" note links to Hadir › Guru (ADR-046(d)). */
+  onShowTutorStats?: () => void
+  /** False when `AdminAttendanceView` already renders the heading above its switch. */
+  heading?: boolean
+} = {}) {
   const { t, i18n } = useTranslation()
   const { profile } = useAuth()
   const { selfStudentId } = useViewScope()
@@ -100,10 +109,16 @@ export function TutorAttendanceView() {
   const [submitted, setSubmitted] = useState(false)
   const [queued, setQueued] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Bumped after a successful submit so the group tile re-reads.
+  const [statsKey, setStatsKey] = useState(0)
 
+  // An admin who also teaches opens on a group they teach — the picker
+  // lists those first too (ADR-046(d)). Everyone else: the first group.
   useEffect(() => {
-    if (!classId && classes.length > 0) setClassId(classes[0].id)
-  }, [classes, classId])
+    if (classId || classes.length === 0) return
+    const own = profile ? classes.find((c) => c.tutor_ids?.includes(profile.id)) : undefined
+    setClassId((own ?? classes[0]).id)
+  }, [classes, classId, profile])
 
   const selectedClass = useMemo(
     () => classes.find((c) => c.id === classId) ?? null,
@@ -298,6 +313,7 @@ export function TutorAttendanceView() {
       await submitTutorAttendance(tutorPayload)
       setSubmitted(true)
       setConfirming(false)
+      setStatsKey((k) => k + 1)
     } catch (err) {
       // A network failure means the register never left the device —
       // the upserts on (session_id, student_id) / (session_id, tutor_id)
@@ -333,12 +349,21 @@ export function TutorAttendanceView() {
         cannot know. The class side has no such problem, so it is simply
         the screen's name.
       */}
-      <h1 className="text-lg font-bold text-ppme-primary">{t('attendance.title')}</h1>
+      {heading && <h1 className="text-lg font-bold text-ppme-primary">{t('attendance.title')}</h1>}
 
       <div className="rounded-lg bg-white p-4 shadow-sm">
-        <ClassPicker classes={classes} value={classId} onChange={setClassId} />
+        <ClassPicker
+          classes={classes}
+          value={classId}
+          onChange={setClassId}
+          taughtBy={profile?.role === 'admin' ? profile.id : undefined}
+        />
+      </div>
 
-        <div className="mt-2 flex items-center justify-between gap-2">
+      {classId && <GroupAttendanceTile classId={classId} refreshKey={statsKey} />}
+
+      <div className="rounded-lg bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-2">
           <button
             type="button"
             disabled={!prevDate}
@@ -474,6 +499,20 @@ export function TutorAttendanceView() {
           <h2 className="pt-2 text-sm font-semibold text-ppme-text/70">
             {t('attendance.tutorSection')}
           </h2>
+          {/* Who may record here, and where the statistics are — which
+              is nowhere, for a tutor (ADR-046(f)). */}
+          <p className="text-xs text-ppme-text/60">
+            {onShowTutorStats ? t('attendance.tutorSectionNoteAdmin') : t('attendance.tutorSectionNoteTutor')}
+          </p>
+          {onShowTutorStats && (
+            <button
+              type="button"
+              onClick={onShowTutorStats}
+              className="min-h-11 text-sm font-semibold text-ppme-primary underline"
+            >
+              {t('attendance.openTutorOverview')}
+            </button>
+          )}
 
           {classTutors.length === 0 ? (
             <p className="text-sm text-ppme-text/50">{t('attendance.noTutorsAssigned')}</p>

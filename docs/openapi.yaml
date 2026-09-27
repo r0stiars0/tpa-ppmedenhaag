@@ -182,9 +182,11 @@ paths:
         **Parents and 16+ students have no policy on this table and get an
         empty array** — tutor attendance is staff data with no family
         stake. Names for the UI come from `POST /rpc/fn_class_tutors`.
-        The admin review screen (`/admin/tutor-attendance`, ADR-041(g))
-        reads this filtered by `tutor_id` and joins the session date +
-        group name from `/sessions?select=date,classes(name)`.
+        The admin tutor overview (Hadir › Guru, ADR-046(d)) reads it for
+        a date range with the session embedded:
+        `select=session_id,tutor_id,status,reason,session:sessions!inner(date),tutor:users!tutor_attendance_tutor_id_fkey(full_name)`
+        filtered on `session.date`. Tutors read it only to complete the
+        register; there is no tutor-facing statistics screen.
       parameters:
         - $ref: '#/components/parameters/select'
         - name: session_id

@@ -185,7 +185,10 @@ export async function fetchTutorClassCount(
  * and `attendance_tutor_insert` check the same function, so recording
  * against it fails with a policy error at save time.
  */
-export type TaughtClass = Pick<Tables<'classes'>, 'id' | 'name' | 'schedule' | 'meeting_days' | 'tracks_progress'>
+export type TaughtClass = Pick<
+  Tables<'classes'>,
+  'id' | 'name' | 'schedule' | 'meeting_days' | 'tracks_progress' | 'tutor_ids'
+>
 
 /**
  * Since PRD Feature 8 (ADR-045) two more things decide what a picker
@@ -200,7 +203,7 @@ export async function fetchTaughtClasses(
   userId: string,
   options: { isAdmin: boolean; trackingOnly?: boolean },
 ): Promise<TaughtClass[]> {
-  const base = client.from('classes').select('id, name, schedule, meeting_days, tracks_progress')
+  const base = client.from('classes').select('id, name, schedule, meeting_days, tracks_progress, tutor_ids')
   let query = options.isAdmin ? base : base.contains('tutor_ids', [userId])
   query = query.is('archived_at', null)
   if (options.trackingOnly) query = query.eq('tracks_progress', true)

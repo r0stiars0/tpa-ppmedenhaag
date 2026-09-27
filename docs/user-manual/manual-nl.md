@@ -91,7 +91,7 @@ Vijf vaste tabbladen, hetzelfde voor elke rol inclusief beheerder:
 **Rapport** en **Beheer** (alleen beheerder) staan niet in de onderbalk — beide zijn bereikbaar via een tegel op het startscherm, omdat er op een mobiel scherm maar ruimte is voor vijf goed aantikbare knoppen.
 
 ### Weergaveschakelaar (Scope Switch)
-Verschijnt boven de inhoud, **alleen voor accounts met meer dan één relatie** (bijvoorbeeld een docent die ook ouder is), en **alleen** op deze zes schermen: Aanwezig, Huiswerk, Yanbu'a, Al-Quran, Murajaah, Rapport. Zie [§14](#14-accounts-met-een-dubbele-rol) voor de volledige uitleg.
+Verschijnt boven de inhoud, **alleen voor accounts met meer dan één relatie** (bijvoorbeeld een docent die ook ouder is), en **alleen** op deze zes schermen: Aanwezig, Huiswerk, Yanbu'a, Al-Quran, Murajaah, Rapport. Hij heeft dezelfde vorm als de schakelaar **Leerlingen | Docenten** van de beheerder: de weergaveschakelaar staat altijd boven de schermtitel, Leerlingen | Docenten eronder. Zie [§14](#14-accounts-met-een-dubbele-rol) voor de volledige uitleg.
 
 ---
 
@@ -148,6 +148,7 @@ de beheerder in bij de groep (zie [§13.2](#132-groepen) → Lesdagen).
 | Element | Functie |
 |---|---|
 | **Kies groep** | Verschijnt alleen als de docent meer dan één groep begeleidt. Bij het wisselen worden de leerlingenlijst en de les opnieuw geladen. Een gearchiveerde groep staat er niet tussen. Een leerling kan in meer dan één groep zitten (bijv. een Yanbu'a/Al-Quran-groep en een Aqidah-groep) en staat dan op de presentielijst van elke groep; in elke groep wordt apart geregistreerd. |
+| **Aanwezigheid leerlingen** | Kaart onder de groepskeuze: het aanwezigheidspercentage van de leerlingen bij de **laatste les waarvoor al is geregistreerd**, "x van y aanwezig" met de datum, en een kleine lijn van de laatste 8 lessen (nieuwste rechts). Tik op de kaart voor de lijst van die 8 lessen met het gemiddelde; nogmaals tikken sluit hem. Te laat telt als aanwezig. Een les zonder registratie telt niet mee. Na het versturen van de aanwezigheid wordt het cijfer direct bijgewerkt. De kaart gaat alleen over leerlingen — nooit over de aanwezigheid van docenten. |
 | Datumbalk met **‹** / **›** | Toont de datum van de getoonde les (weekdag, dag en maand; het jaartal erbij als de les niet in het huidige kalenderjaar valt). Met de pijlen stapt u door de lesdagen van de groep: **‹** terug tot 1 augustus van het huidige schooljaar, **›** vooruit tot en met de huidige les (verder vooruit kan niet). Staat er **niet ingevuld** onder de datum, dan is voor die lesdag nog geen aanwezigheid vastgelegd — u kunt dat alsnog doen; de les wordt aangemaakt zodra u verstuurt. Een al vastgelegde les blijft altijd te corrigeren, ook een die niet op een lesdag valt. |
 | Leerlingregel + knoppen **Aanwezig / Te laat / Afwezig** | Tik op een van de knoppen om de status van die leerling in te stellen. Groen = de status die op dit moment op het scherm staat (nog niet naar de server verstuurd totdat u op **Aanwezigheid versturen** tikt). De standaardstatus voor elke leerling is "Aanwezig". |
 | **Aanwezigheidsgeschiedenis van deze leerling** | Klapt onder de regel de aanwezigheid van die leerling open in **al zijn/haar groepen**: het percentage per groep en de laatste tien lessen met datum en groep. Bij een afwezigheid in een **andere** groep ziet u alleen "Niet aanwezig", **zonder reden** — die blijft bij de docenten van die groep. |
@@ -171,7 +172,7 @@ Onderaan:
 
 **Bijzonderheid — leerling-assistent**: als een leerling van 16+ ook meehelpt met lesgeven in die groep, blijft haar/zijn naam op de presentielijst staan met een reeds opgeslagen status (standaard "Aanwezig"), maar die regel **kan niet door haarzelf/hemzelf** worden aangepast — alleen een andere docent of de beheerder kan haar/zijn aanwezigheid registreren. Deze uitleg staat direct onder de naam op het scherm. Haar/zijn naam verschijnt **niet** nog een keer in de sectie "Aanwezigheid docenten": de aanwezigheid wordt één keer vastgelegd, als leerling.
 
-**Aanwezigheid docenten**: onder de leerlingenlijst staat een sectie **"Aanwezigheid docenten"** met elke docent van die groep en dezelfde knoppen **Aanwezig / Te laat / Afwezig** (en hetzelfde redenveld bij Afwezig). Deze sectie wordt samen met de presentielijst verstuurd als u op **Aanwezigheid versturen** tikt. Een docent mag zowel de eigen aanwezigheid als die van een collega uit dezelfde groep registreren. Heeft de groep nog geen docent toegewezen, dan verschijnt een aanwijzing om dat via **Beheer** te doen. De aanwezigheidsgegevens van docenten zijn **alleen zichtbaar voor de beheerder en voor de andere docenten van dezelfde groep** — nooit voor ouders of leerlingen — en de TPA-leiding gebruikt ze om de aanwezigheid van docenten periodiek na te kijken.
+**Aanwezigheid docenten**: onder de leerlingenlijst staat een sectie **"Aanwezigheid docenten"** met elke docent van die groep en dezelfde knoppen **Aanwezig / Te laat / Afwezig** (en hetzelfde redenveld bij Afwezig). Deze sectie wordt samen met de presentielijst verstuurd als u op **Aanwezigheid versturen** tikt. Een docent mag zowel de eigen aanwezigheid als die van een collega uit dezelfde groep registreren. Heeft de groep nog geen docent toegewezen, dan verschijnt een aanwijzing om dat via **Beheer** te doen. Onder de kop van deze sectie staat: *"Elke docent van deze groep kan de aanwezigheid van de docenten van deze groep vastleggen. Het overzicht daarvan is alleen voor beheerders."* De status per les is zichtbaar voor de docenten van de groep op de presentielijst (om die aan te vullen en te corrigeren), maar **het overzicht en de percentages van docenten zijn alleen voor de beheerder**, onder **Aanwezigheid › Docenten** ([§5.3](#53-beheerdersweergave--leerlingen--docenten)). Ouders en leerlingen zien de aanwezigheid van docenten nooit.
 
 **Offline-status**: als de internetverbinding wegvalt tijdens het versturen, slaat de app de gegevens lokaal op en toont *"U bent offline. Gegevens worden verzonden zodra u weer online bent."* — de gegevens worden automatisch verstuurd zodra de verbinding terugkeert, zonder dat u opnieuw hoeft te registreren.
 
@@ -183,12 +184,46 @@ Dit scherm is **alleen om te bekijken** — ouders en leerlingen kunnen de aanwe
 
 | Element | Functie |
 |---|---|
-| **Kies kind** | Verschijnt alleen als het account meer dan één gekoppeld kind heeft. |
 | Titel | "Mijn aanwezigheid" (voor een leerling die de eigen gegevens bekijkt) of "Aanwezigheid {naam kind}". |
-| Velden **Van** / **Tot** | Datumbereik om de geschiedenis te filteren (standaard: de laatste 90 dagen tot vandaag). |
+| Velden **Van** / **Tot** | Datumbereik voor de kinderkaart, het percentage en de geschiedenis (standaard: de laatste 90 dagen tot vandaag). |
+| Kaart **Kind · laatste 8 lessen** | **Alle kinderen op één kaart** — in plaats van een kindkeuze. Eén regel per kind: naam en groepen, de laatste 8 geregistreerde lessen binnen het datumbereik als markeringen (● aanwezig, ○ te laat, ✕ niet aanwezig; nieuwste rechts), en het aanwezigheidspercentage — hetzelfde getal als de percentagekaart eronder. **Tik op een naam** om percentage en geschiedenis van dat kind hieronder te tonen. **Tik op een markering** voor de datum, groep, status en (bij afwezigheid) de reden. Met één kind heeft de kaart één regel. |
 | Groot percentage | Aanwezigheidspercentage binnen het gekozen datumbereik. Zit het kind in meer dan één groep, dan heet het **Totale aanwezigheid** en staat eronder het percentage **per groep** — zo valt op als een kind de ene groep wel en de andere niet bezoekt. |
 | **Lesdagen** | Alleen-lezen regel(s) onder het percentage met de weekdag(en) waarop de groep van het kind samenkomt (bijv. "Lesdagen: za"); bij meerdere groepen één regel per groep ("Lesdagen Aqidah 9–11 th: zo"). Verschijnt niet als het kind nog niet in een groep zit. |
 | **Aanwezigheidsgeschiedenis** | Lijst per datum met status **Aanwezig / Te laat / Niet aanwezig**, en de reden (indien opgegeven) bij afwezigheid. Bij meerdere groepen staat de naam van de groep onder de datum. |
+
+**Een leerling van 16+ met een eigen account** ziet geen kinderkaart. De laatste acht lessen staan **in de percentagekaart**, met dezelfde legenda:
+
+<img src="./screenshots/nl/attendance-student.png" width="360" alt="Aanwezigheid — leerling 16+">
+
+### 5.3 Beheerdersweergave — Leerlingen | Docenten
+
+De beheerder ziet onder de titel Aanwezigheid de schakelaar **Leerlingen | Docenten**. Die is er alleen voor de beheerder; docenten zien hem nooit.
+
+- **Leerlingen** is de presentielijst precies zoals een docent die heeft ([§5.1](#51-docentweergave--aanwezigheid-registreren)), voor elke groep — inclusief de kaart **Aanwezigheid leerlingen** en de sectie **Aanwezigheid docenten**. Een beheerder die invalt, registreert leerlingen en docenten op één plek. Geeft de beheerder zelf ook les, dan staan de eigen groepen bovenaan bij **Kies groep** (onder "Groepen waaraan u lesgeeft", de rest onder "Andere groepen") en opent het scherm op zo'n groep. In de sectie Aanwezigheid docenten brengt **Open docentenoverzicht** u direct naar Docenten.
+- **Docenten** is het overzicht van alle docenten. Dit scherm is **alleen om te bekijken** — elke docent legt de aanwezigheid van de docenten van de eigen groep vast op de presentielijst.
+
+<img src="./screenshots/nl/attendance-admin-guru.png" width="360" alt="Aanwezigheid — Docenten, alle docenten in één overzicht">
+
+| Element | Functie |
+|---|---|
+| **Kies groep** | **Alle groepen** (standaard) of één groep. Een gearchiveerde groep verschijnt alleen als die binnen het datumbereik lessen had. |
+| **Van** / **Tot** | Datumbereik. Standaard: 1 augustus van het huidige schooljaar tot vandaag. |
+| Regel per docent | Naam, de **laatste 8 lessen** als markeringen, en het aanwezigheidspercentage over het gekozen bereik. De kolommen zijn voor alle docenten gelijk: één kolom = één lesdag. |
+| Markeringen | ● **Aanwezig** · ○ **Te laat** · ✕ **Niet aanwezig** · ◌ (stippelcirkel) **Niet vastgelegd** — een groep van deze docent had les, maar de aanwezigheid is niet ingevuld · • (klein grijs puntje) **Geen les** — geen van de groepen had die dag les. |
+| Percentage | Te laat telt als aanwezig; alleen Niet aanwezig telt mee. "Niet vastgelegd" telt niet mee. Een docent zonder registraties in het bereik toont **Nog geen**. |
+
+"Niet vastgelegd" en "Geen les" worden bepaald aan de hand van de groepen die de docent **nu** begeleidt. Een docent die halverwege het jaar van groep wisselde, toont "Geen les" voor weken in de oude groep die nooit zijn ingevuld; wat wel is vastgelegd, staat er altijd.
+
+Tik op een docent voor de details:
+
+<img src="./screenshots/nl/attendance-admin-guru-detail.png" width="360" alt="Aanwezigheid — details van een docent">
+
+| Element | Functie |
+|---|---|
+| Docentkaart | Percentage en **{n} aanwezig · {n} te laat · {n} afwezig**. |
+| **Alle lessen in deze periode** | Alle lessen van deze docent binnen het datumbereik als markeringen, de oudste links. |
+| Lijst | Per les: datum, groep, status (of **Niet vastgelegd**) en de reden bij afwezigheid. Corrigeren doet u op de presentielijst van die groep, onder Leerlingen. |
+| **Details sluiten** | Sluit de detailkaart. |
 
 ---
 
@@ -238,7 +273,7 @@ Alleen om te bekijken — de status kan alleen door de docent worden gewijzigd.
 
 | Element | Functie |
 |---|---|
-| **Kies kind** | Zoals bij Aanwezigheid. |
+| **Kies kind** | Verschijnt alleen als het account meer dan één gekoppeld kind heeft. |
 | Regel met aantal actieve opdrachten | "{aantal} actieve huiswerkopdrachten" — telt opdrachten met status "In afwachting" of waarvan de deadline is verstreken. |
 | Kaart per opdracht | Titel, de **groep** die de opdracht gaf (een kind in meer groepen krijgt huiswerk van elke groep), beschrijving, deadline, notities van de docent (indien aanwezig), en statuslabel: **In afwachting / Voltooid / Te laat / Gedeeltelijk / Termijn Verlopen**. |
 
@@ -526,7 +561,7 @@ Als de browser meldingsrechten blokkeert, toont het scherm uitleg om deze handma
 
 ## 13. Beheer (alleen beheerder)
 
-Alleen toegankelijk voor een account met de rol Beheerder, via de tegel **Beheer** op het startscherm. Bestaat uit vijf subpagina's met een tabmenu bovenaan: **Registraties · Groepen · Leerlingen · Aanwezigheid docenten · Gebruikers**.
+Alleen toegankelijk voor een account met de rol Beheerder, via de tegel **Beheer** op het startscherm. Bestaat uit vier subpagina's met een tabmenu bovenaan: **Registraties · Groepen · Leerlingen · Gebruikers**. Het overzicht van de aanwezigheid van docenten, dat hier stond, zit nu onder **Aanwezigheid › Docenten** ([§5.3](#53-beheerdersweergave--leerlingen--docenten)); het oude adres opent dat scherm direct.
 
 ### 13.1 Registraties
 
@@ -630,21 +665,7 @@ Leerlingformulier:
 
 **Nog geen groep.** Leerlingen die via het inschrijfformulier binnenkomen, zitten nog in geen enkele groep en zijn voor geen docent zichtbaar. Zolang er zulke leerlingen zijn, staat bovenaan elk Beheer-scherm een melding met een waarschuwingsdriehoek, **"⚠ Leerlingen zonder groep: {aantal}"**; tik erop om ze te zien.
 
-### 13.4 Aanwezigheid docenten
-
-Scherm om de aanwezigheid van een docent periodiek na te kijken. De aanwezigheid van docenten wordt door een docent of de beheerder vastgelegd op het gewone scherm **Aanwezigheid** (zie [§5.1](#51-docentweergave--aanwezigheid-registreren) → "Aanwezigheid docenten").
-
-| Element | Functie |
-|---|---|
-| **Kies docent** | Lijst met docenten van wie al aanwezigheid is vastgelegd. Een docent zonder registraties verschijnt niet; is er nog niets, dan staat er "Er is nog geen aanwezigheid van docenten vastgelegd." |
-| **Kies groep** *(verschijnt als de docent meer dan één groep begeleidt)* | Beperkt de lijst tot één groep, of **"Alle groepen"**. |
-| **Van** / **Tot** | Datumbereik. Standaard: 1 augustus van het huidige schooljaar tot vandaag. |
-| Percentagekaart | Aanwezigheidspercentage over het gekozen bereik (Te laat telt als aanwezig; alleen Afwezig telt mee), met daaronder **{n} aanwezig · {n} te laat · {n} afwezig**. |
-| **Aanwezigheidsgeschiedenis** | Lijst per datum: datum, groepsnaam en status **Aanwezig / Te laat / Niet aanwezig** (met reden bij afwezigheid). |
-
-Dit scherm is **alleen om te bekijken** — corrigeren gebeurt op het Aanwezigheidsscherm van de betreffende groep. Ouders en leerlingen zien de aanwezigheid van docenten nooit.
-
-### 13.5 Gebruikers
+### 13.4 Gebruikers
 
 Een lijst van alle bestaande accounts, om iemands **naam** of **rol** te corrigeren. Accounts aanmaken blijft op [§13.1 Registraties](#131-registraties).
 
@@ -689,7 +710,7 @@ De volgende elementen komen op veel schermen terug en worden hier één keer uit
 | Element | Wanneer zichtbaar | Functie |
 |---|---|---|
 | **Kies groep** | Elk docentscherm | Verschijnt alleen als de docent meer dan één groep begeleidt. |
-| **Kies kind** | Elk gezinsscherm | Verschijnt alleen als het account meer dan één gekoppeld kind heeft. |
+| **Kies kind** | Elk gezinsscherm (behalve Aanwezigheid) | Verschijnt alleen als het account meer dan één gekoppeld kind heeft. Bij Aanwezigheid staan alle kinderen op één kaart ([§5.2](#52-gezinsweergave--aanwezigheidsgeschiedenis-bekijken)). |
 | *"Laden…"* | Alle schermen | Gegevens worden van de server opgehaald. |
 | *"Nog geen gegevens"* | Alle schermen | Er zijn geen gegevens om te tonen in de huidige situatie. |
 | *"U bent nog aan geen enkele groep toegewezen"* | Docentschermen | Het docentaccount heeft nog geen groep(en) van de beheerder gekregen. |
@@ -720,4 +741,4 @@ Om tweetalige communicatie binnen de TPA te vergemakkelijken, hier de belangrijk
 
 ---
 
-*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **13.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026), met **§5.1 aangevuld voor de sectie "Aanwezigheid docenten"** en **§13.4 toegevoegd voor het beheerdersscherm "Aanwezigheid docenten"** (ADR-041, september 2026), met **§13.5 toegevoegd voor het beheerdersscherm "Gebruikers"** (ADR-042, september 2026), en bijgewerkt voor **leerlingen in meerdere groepen** (ADR-045, september 2026): §5, §6.2, §7, §12.1, §13.2 (met het nieuwe §13.2.1 "Leerlingen van een groep") en §13.3, en met **§11 toegevoegd voor "Mededelingen & lesmateriaal"** (ADR-045 release 8b-1, september 2026; de latere hoofdstukken schoven één nummer op), en met **§10 bijgewerkt voor de onderdelen per groep in het jaarrapport** (§10.1.1 nieuw; ADR-045 release 8b-2, september 2026). De indeling kan in latere app-versies licht afwijken. De PDF-versie is uit deze tekst opnieuw gegenereerd met `scripts/gen-manual-pdf.mjs`; de schermen van §13.4 en §13.5 hebben nog geen schermafbeelding.*
+*Dit document is opgesteld op basis van schermafbeeldingen van de app-versie van augustus 2026, mobiele weergave, met de schermen voor **5. Aanwezigheid** en **13.2 Groepen** opnieuw vastgelegd voor de lesdagen van een groep en de op het rooster gebaseerde aanwezigheidslijst (ADR-037, september 2026), met **§5.1 aangevuld voor de sectie "Aanwezigheid docenten"** en **§13.4 toegevoegd voor het beheerdersscherm "Aanwezigheid docenten"** (ADR-041, september 2026), met **§13.5 toegevoegd voor het beheerdersscherm "Gebruikers"** (ADR-042, september 2026), en bijgewerkt voor **leerlingen in meerdere groepen** (ADR-045, september 2026): §5, §6.2, §7, §12.1, §13.2 (met het nieuwe §13.2.1 "Leerlingen van een groep") en §13.3, en met **§11 toegevoegd voor "Mededelingen & lesmateriaal"** (ADR-045 release 8b-1, september 2026; de latere hoofdstukken schoven één nummer op), en met **§10 bijgewerkt voor de onderdelen per groep in het jaarrapport** (§10.1.1 nieuw; ADR-045 release 8b-2, september 2026). Daarnaast is **§5 bijgewerkt voor de aanwezigheidsgrafieken** (kaart Aanwezigheid leerlingen, kaart met alle kinderen, het nieuwe §5.3 Leerlingen | Docenten) en is het docentenoverzicht van §13.4 naar §5.3 verhuisd, zodat "Gebruikers" nu §13.4 is (ADR-046, september 2026). De indeling kan in latere app-versies licht afwijken. De PDF-versie is uit deze tekst opnieuw gegenereerd met `scripts/gen-manual-pdf.mjs`; het scherm van §13.4 heeft nog geen schermafbeelding.*

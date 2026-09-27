@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 import { useViewScope } from '../context/ViewScopeContext'
 import { scopeAppliesTo, scopeLabelKey } from '../lib/viewScope'
+import { SegmentedSwitch } from './SegmentedSwitch'
 
 /**
  * The control a person with more than one relationship uses to say
@@ -29,11 +30,13 @@ import { scopeAppliesTo, scopeLabelKey } from '../lib/viewScope'
  * `/admin/*` screen), because a visible control that does nothing when
  * pressed is worse than none.
  *
- * ── Colour ──────────────────────────────────────────────────────────
- * Primary blue for the selected segment. Gold is reserved for
+ * ── Style ───────────────────────────────────────────────────────────
+ * `SegmentedSwitch`, the app's one switch style, shared with Hadir's
+ * "Santri | Guru" (ADR-046(g)): a tinted track, the selected segment
+ * raised in white with primary-blue text. Gold is reserved for
  * achievement moments and red for absence (checklist §5, and the
  * notification tone tests pin both) — a navigation control has no claim
- * on either.
+ * on either. `scope.label` ("Tampilan") is the accessible name only.
  *
  * `min-h-11` on each segment, and two short words per label in both
  * locales: the longest Dutch string here is "Mijn gezin", which fits a
@@ -57,29 +60,15 @@ export function ScopeSwitch({ className = '' }: { className?: string }) {
   if (!canSwitch || !scopeAppliesTo(pathname)) return null
 
   return (
-    <div
-      role="group"
-      aria-label={t('scope.label')}
-      className={`flex gap-1 rounded-lg bg-black/5 p-1 ${className}`}
-    >
-      {available.map((option) => {
-        const active = option === scope
-        return (
-          <button
-            key={option}
-            type="button"
-            aria-pressed={active}
-            onClick={() => setScope(option)}
-            className={`min-h-11 flex-1 whitespace-nowrap rounded-md px-3 text-sm font-semibold transition-colors ${
-              active
-                ? 'bg-ppme-primary text-white shadow-sm'
-                : 'text-ppme-text/70 hover:bg-white/70'
-            }`}
-          >
-            {t(scopeLabelKey(option, capabilities))}
-          </button>
-        )
-      })}
-    </div>
+    <SegmentedSwitch
+      label={t('scope.label')}
+      value={scope}
+      onChange={setScope}
+      options={available.map((option) => ({
+        value: option,
+        label: t(scopeLabelKey(option, capabilities)),
+      }))}
+      className={className}
+    />
   )
 }

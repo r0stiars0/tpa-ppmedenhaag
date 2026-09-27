@@ -1,6 +1,7 @@
 import { supabase } from '../../lib/supabase'
 import type { Database, Tables, TablesInsert } from '../../lib/database.types'
 import { fetchClassRoster } from '../../lib/roster'
+import type { OverviewRow, OverviewSession } from '../../lib/attendanceStats'
 
 type AttendanceStatus = Database['public']['Enums']['attendance_status']
 type Session = Tables<'sessions'>
@@ -156,78 +157,106 @@ export async function submitTutorAttendance(
   if (error) throw error
 }
 
-// ─── Admin review of tutor attendance (TAD ADR-041, part 2) ──────────
-// The `/admin/tutor-attendance` screen. Both queries below rely only on
-// the admin's existing grants — `tutor_attendance_admin_all` (RLS-85)
-// and `users_admin_all` — so there is no new policy or migration.
+// ─── Attendance graphs (TAD ADR-046) ──────────────────────────────────
+// Both reads below use grants the caller already holds, so there is no
+// new policy or migration.
 
 /**
- * The tutors an admin can review — everyone with at least one
- * `tutor_attendance` row, so the picker is driven by recorded turnout
- * rather than a raw `tutor_ids` list (a pure student-assistant, excluded
- * from `fn_class_tutors`, never appears here for want of rows).
+ * One group's recent sessions, newest first, each with the student
+ * statuses recorded against it — the "Kehadiran santri" tile
+ * (ADR-046(a)). A tutor reads these through the ordinary tutor grants on
+ * `sessions` and `attendance`, an admin through the admin ones. 40 rows
+ * covers the 8 recorded sessions the tile draws with room for opened but
+ * unrecorded ones in between.
  */
-export async function fetchReviewableTutors(): Promise<ClassTutor[]> {
+export async function fetchGroupSessionStats(
+  classId: string,
+): Promise<{ date: string; statuses: AttendanceStatus[] }[]> {
   const { data, error } = await supabase
-    .from('tutor_attendance')
-    .select('tutor_id, tutor:users!tutor_attendance_tutor_id_fkey(full_name)')
+    .from('sessions')
+    .select('date, attendance(status)')
+    .eq('class_id', classId)
+    .order('date', { ascending: false })
+    .limit(40)
   if (error) throw error
-
-  const byId = new Map<string, string>()
-  for (const row of (data ?? []) as { tutor_id: string; tutor: { full_name: string } | null }[]) {
-    if (!byId.has(row.tutor_id)) byId.set(row.tutor_id, row.tutor?.full_name ?? '')
-  }
-  return [...byId.entries()]
-    .map(([user_id, full_name]) => ({ user_id, full_name }))
-    .sort((a, b) => a.full_name.localeCompare(b.full_name))
+  return ((data ?? []) as { date: string; attendance: { status: AttendanceStatus }[] | null }[]).map(
+    (row) => ({ date: row.date, statuses: (row.attendance ?? []).map((a) => a.status) }),
+  )
 }
 
-export interface TutorAttendanceHistoryRow {
-  id: string
-  status: AttendanceStatus
-  reason: string | null
-  date: string
-  className: string
+export interface TutorOverviewData {
+  classes: { id: string; name: string; archived: boolean }[]
+  sessions: OverviewSession[]
+  rows: OverviewRow[]
+  /** `fn_class_tutors` per active group — today's assignment. */
+  tutorsByClass: Record<string, ClassTutor[]>
+  /** The name of everyone with a recorded row in range. */
+  names: Record<string, string>
 }
 
 /**
- * Every `tutor_attendance` row for one tutor, across all the groups they
- * teach, with the session date and group name stitched in via a second
- * query — the `fetchAttendanceHistory` shape, and small enough (~40
- * sessions/year) that client-side date filtering is fine.
+ * Everything Hadir › Guru needs for one date range, admin only
+ * (ADR-046(d)/(e)): every group, every session in range with whether
+ * anything was recorded on it, every tutor row in range, and each active
+ * group's tutor list. It relies on `tutor_attendance_admin_all` (RLS-85)
+ * and the admin grants on `classes`, `sessions` and `attendance`; a
+ * non-admin would simply get their own groups' rows back, and the screen
+ * is never shown to one.
  */
-export async function fetchTutorAttendanceHistory(
-  tutorId: string,
-): Promise<TutorAttendanceHistoryRow[]> {
-  const { data: rows, error } = await supabase
-    .from('tutor_attendance')
-    .select('id, status, reason, session_id')
-    .eq('tutor_id', tutorId)
-  if (error) throw error
-  if (!rows || rows.length === 0) return []
+export async function fetchTutorOverviewData(from: string, to: string): Promise<TutorOverviewData> {
+  const [classesRes, sessionsRes, rowsRes] = await Promise.all([
+    supabase.from('classes').select('id, name, archived_at').order('name'),
+    supabase
+      .from('sessions')
+      .select('id, class_id, date, attendance(count), tutor_attendance(count)')
+      .gte('date', from)
+      .lte('date', to),
+    supabase
+      .from('tutor_attendance')
+      .select('session_id, tutor_id, status, reason, session:sessions!inner(date), tutor:users!tutor_attendance_tutor_id_fkey(full_name)')
+      .gte('session.date', from)
+      .lte('session.date', to),
+  ])
+  if (classesRes.error) throw classesRes.error
+  if (sessionsRes.error) throw sessionsRes.error
+  if (rowsRes.error) throw rowsRes.error
 
-  const sessionIds = [...new Set(rows.map((r) => r.session_id))]
-  const { data: sessions, error: sessionsError } = await supabase
-    .from('sessions')
-    .select('id, date, class:classes(name)')
-    .in('id', sessionIds)
-  if (sessionsError) throw sessionsError
+  const classes = (classesRes.data ?? []).map((c) => ({ id: c.id, name: c.name, archived: c.archived_at !== null }))
+  const active = classes.filter((c) => !c.archived)
+  const lists = await Promise.all(active.map((c) => fetchClassTutors(c.id)))
+  const tutorsByClass = Object.fromEntries(active.map((c, i) => [c.id, lists[i]]))
 
-  const bySession = new Map(
-    ((sessions ?? []) as { id: string; date: string; class: { name: string } | null }[]).map((s) => [
-      s.id,
-      { date: s.date, className: s.class?.name ?? '' },
-    ]),
-  )
-  return rows
-    .map((r) => ({
-      id: r.id,
-      status: r.status,
-      reason: r.reason,
-      date: bySession.get(r.session_id)?.date ?? '',
-      className: bySession.get(r.session_id)?.className ?? '',
-    }))
-    .sort((a, b) => (a.date < b.date ? 1 : -1))
+  type CountEmbed = { count: number }[] | null
+  const sessions = (
+    (sessionsRes.data ?? []) as unknown as {
+      id: string
+      class_id: string
+      date: string
+      attendance: CountEmbed
+      tutor_attendance: CountEmbed
+    }[]
+  ).map((s) => ({
+    id: s.id,
+    classId: s.class_id,
+    date: s.date,
+    held: (s.attendance?.[0]?.count ?? 0) + (s.tutor_attendance?.[0]?.count ?? 0) > 0,
+  }))
+
+  const names: Record<string, string> = {}
+  const rows = (
+    (rowsRes.data ?? []) as unknown as {
+      session_id: string
+      tutor_id: string
+      status: AttendanceStatus
+      reason: string | null
+      tutor: { full_name: string } | null
+    }[]
+  ).map((r) => {
+    names[r.tutor_id] = r.tutor?.full_name ?? ''
+    return { sessionId: r.session_id, tutorId: r.tutor_id, status: r.status, reason: r.reason }
+  })
+
+  return { classes, sessions, rows, tutorsByClass, names }
 }
 
 export interface AttendanceHistoryRow {
