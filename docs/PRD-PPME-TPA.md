@@ -759,6 +759,7 @@ Tracks each student's progression through the Yanbu'a curriculum (a structured m
 **FR-001: Record Yanbu'a Progress**
 - Priority: High
 - Tutor must be able to record the student's current jilid (1-7) and page number after each learning session.
+- Page numbering is **continuous across all 7 jilid**, matching the physical book — jilid 2's first page is jilid 1's last page + 1, not page 1 again (TAD ADR-047, confirmed against the physical book; PRD Resolved Decision #35).
 
 **FR-002: Quality/Mastery Assessment**
 - Priority: High
@@ -770,7 +771,7 @@ Tracks each student's progression through the Yanbu'a curriculum (a structured m
 
 **FR-004: Current Level Summary**
 - Priority: High
-- Dashboard widget showing student's current Yanbu'a level at a glance (Jilid X, Page Y).
+- Dashboard widget showing student's current Yanbu'a level at a glance (Jilid X, Page Y). Y is the continuous page number (FR-001), shown against that jilid's own page range rather than a bare 1..N count.
 
 **FR-005: Tutor Notes**
 - Priority: Medium
@@ -802,14 +803,14 @@ Tracks each student's progression through the Yanbu'a curriculum (a structured m
 #### 3.7. Design & Technical Considerations
 *   **Design Assets:** [TBD - Visual progress bar showing jilid completion percentage; timeline with color-coded mastery levels]
 *   **Dependencies:** Student profile system, Yanbu'a curriculum data (7 jilid, page counts per jilid)
-*   **Technical Constraints:** Pre-load Yanbu'a structure (jilid 1-7 with page counts) as reference data; validate page numbers against jilid structure
+*   **Technical Constraints:** Pre-load Yanbu'a structure (jilid 1-7 with page counts) as reference data; validate page numbers against the jilid's continuous page range (cumulative across earlier jilid), not its own page count in isolation
 
 #### 3.8. Acceptance Criteria
 
 **AC-001:** Tutor records Yanbu'a session progress
-- **Given:** A tutor has completed a Yanbu'a session with a student
-- **When:** They record Jilid 3, Page 15, Mastery: Lancar
-- **Then:** The entry is saved and the student's current level shows "Jilid 3, Page 15" with a Lancar indicator
+- **Given:** A tutor has completed a Yanbu'a session with a student, jilid 1-2 each holding 44 pages (today's placeholder counts, Open Question #3)
+- **When:** They record Jilid 3, Page 95, Mastery: Lancar
+- **Then:** The entry is saved and the student's current level shows "Jilid 3, Page 95" with a Lancar indicator — 95 is accepted because it falls in jilid 3's continuous range (89-132), not rejected as it would be under the old per-jilid 1-44 cap
 
 **AC-002:** Parent views Yanbu'a progression timeline
 - **Given:** A parent is logged in and their child has multiple Yanbu'a progress entries
@@ -1796,6 +1797,7 @@ sequenceDiagram
 | 32 | Final review (Feature 8) | Murajaah targets can be kept only if another active tracking group still covers the student; archiving a tracking group triggers the same prompt. 8a admin screens are built from existing patterns and reviewed at the click-through; the 8b family page and section editor are wireframed first. Archived groups run no reminders or digests. Guardian contact details stay within each active group. KPIs state how they are measured, including a weekly push-subscriber count started before 8a. |
 | 33 | Release 8b split and page details (Feature 8) | 8b ships as **8b-1** (announcements, materials, the "Pengumuman & Materi" page; migration 028) and **8b-2** (year-end report sections; migration 029, needed by July). The page shows no unread badges; read rate stays measured from the notification centre (KPI 8). A tutor's list shows only the groups they teach. Edited announcements and materials are labelled "diubah". Student assistants are not named as a group's tutor or as an author to families. |
 | 34 | Who edits and publishes a report with sections (Feature 8) | An admin can publish any report, not only the author (supersedes the authoring-tutor-only rule of TAD ADR-013/ADR-014). Each tutor edits only their own group's section, while the report is a draft; the author does not edit other groups' sections. After publishing, an admin corrects a section and re-publishes. |
+| 35 | Yanbu'a page numbering (Feature 3) | Page numbering is continuous across all 7 jilid, confirmed by PPME against the physical book — jilid 2 does not restart at page 1, it continues from wherever jilid 1 left off. Existing `yanbua_progress` rows (necessarily recorded under the old per-jilid assumption) are backfilled by migration rather than left inconsistent. The per-jilid page counts themselves remain a placeholder (Open Question #3) and are not blocked on — the continuity fix ships against today's placeholder counts, with a follow-up backfill once PPME supplies the real numbers. |
 
 ### Remaining Open Questions
 

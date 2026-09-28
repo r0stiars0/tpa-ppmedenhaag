@@ -546,9 +546,10 @@ All done as of Milestone 7 part 2b, against `computeStreak` in
 - [x] **Reminder rule** (`needsReminder`, what `send-murajaah-reminders` decides on): remind on the last day the frequency can still be met — every unconfirmed evening for `daily`, Friday-if-none/Sunday-if-two for `3x_week`, Sunday for `weekly` — and stay quiet for a family on track
 
 ### 4.2 Milestone detection
-- [x] Yanbu'a entry at page == jilid page_count with mastery `lancar` → jilid-complete event fires
+- [x] Yanbu'a entry at the last continuous page of a jilid's range (`pageRangeForJilid(jilid, jilidRefs).end`, ADR-047) with mastery `lancar` → jilid-complete event fires
 - [x] Same page with mastery `kurang_lancar`/`ulang` → no event
 - [x] Jilid 7 completion → program-complete variant (`nextJilid` returns null)
+- [x] `pageRangeForJilid`: page numbering is continuous across jilid (jilid 2's range starts at jilid 1's `page_count` + 1, not page 1 again), regardless of jilidRefs ordering (ADR-047)
 
 *Implemented in `tests/unit/yanbua.test.ts`. Since ADR-015 part 2a these
 same assertions cover the **notification** path too, because

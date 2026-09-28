@@ -303,10 +303,10 @@ Layar pencatatan (setelah memilih santri):
 | **← Kembali** | Kembali ke daftar santri. |
 | Kartu **Level saat ini** | Menampilkan jilid, halaman, dan penguasaan terakhir yang tercatat untuk santri ini. |
 | **Jilid** | Pilihan jilid 1–7. |
-| **Halaman** | Nomor halaman dalam jilid tersebut. |
+| **Halaman** | Nomor halaman **tercetak di buku**, tidak diulang dari 1 di setiap jilid — nomor halaman berlanjut terus dari jilid 1 sampai jilid 7. |
 | **Penguasaan** | Lancar / Kurang Lancar / Ulang. |
 | **Catatan** | Teks bebas, opsional. |
-| **Catat Progres** | Menyimpan entri baru. Jika halaman yang dicatat adalah halaman terakhir jilid tersebut **dan** penguasaan "Lancar", muncul pesan perayaan **"Selesai Jilid {n}! 🎉"** dan formulir otomatis berpindah ke jilid berikutnya, halaman 1 — siap untuk sesi berikutnya. |
+| **Catat Progres** | Menyimpan entri baru. Jika halaman yang dicatat adalah halaman terakhir jilid tersebut **dan** penguasaan "Lancar", muncul pesan perayaan **"Selesai Jilid {n}! 🎉"** dan formulir otomatis berpindah ke jilid berikutnya, dengan halaman langsung diisi ke halaman pertama jilid itu (bukan halaman 1) — siap untuk sesi berikutnya. |
 | **Riwayat Sesi** | Daftar semua entri sebelumnya untuk santri ini, dengan tanggal. |
 
 **Status offline**: sama seperti Kehadiran — jika gagal terkirim karena jaringan, data disimpan di perangkat dan dikirim otomatis saat online kembali.

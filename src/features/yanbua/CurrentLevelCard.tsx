@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import type { JilidRef } from '../../lib/yanbua'
+import { pageRangeForJilid, type JilidRef } from '../../lib/yanbua'
 import type { YanbuaProgress } from './api'
 import { MASTERY_BADGE_CLASS, MASTERY_LABEL_KEY } from './mastery'
 
@@ -28,7 +28,7 @@ export function CurrentLevelCard({ latest, jilidRefs, titleKey }: CurrentLevelCa
           <p className="mt-1 text-sm text-ppme-text/70">
             {t('yanbua.pageOf', {
               page: latest.page,
-              total: jilidRefs.find((r) => r.jilid === latest.jilid)?.page_count ?? '?',
+              total: pageRangeForJilid(latest.jilid, jilidRefs)?.end ?? '?',
             })}
           </p>
         </>
