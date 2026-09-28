@@ -550,6 +550,9 @@ All done as of Milestone 7 part 2b, against `computeStreak` in
 - [x] Same page with mastery `kurang_lancar`/`ulang` → no event
 - [x] Jilid 7 completion → program-complete variant (`nextJilid` returns null)
 - [x] `pageRangeForJilid`: page numbering is continuous across jilid (jilid 2's range starts at jilid 1's `page_count` + 1, not page 1 again), regardless of jilidRefs ordering (ADR-047)
+- [x] Pemula (jilid 0) places at the very start of the book and Jilid 1 continues from its last page; ranges for every level match the real Yanbu'a edition (Pemula 1-50 through Jilid 7 337-386) end to end; `nextJilid(0)` advances into Jilid 1 (ADR-048)
+- [x] `copyKeyFor('jilidMilestone', { number: 0 })` selects the Pemula-specific in-app copy key rather than interpolating "Jilid 0" (ADR-048)
+- [x] Migration 031's three-step correction verified by hand against a synthetic fixture (pre-030-equivalent local pages → correct real continuous pages) before running against production, and by a full `supabase db reset` + `supabase test db` pass (592/592) with the migration in place
 
 *Implemented in `tests/unit/yanbua.test.ts`. Since ADR-015 part 2a these
 same assertions cover the **notification** path too, because

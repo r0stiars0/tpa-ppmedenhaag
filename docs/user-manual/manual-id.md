@@ -281,7 +281,7 @@ Hanya untuk melihat — status tugas hanya bisa diubah oleh guru.
 
 ## 7. Yanbu'a
 
-Yanbu'a adalah metode belajar membaca Al-Qur'an bertahap (jilid 1–7 + halaman). Layar ini mencatat jilid, halaman, dan tingkat penguasaan bacaan santri.
+Yanbu'a adalah metode belajar membaca Al-Qur'an bertahap (Pemula, lalu jilid 1–7 + halaman). Layar ini mencatat jilid, halaman, dan tingkat penguasaan bacaan santri.
 
 > **Hanya grup yang mencatat.** Yanbu'a, Al-Quran dan Murajaah hanya dicatat di grup yang oleh admin dicentang **Pencatatan Yanbu'a/Al-Quran/Murajaah** ([§13.2](#132-grup)). Jadi **Pilih Grup** di ketiga layar ini hanya menampilkan grup seperti itu; guru yang hanya mengajar grup Aqidah tidak melihat santri di sini. Guru seorang santri tetap boleh **melihat** riwayat Yanbu'a/Al-Quran/Murajaah santri tersebut, termasuk dari grup lain.
 
@@ -302,7 +302,7 @@ Layar pencatatan (setelah memilih santri):
 |---|---|
 | **← Kembali** | Kembali ke daftar santri. |
 | Kartu **Level saat ini** | Menampilkan jilid, halaman, dan penguasaan terakhir yang tercatat untuk santri ini. |
-| **Jilid** | Pilihan jilid 1–7. |
+| **Jilid** | Pilihan Pemula, lalu jilid 1–7. |
 | **Halaman** | Nomor halaman **tercetak di buku**, tidak diulang dari 1 di setiap jilid — nomor halaman berlanjut terus dari jilid 1 sampai jilid 7. |
 | **Penguasaan** | Lancar / Kurang Lancar / Ulang. |
 | **Catatan** | Teks bebas, opsional. |

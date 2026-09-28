@@ -111,6 +111,10 @@ describe('copyKeyFor', () => {
     expect(copyKeyFor('absence', {})).toBe('notifications.absence')
     expect(copyKeyFor('jilidMilestone', { number: 3 })).toBe('notifications.jilidMilestone')
   })
+
+  it('uses the Pemula variant for jilid 0, the level before Jilid 1 (ADR-048)', () => {
+    expect(copyKeyFor('jilidMilestone', { number: 0 })).toBe('notifications.jilidMilestonePemula')
+  })
 })
 
 describe('copyValuesFor', () => {

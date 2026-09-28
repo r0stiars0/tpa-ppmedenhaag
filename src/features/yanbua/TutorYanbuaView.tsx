@@ -38,7 +38,7 @@ export function TutorYanbuaView() {
   const [history, setHistory] = useState<YanbuaProgress[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
 
-  const [jilid, setJilid] = useState(1)
+  const [jilid, setJilid] = useState(0)
   const [page, setPage] = useState(1)
   const [mastery, setMastery] = useState<YanbuahMastery>('lancar')
   const [notes, setNotes] = useState('')
@@ -89,7 +89,7 @@ export function TutorYanbuaView() {
       .then((data) => {
         setHistory(data)
         const latest = data[0]
-        setJilid(latest?.jilid ?? 1)
+        setJilid(latest?.jilid ?? 0)
         setPage(latest?.page ?? 1)
         setMastery('lancar')
         setNotes('')
@@ -239,9 +239,9 @@ export function TutorYanbuaView() {
               onChange={(e) => setJilid(Number(e.target.value))}
               className="mt-1 min-h-11 w-full rounded-lg border border-black/10 px-2 text-sm text-ppme-text"
             >
-              {(jilidRefs.length > 0 ? jilidRefs.map((r) => r.jilid) : [1, 2, 3, 4, 5, 6, 7]).map((n) => (
+              {(jilidRefs.length > 0 ? jilidRefs.map((r) => r.jilid) : [0, 1, 2, 3, 4, 5, 6, 7]).map((n) => (
                 <option key={n} value={n}>
-                  {t('yanbua.jilid', { number: n })}
+                  {n === 0 ? t('yanbua.jilidPemula') : t('yanbua.jilid', { number: n })}
                 </option>
               ))}
             </select>
