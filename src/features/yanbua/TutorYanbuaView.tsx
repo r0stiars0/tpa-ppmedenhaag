@@ -9,7 +9,7 @@ import type { Database, TablesInsert } from '../../lib/database.types'
 import { getErrorMessage } from '../../lib/errors'
 import { isNetworkError } from '../../lib/network'
 import { offlineQueue } from '../../lib/offlineQueue'
-import { isJilidComplete, nextJilid, type JilidRef } from '../../lib/yanbua'
+import { isJilidComplete, nextJilid, pageRangeForJilid, type JilidRef } from '../../lib/yanbua'
 import { fetchYanbuaHistory, fetchYanbuaJilidRef, insertYanbuaProgress, type YanbuaProgress } from './api'
 import { CurrentLevelCard } from './CurrentLevelCard'
 import { YanbuaTimeline } from './YanbuaTimeline'
@@ -32,6 +32,7 @@ export function TutorYanbuaView() {
   const [roster, setRoster] = useState<RosterStudent[]>([])
   const [rosterLoading, setRosterLoading] = useState(false)
   const [jilidRefs, setJilidRefs] = useState<JilidRef[]>([])
+  const [jilidRefsLoading, setJilidRefsLoading] = useState(true)
 
   const [selectedStudent, setSelectedStudent] = useState<RosterStudent | null>(null)
   const [history, setHistory] = useState<YanbuaProgress[]>([])
@@ -50,6 +51,7 @@ export function TutorYanbuaView() {
     fetchYanbuaJilidRef()
       .then(setJilidRefs)
       .catch((err) => setError(getErrorMessage(err)))
+      .finally(() => setJilidRefsLoading(false))
   }, [])
 
   useEffect(() => {
@@ -75,10 +77,7 @@ export function TutorYanbuaView() {
     }
   }, [classId, selfStudentId])
 
-  const currentPageCount = useMemo(
-    () => jilidRefs.find((r) => r.jilid === jilid)?.page_count ?? 44,
-    [jilidRefs, jilid],
-  )
+  const pageRange = useMemo(() => pageRangeForJilid(jilid, jilidRefs), [jilidRefs, jilid])
 
   function openStudent(student: RosterStudent) {
     setSelectedStudent(student)
@@ -152,7 +151,7 @@ export function TutorYanbuaView() {
       const next = nextJilid(jilid)
       if (next) {
         setJilid(next)
-        setPage(1)
+        setPage(pageRangeForJilid(next, jilidRefs)?.start ?? 1)
       }
     } else {
       setBanner({ text: t('yanbua.savedMessage'), celebrate: false })
@@ -251,8 +250,8 @@ export function TutorYanbuaView() {
             {t('yanbua.fieldPage')}
             <input
               type="number"
-              min={1}
-              max={currentPageCount}
+              min={pageRange?.start ?? 1}
+              max={pageRange?.end}
               value={page}
               onChange={(e) => setPage(Number(e.target.value))}
               className="mt-1 min-h-11 w-full rounded-lg border border-black/10 px-2 text-sm text-ppme-text"
@@ -287,7 +286,9 @@ export function TutorYanbuaView() {
 
         <button
           type="button"
-          disabled={saving || page < 1 || page > currentPageCount}
+          disabled={
+            saving || jilidRefsLoading || !pageRange || page < pageRange.start || page > pageRange.end
+          }
           onClick={() => void handleSave()}
           className="min-h-11 w-full rounded-lg bg-ppme-primary px-4 font-semibold text-white shadow-sm hover:bg-ppme-primary-dark disabled:opacity-60"
         >

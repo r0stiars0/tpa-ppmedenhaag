@@ -303,10 +303,10 @@ Registratiescherm (na het kiezen van een leerling):
 | **← Terug** | Terug naar de leerlingenlijst. |
 | Kaart **Huidig niveau** | Toont de laatst geregistreerde jilid, pagina en beheersing voor deze leerling. |
 | **Jilid** | Keuze uit jilid 1–7. |
-| **Pagina** | Paginanummer binnen die jilid. |
+| **Pagina** | Het paginanummer **zoals gedrukt in het boek** — dit begint niet opnieuw bij 1 in elke jilid, de paginanummering loopt door van jilid 1 tot en met jilid 7. |
 | **Beheersing** | Lancar (vloeiend) / Kurang Lancar (nog niet vloeiend) / Ulang (herhalen). |
 | **Notities** | Vrije tekst, optioneel. |
-| **Voortgang vastleggen** | Slaat een nieuwe registratie op. Als de geregistreerde pagina de laatste pagina van die jilid is **én** de beheersing "Lancar" is, verschijnt een felicitatiebericht **"Jilid {n} voltooid! 🎉"** en springt het formulier automatisch naar de volgende jilid, pagina 1 — klaar voor de volgende sessie. |
+| **Voortgang vastleggen** | Slaat een nieuwe registratie op. Als de geregistreerde pagina de laatste pagina van die jilid is **én** de beheersing "Lancar" is, verschijnt een felicitatiebericht **"Jilid {n} voltooid! 🎉"** en springt het formulier automatisch naar de volgende jilid, met de pagina al ingevuld op de eerste pagina van die jilid (niet pagina 1) — klaar voor de volgende sessie. |
 | **Sessiegeschiedenis** | Lijst van alle eerdere registraties voor deze leerling, met datum. |
 
 **Offline-status**: net als bij Aanwezigheid — als het versturen mislukt door een netwerkprobleem, worden de gegevens lokaal opgeslagen en automatisch verstuurd zodra de verbinding terugkeert.
