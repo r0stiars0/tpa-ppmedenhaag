@@ -34,8 +34,12 @@ export function TutorQuranView() {
   const [historyLoading, setHistoryLoading] = useState(false)
 
   const [surahNum, setSurahNum] = useState(1)
-  const [ayahFrom, setAyahFrom] = useState(1)
-  const [ayahTo, setAyahTo] = useState(1)
+  // '' is a transient state while a field is empty mid-edit (e.g. the
+  // tutor selects-all and deletes to type a new number) — binding this
+  // straight to a number would force `Number('') === 0` back into the
+  // input on every keystroke, making the field impossible to clear.
+  const [ayahFrom, setAyahFrom] = useState<number | ''>(1)
+  const [ayahTo, setAyahTo] = useState<number | ''>(1)
   const [quality, setQuality] = useState<QuranQuality>('mumtaz')
   const [tajweedNotes, setTajweedNotes] = useState('')
   const [saving, setSaving] = useState(false)
@@ -95,7 +99,7 @@ export function TutorQuranView() {
   }
 
   async function handleSave() {
-    if (!selectedStudent || !profile) return
+    if (!selectedStudent || !profile || ayahFrom === '' || ayahTo === '') return
     setSaving(true)
     setError(null)
     setQueued(false)
@@ -219,7 +223,7 @@ export function TutorQuranView() {
               min={1}
               max={currentAyahCount}
               value={ayahFrom}
-              onChange={(e) => setAyahFrom(Number(e.target.value))}
+              onChange={(e) => setAyahFrom(e.target.value === '' ? '' : Number(e.target.value))}
               className="mt-1 min-h-11 w-full rounded-lg border border-black/10 px-2 text-sm text-ppme-text"
             />
           </label>
@@ -230,7 +234,7 @@ export function TutorQuranView() {
               min={1}
               max={currentAyahCount}
               value={ayahTo}
-              onChange={(e) => setAyahTo(Number(e.target.value))}
+              onChange={(e) => setAyahTo(e.target.value === '' ? '' : Number(e.target.value))}
               className="mt-1 min-h-11 w-full rounded-lg border border-black/10 px-2 text-sm text-ppme-text"
             />
           </label>
@@ -263,7 +267,9 @@ export function TutorQuranView() {
 
         <button
           type="button"
-          disabled={saving || ayahFrom < 1 || ayahTo < ayahFrom || ayahTo > currentAyahCount}
+          disabled={
+            saving || ayahFrom === '' || ayahTo === '' || ayahFrom < 1 || ayahTo < ayahFrom || ayahTo > currentAyahCount
+          }
           onClick={() => void handleSave()}
           className="min-h-11 w-full rounded-lg bg-ppme-primary px-4 font-semibold text-white shadow-sm hover:bg-ppme-primary-dark disabled:opacity-60"
         >
