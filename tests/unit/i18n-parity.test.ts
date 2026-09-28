@@ -47,6 +47,20 @@ describe('i18n locale parity', () => {
     }
   })
 
+  it('has yanbua.jilidPemula in both locales (ADR-048)', () => {
+    // Regression: the parity test above only compares id.json against
+    // nl.json, so a key referenced by t(...) in source but added to
+    // neither file — exactly what happened here, split across two
+    // interrupted implementation passes — stays invisible to it. Three
+    // call sites (TutorYanbuaView, CurrentLevelCard, YanbuaTimeline)
+    // render this key for jilid 0; production showed the raw key
+    // "yanbua.jilidPemula" instead of "Pemula" until this was added.
+    const idKeys = flattenKeys(id)
+    const nlKeys = flattenKeys(nl)
+    expect(idKeys).toContain('yanbua.jilidPemula')
+    expect(nlKeys).toContain('yanbua.jilidPemula')
+  })
+
   it('covers every role the database enum can hold, with no two sharing a label', () => {
     // The map is a `Record<UserRole, string>`, so a new enum value fails
     // to typecheck — but only once someone adds the enum value to

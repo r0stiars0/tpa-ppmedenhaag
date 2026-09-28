@@ -155,6 +155,7 @@
     "currentLevel": "Huidig niveau",
     "myCurrentLevel": "Huidig niveau",
     "jilid": "Jilid {{number}}",
+    "jilidPemula": "Pemula",
     "pageOf": "Pagina {{page}} van {{total}}",
     "percentDone": "{{percent}}% voltooid in deze jilid",
     "sessionHistory": "Sessiegeschiedenis",

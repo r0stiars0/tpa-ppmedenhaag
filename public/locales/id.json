@@ -155,6 +155,7 @@
     "currentLevel": "Level saat ini",
     "myCurrentLevel": "Level sekarang",
     "jilid": "Jilid {{number}}",
+    "jilidPemula": "Pemula",
     "pageOf": "Halaman {{page}} dari {{total}}",
     "percentDone": "{{percent}}% selesai di jilid ini",
     "sessionHistory": "Riwayat Sesi",
