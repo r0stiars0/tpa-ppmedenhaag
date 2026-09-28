@@ -39,7 +39,11 @@ export function TutorYanbuaView() {
   const [historyLoading, setHistoryLoading] = useState(false)
 
   const [jilid, setJilid] = useState(0)
-  const [page, setPage] = useState(1)
+  // '' is a transient state while the field is empty mid-edit (e.g. the
+  // tutor selects-all and deletes to type a new number) — binding this
+  // straight to a number would force `Number('') === 0` back into the
+  // input on every keystroke, making the field impossible to clear.
+  const [page, setPage] = useState<number | ''>(1)
   const [mastery, setMastery] = useState<YanbuahMastery>('lancar')
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
@@ -99,7 +103,7 @@ export function TutorYanbuaView() {
   }
 
   async function handleSave() {
-    if (!selectedStudent || !profile) return
+    if (!selectedStudent || !profile || page === '') return
     setSaving(true)
     setError(null)
     setQueued(false)
@@ -253,7 +257,7 @@ export function TutorYanbuaView() {
               min={pageRange?.start ?? 1}
               max={pageRange?.end}
               value={page}
-              onChange={(e) => setPage(Number(e.target.value))}
+              onChange={(e) => setPage(e.target.value === '' ? '' : Number(e.target.value))}
               className="mt-1 min-h-11 w-full rounded-lg border border-black/10 px-2 text-sm text-ppme-text"
             />
           </label>
@@ -287,7 +291,12 @@ export function TutorYanbuaView() {
         <button
           type="button"
           disabled={
-            saving || jilidRefsLoading || !pageRange || page < pageRange.start || page > pageRange.end
+            saving ||
+            jilidRefsLoading ||
+            !pageRange ||
+            page === '' ||
+            page < pageRange.start ||
+            page > pageRange.end
           }
           onClick={() => void handleSave()}
           className="min-h-11 w-full rounded-lg bg-ppme-primary px-4 font-semibold text-white shadow-sm hover:bg-ppme-primary-dark disabled:opacity-60"

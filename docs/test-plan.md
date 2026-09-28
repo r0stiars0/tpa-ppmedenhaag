@@ -1380,6 +1380,18 @@ Run against a local stack at 029, with the dev fixture plus 34 sessions of gener
   - the row's rate equals the card's rate.
 - **16+ student (Fatimah):** no children card; her 8 marks sit in her rate card.
 - **pgTAP:** 592/592 on a clean `supabase db reset`. With the dev fixture loaded, RLS-14 and RLS-96 fail as they always do, because they count fixture-free students and admins; this change touches no policy.
+
+### 6.u Yanbu'a/Quran number inputs can be cleared to retype — live verification (no migration)
+
+`page` (`TutorYanbuaView`) and `ayahFrom`/`ayahTo` (`TutorQuranView`) were bound straight to `number` state with `onChange={(e) => setX(Number(e.target.value))}`. Selecting-all and deleting in the field sends `e.target.value = ''`, and `Number('')` is `0` — so the field re-rendered showing "0" on every deletion keystroke, and could never actually be cleared to type a fresh number. Fixed by widening the state type to `number | ''`, so an empty field is a real, held value rather than being coerced back to `0`; the Save button now also disables on `page === ''` / `ayahFrom === '' || ayahTo === ''`.
+
+Run against a local stack (`supabase start` + `db reset` + `dev-fixture.sql`) with a scripted Chromium session (Playwright, headless) signed in as the tutor fixture via `DevAuthSwitcher`, driving the real dev server rather than a mock — this repo has no authenticated component-test harness (no `@testing-library/react`), so a controlled-input DOM bug like this one is only reachable this way. 6 checks on Yanbu'a's page field and 4 on Quran's two ayah fields, all passed:
+- the field holds an initial numeric value from the student's history;
+- select-all + delete leaves the field genuinely empty (`inputValue() === ''`), not snapped back to `"0"`;
+- the Save button is disabled while the field is empty;
+- typing a fresh number into the cleared field produces exactly that number;
+- no console errors during the interaction.
+
 ## 7. i18n completeness (automated)
 
 - [x] CI script asserts `id.json` and `nl.json` have identical key sets (`tests/unit/i18n-parity.test.ts`)
