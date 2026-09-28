@@ -20,7 +20,9 @@ export function CurrentLevelCard({ latest, jilidRefs, titleKey }: CurrentLevelCa
       ) : (
         <>
           <div className="mt-1 flex items-baseline justify-between">
-            <p className="text-2xl font-bold text-ppme-primary">{t('yanbua.jilid', { number: latest.jilid })}</p>
+            <p className="text-2xl font-bold text-ppme-primary">
+              {latest.jilid === 0 ? t('yanbua.jilidPemula') : t('yanbua.jilid', { number: latest.jilid })}
+            </p>
             <span className={`rounded-full px-3 py-1 text-xs font-semibold ${MASTERY_BADGE_CLASS[latest.mastery]}`}>
               {t(MASTERY_LABEL_KEY[latest.mastery])}
             </span>

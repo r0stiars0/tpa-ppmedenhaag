@@ -54,6 +54,11 @@ export function copyKeyFor(
   if (event === 'assignmentDueTomorrow' && typeof context.count === 'number') {
     return 'notifications.assignmentDueTomorrowMany'
   }
+  // Jilid 0 is "Pemula", the level before Jilid 1 — {{number}} would
+  // otherwise render "Jilid 0".
+  if (event === 'jilidMilestone' && context.number === 0) {
+    return 'notifications.jilidMilestonePemula'
+  }
   // A child in several groups (PRD Feature 8): the row names the group so
   // two absences on one day read differently. Rows written before groups
   // carried a name have no `group` and keep their original copy.

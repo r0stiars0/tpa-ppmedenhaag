@@ -241,6 +241,7 @@
     "newAssignmentInGroup": "Nieuwe huiswerkopdracht voor {{name}} in groep {{group}}: {{title}} — deadline {{date}}",
     "assignmentDueTomorrow": "Herinnering: huiswerkopdracht {{title}} van {{name}} moet morgen af zijn",
     "jilidMilestone": "Alhamdulillah! {{name}} heeft Jilid {{number}} voltooid",
+    "jilidMilestonePemula": "Alhamdulillah! {{name}} heeft Pemula voltooid",
     "surahMemorized": "Alhamdulillah! {{name}} heeft Surah {{surah}} gememoriseerd",
     "murajaahReminder": "Tijd voor murajaah met {{name}}",
     "assignmentDueTomorrowMany": "Herinnering: {{count}} huiswerkopdrachten van {{name}} moeten morgen af zijn",

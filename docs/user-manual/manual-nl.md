@@ -281,7 +281,7 @@ Alleen om te bekijken — de status kan alleen door de docent worden gewijzigd.
 
 ## 7. Yanbu'a
 
-Yanbu'a is een stapsgewijze leesmethode voor het Arabisch/Koranlezen (jilid 1–7 + pagina's). Dit scherm registreert de jilid, pagina en het beheersingsniveau van de leerling.
+Yanbu'a is een stapsgewijze leesmethode voor het Arabisch/Koranlezen (Pemula, daarna jilid 1–7 + pagina's). Dit scherm registreert de jilid, pagina en het beheersingsniveau van de leerling.
 
 > **Alleen groepen met registratie.** Yanbu'a, Al-Quran en Murajaah worden alleen vastgelegd in groepen waarbij de beheerder **Registratie Yanbu'a/Al-Quran/Murajaah** heeft aangevinkt ([§13.2](#132-groepen)). Bij **Kies groep** op deze drie schermen staan dus alleen zulke groepen; een docent die alleen een Aqidah-groep lesgeeft, ziet hier geen leerlingen. Een docent van een leerling mag de Yanbu'a/Al-Quran/Murajaah-geschiedenis van die leerling wel **inzien**, ook vanuit een andere groep.
 
@@ -302,7 +302,7 @@ Registratiescherm (na het kiezen van een leerling):
 |---|---|
 | **← Terug** | Terug naar de leerlingenlijst. |
 | Kaart **Huidig niveau** | Toont de laatst geregistreerde jilid, pagina en beheersing voor deze leerling. |
-| **Jilid** | Keuze uit jilid 1–7. |
+| **Jilid** | Keuze uit Pemula, daarna jilid 1–7. |
 | **Pagina** | Het paginanummer **zoals gedrukt in het boek** — dit begint niet opnieuw bij 1 in elke jilid, de paginanummering loopt door van jilid 1 tot en met jilid 7. |
 | **Beheersing** | Lancar (vloeiend) / Kurang Lancar (nog niet vloeiend) / Ulang (herhalen). |
 | **Notities** | Vrije tekst, optioneel. |

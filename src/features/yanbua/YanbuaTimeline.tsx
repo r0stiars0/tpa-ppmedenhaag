@@ -18,7 +18,8 @@ export function YanbuaTimeline({ entries }: { entries: YanbuaProgress[] }) {
         <li key={entry.id} className="rounded-lg bg-white p-3 shadow-sm">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-medium text-ppme-text">
-              {t('yanbua.jilid', { number: entry.jilid })} · {t('common.page')} {entry.page}
+              {entry.jilid === 0 ? t('yanbua.jilidPemula') : t('yanbua.jilid', { number: entry.jilid })} ·{' '}
+              {t('common.page')} {entry.page}
             </p>
             <span className={`rounded-full px-3 py-1 text-xs font-semibold ${MASTERY_BADGE_CLASS[entry.mastery]}`}>
               {t(MASTERY_LABEL_KEY[entry.mastery])}

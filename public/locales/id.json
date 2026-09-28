@@ -241,6 +241,7 @@
     "newAssignmentInGroup": "Tugas baru untuk {{name}} di grup {{group}}: {{title}} — deadline {{date}}",
     "assignmentDueTomorrow": "Pengingat: tugas {{title}} untuk {{name}} deadline besok",
     "jilidMilestone": "Alhamdulillah! {{name}} telah menyelesaikan Jilid {{number}}",
+    "jilidMilestonePemula": "Alhamdulillah! {{name}} telah menyelesaikan Pemula",
     "surahMemorized": "Alhamdulillah! {{name}} telah hafal Surah {{surah}}",
     "murajaahReminder": "Waktunya murajaah bersama {{name}}",
     "assignmentDueTomorrowMany": "Pengingat: {{count}} tugas {{name}} deadline besok",
