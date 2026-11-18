@@ -782,6 +782,16 @@ Tracks each student's progression through the Yanbu'a curriculum (a structured m
 - System marks and celebrates when a student completes a jilid (notification to parent, visual indicator).
 - *Implementation status: **fully built** as of TAD ADR-015 part 2a. The visual indicator shipped with Milestone 1; the notification now runs on a database webhook over every Yanbu'a entry, with `notify-milestone` applying `src/lib/yanbua.ts#isJilidComplete` — the same function the screen uses, imported rather than copied, so the badge and the push can never disagree about what counts as complete. The jilid number is deliberately **not** in the notification (DPIA R6): the lock screen says the child finished a jilid, the app says which.*
 
+**FR-007: Edit a Recorded Entry**
+- Priority: High
+- The tutor who recorded a Yanbu'a entry, and an admin, can edit it afterwards with no time limit, so a mis-keyed page or mastery can be corrected. Other tutors of the same class cannot edit it.
+- Editable: jilid, page, mastery, notes (page is still validated against the jilid's page range — numbering is continuous across the book, ADR-047). Not editable: the student, who recorded it, and when it was recorded — so the timeline order and "current level" stay stable (the current level is still the latest entry, and reflects an edit to it).
+- An entry cannot be deleted; a mistaken entry is corrected by editing it.
+- A student assistant cannot edit their own record (same boundary as TAD ADR-023).
+- Editing sends no notification, including the jilid-completion milestone of FR-006, which fires on first entry only.
+- Editing needs a connection; it is not added to the offline write queue.
+- Every entry shows who recorded it, by name, to everyone who can see it (tutors, admin, parents, 16+ students). An edited entry carries an "edited" marker with the editor's name and the time of the last edit; only the latest edit is kept, not a history. An entry recorded by an admin shows the admin's name.
+
 #### 3.4. Non-Functional Requirements
 *   **Performance:** Progress entry must save within 2 seconds
 *   **Security:** Google OAuth 2.0; role-based access — tutors record, parents view own children only; all progress data encrypted (GDPR); EU data residency
@@ -821,6 +831,11 @@ Tracks each student's progression through the Yanbu'a curriculum (a structured m
 - **Given:** A student's progress is recorded at the last page of Jilid 3
 - **When:** The tutor saves this entry
 - **Then:** The system marks Jilid 3 as complete, triggers a milestone notification to the parent, and advances the display to Jilid 4
+
+**AC-004:** Tutor corrects a Yanbu'a entry
+- **Given:** A tutor recorded Jilid 1, Page 15 for a student a week ago, and the page should have been 16
+- **When:** The same tutor edits the entry to Page 16
+- **Then:** The entry shows Page 16 in its original position on the timeline, with the tutor's name as recorder and an "edited" marker naming the editor and time; no notification is sent; a different tutor of the class has no edit control on it
 
 #### 3.9. Sequence Diagrams
 
@@ -894,6 +909,10 @@ Tracks each student's progress in Quran recitation (tilawah), recording which su
 - Priority: Medium
 - Chronological log of all recitation sessions with surah, ayah range, and quality assessment.
 
+**FR-006: Edit a Recorded Entry**
+- Priority: High
+- Same rules as Yanbu'a FR-007, applied to Quran entries. Editable: surah, ayah range, quality, tajweed notes (the ayah range is still validated against the surah, and `ayah_to` must not precede `ayah_from`). Not editable: the student, who recorded it, and when. No delete, no notification, online only; recorder name shown on every entry, "edited" marker with editor name and time.
+
 #### 4.4. Non-Functional Requirements
 *   **Performance:** Entry and retrieval within 2 seconds
 *   **Security:** Google OAuth 2.0; role-based access; encrypted storage (GDPR); EU data residency
@@ -928,6 +947,11 @@ Tracks each student's progress in Quran recitation (tilawah), recording which su
 - **Given:** A parent is logged in and their child has Quran recitation history
 - **When:** They open the Quran Progress section
 - **Then:** They see current surah/ayah position, overall Quran completion percentage, and recent session history with quality ratings
+
+**AC-003:** Tutor corrects a Quran entry
+- **Given:** A tutor recorded Al-Baqarah ayah 1-5 with the wrong quality rating
+- **When:** The same tutor edits the quality
+- **Then:** The entry keeps its date and position in the log, shows the recorder's name and an "edited" marker with editor name and time, and the parent sees the corrected rating
 
 #### 4.9. Sequence Diagrams
 

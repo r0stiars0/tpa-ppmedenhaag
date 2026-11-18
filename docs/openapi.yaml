@@ -370,6 +370,28 @@ paths:
       responses:
         '201': { description: Created }
         '403': { $ref: '#/components/responses/ForbiddenRLS' }
+    patch:
+      tags: [yanbua]
+      summary: Edit a Yanbu'a entry (recorder or admin)
+      description: |
+        PRD Yanbu'a FR-007, TAD ADR-049 (migration 032). Filter by `id`. Only
+        the tutor who recorded the entry — for a student they may record for,
+        so never their own record (ADR-023) — and an admin match a row; anyone
+        else gets `200` with no rows changed. Only `jilid`, `page`, `mastery`
+        and `notes` are writable: `student_id`, `tutor_id`, `recorded_at`,
+        `client_ref`, `edited_at` and `edited_by` are refused with `42501`
+        (column grant). `edited_at`/`edited_by` are written by the database
+        when a content column really changes. Not enqueued offline, and no
+        notification is sent: the milestone webhook is an INSERT trigger.
+        There is no DELETE for tutors.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/YanbuaProgressEdit' }
+      responses:
+        '200': { description: Updated row(s); an empty array means the caller may not edit it }
+        '403': { $ref: '#/components/responses/ForbiddenRLS' }
 
   /quran_progress:
     get:
@@ -404,6 +426,54 @@ paths:
       responses:
         '201': { description: Created }
         '403': { $ref: '#/components/responses/ForbiddenRLS' }
+    patch:
+      tags: [quran]
+      summary: Edit a Quran entry (recorder or admin)
+      description: |
+        PRD Quran FR-006, TAD ADR-049 (migration 032). Same rules as
+        `PATCH /yanbua_progress`. Writable: `surah_num`, `ayah_from`,
+        `ayah_to`, `quality`, `tajweed_notes`; `ayah_to >= ayah_from` is still
+        enforced (`23514`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/QuranProgressEdit' }
+      responses:
+        '200': { description: Updated row(s); an empty array means the caller may not edit it }
+        '403': { $ref: '#/components/responses/ForbiddenRLS' }
+
+  /rpc/fn_progress_authors:
+    post:
+      tags: [yanbua, quran]
+      summary: Names of the people who recorded or edited a student's progress entries
+      description: |
+        TAD ADR-049(e). `security definer`; returns `(user_id, full_name)`
+        only — no e-mail, no role — for the distinct recorders and editors of
+        the student's Yanbu'a and Quran entries. Zero rows unless the caller
+        may see the student (tutor of the class, guardian, the student
+        themselves, or admin). Not executable by `anon`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_student]
+              properties:
+                p_student: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Names
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    user_id: { type: string, format: uuid }
+                    full_name: { type: string }
 
   /murajaah_assignments:
     get:
@@ -2895,6 +2965,16 @@ components:
         mastery: { $ref: '#/components/schemas/YanbuahMastery' }
         notes: { type: string, nullable: true }
         recorded_at: { type: string, format: date-time }
+        edited_at: { type: string, format: date-time, nullable: true, description: Last edit; null if never edited. Written by the database. }
+        edited_by: { type: string, format: uuid, nullable: true, description: Who made the last edit. Written by the database. }
+    YanbuaProgressEdit:
+      type: object
+      description: The only columns an edit may change (migration 032 column grant).
+      properties:
+        jilid: { type: integer, minimum: 1, maximum: 7 }
+        page: { type: integer, minimum: 1 }
+        mastery: { $ref: '#/components/schemas/YanbuahMastery' }
+        notes: { type: string, nullable: true }
     YanbuaProgressInsert:
       type: object
       required: [student_id, jilid, page, mastery]
@@ -2917,6 +2997,17 @@ components:
         quality: { $ref: '#/components/schemas/QuranQuality' }
         tajweed_notes: { type: string, nullable: true }
         recorded_at: { type: string, format: date-time }
+        edited_at: { type: string, format: date-time, nullable: true, description: Last edit; null if never edited. Written by the database. }
+        edited_by: { type: string, format: uuid, nullable: true, description: Who made the last edit. Written by the database. }
+    QuranProgressEdit:
+      type: object
+      description: The only columns an edit may change (migration 032 column grant).
+      properties:
+        surah_num: { type: integer, minimum: 1, maximum: 114 }
+        ayah_from: { type: integer, minimum: 1 }
+        ayah_to: { type: integer, minimum: 1 }
+        quality: { $ref: '#/components/schemas/QuranQuality' }
+        tajweed_notes: { type: string, nullable: true }
     QuranProgressInsert:
       type: object
       required: [student_id, surah_num, ayah_from, ayah_to, quality]

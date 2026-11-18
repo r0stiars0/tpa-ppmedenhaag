@@ -307,7 +307,17 @@ Layar pencatatan (setelah memilih santri):
 | **Penguasaan** | Lancar / Kurang Lancar / Ulang. |
 | **Catatan** | Teks bebas, opsional. |
 | **Catat Progres** | Menyimpan entri baru. Jika halaman yang dicatat adalah halaman terakhir jilid tersebut **dan** penguasaan "Lancar", muncul pesan perayaan **"Selesai Jilid {n}! 🎉"** dan formulir otomatis berpindah ke jilid berikutnya, dengan halaman langsung diisi ke halaman pertama jilid itu (bukan halaman 1) — siap untuk sesi berikutnya. |
-| **Riwayat Sesi** | Daftar semua entri sebelumnya untuk santri ini, dengan tanggal. |
+| **Riwayat Sesi** | Daftar semua entri sebelumnya untuk santri ini, dengan tanggal, **nama pencatat** ("Dicatat oleh …"), dan tombol **Ubah** pada entri yang boleh Anda ubah. |
+
+**Mengubah entri**: salah ketik halaman atau penguasaan? Tekan **Ubah** pada entri tersebut di Riwayat Sesi, perbaiki jilid, halaman, penguasaan, atau catatan, lalu tekan **Simpan** (atau **Batal**). Aturannya:
+
+- Hanya **guru yang mencatat entri itu** (dan admin) yang melihat tombol **Ubah**. Guru lain di grup yang sama hanya bisa melihat.
+- Tidak ada batas waktu — entri lama pun bisa diperbaiki.
+- Santri, tanggal, dan pencatat asli tidak berubah, jadi urutan riwayat tetap sama. Entri **tidak bisa dihapus**; perbaiki dengan mengubahnya.
+- Entri yang sudah diubah diberi keterangan **"Diubah oleh {nama} · {tanggal}"** (hanya perubahan terakhir yang ditampilkan). Orang tua dan santri juga melihat nama pencatat dan keterangan ini.
+- Mengubah entri **tidak mengirim notifikasi** ke orang tua, termasuk notifikasi selesai jilid.
+- Mengubah hanya bisa dilakukan **saat online**. Saat offline tombol **Ubah** nonaktif; entri yang masih menunggu terkirim baru bisa diubah setelah terkirim.
+- Mengubah hanya bisa dilakukan oleh guru dari grup yang **mencatat progres** (bukan grup seperti Aqidah yang tidak mencatat Yanbu'a/Al-Quran).
 
 **Status offline**: sama seperti Kehadiran — jika gagal terkirim karena jaringan, data disimpan di perangkat dan dikirim otomatis saat online kembali.
 
@@ -321,7 +331,7 @@ Hanya untuk melihat.
 |---|---|
 | **Pilih Anak** | Sama seperti layar lain. |
 | Kartu **Level sekarang** | Jilid, halaman, dan penguasaan terkini. |
-| **Riwayat Sesi** | Sama seperti tampilan guru — daftar seluruh riwayat, tanpa kemampuan mengubah apa pun. |
+| **Riwayat Sesi** | Sama seperti tampilan guru — daftar seluruh riwayat, dengan nama guru yang mencatat dan keterangan **"Diubah oleh …"** bila entri pernah diperbaiki, tanpa kemampuan mengubah apa pun. |
 
 Jika anak hanya ikut grup yang tidak mencatat Yanbu'a/Al-Quran/Murajaah (misalnya hanya grup Aqidah), layar Yanbu'a, Al-Quran dan Murajaah menampilkan penjelasan singkat sebagai ganti riwayat kosong:
 
@@ -351,7 +361,9 @@ Layar pencatatan:
 | **Kualitas** | Mumtaz / Jayyid Jiddan / Jayyid / Maqbul / Perlu Perbaikan (dari terbaik ke yang perlu perbaikan). |
 | **Catatan tajweed** | Teks bebas, opsional. |
 | **Catat Tilawah** | Menyimpan entri. Berbeda dari Yanbu'a, di sini **tidak ada** perayaan otomatis atau lompat-surah otomatis — kolom surah/ayat/kualitas tetap seperti sebelumnya untuk entri berikutnya. |
-| **Riwayat Tilawah** | Daftar seluruh entri sebelumnya. |
+| **Riwayat Tilawah** | Daftar seluruh entri sebelumnya, dengan **nama pencatat** dan tombol **Ubah** pada entri yang boleh Anda ubah. |
+
+**Mengubah entri**: sama seperti Yanbu'a (lihat [§7.1](#71-tampilan-guru--mencatat-progres)) — tekan **Ubah**, perbaiki surah, rentang ayat, kualitas, atau catatan tajweed, lalu **Simpan**. Hanya guru yang mencatat entri itu (dan admin) yang bisa mengubahnya; tidak ada batas waktu; entri tidak bisa dihapus; tidak ada notifikasi; hanya saat online. Entri yang sudah diubah diberi keterangan **"Diubah oleh {nama} · {tanggal}"**.
 
 **Status offline**: sama seperti Kehadiran/Yanbu'a.
 
@@ -359,7 +371,7 @@ Layar pencatatan:
 
 <img src="./screenshots/id/quran-family.png" width="360" alt="Al-Quran — tampilan orang tua">
 
-Hanya untuk melihat: kartu **Posisi sekarang** + **Riwayat Tilawah**, sama seperti Yanbu'a.
+Hanya untuk melihat: kartu **Posisi sekarang** + **Riwayat Tilawah** (dengan nama pencatat dan keterangan "Diubah oleh …"), sama seperti Yanbu'a.
 
 ---
 

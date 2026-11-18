@@ -4412,8 +4412,7 @@ insert into _tap_log(line) select lives_ok(
 
 reset role;
 
--- ======================================================================
--- RLS-117…RLS-121: weekly push-subscriber count (migration 025, TAD
+-- ===============================================================-- RLS-170…RLS-174: weekly push-subscriber count (migration 025, TAD
 -- ADR-045, PRD KPI 10 — the push opt-out guardrail)
 --
 -- The app keeps no history of push opt-outs (switching push off simply
@@ -4442,7 +4441,7 @@ update public.users set push_sub = '{"endpoint":"https://push.test/x","keys":{"p
   '92000000-0000-0000-0000-000000000001'   -- G2: second active guardian of Child A -> counts
  );
 
--- RLS-117: nobody but the service role can call the recorder — belt (the
+-- RLS-170: nobody but the service role can call the recorder — belt (the
 -- REVOKE) and braces (the in-body auth.role() guard). Even an admin.
 set local role authenticated;
 set local request.jwt.claim.role to 'authenticated';
@@ -4450,76 +4449,76 @@ set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- a
 insert into _tap_log(line) select throws_ok(
   $$ select public.fn_record_push_subscriber_count(date '2026-09-21') $$,
   '42501', null,
-  'RLS-117: an authenticated caller (even an admin) cannot record a push-subscriber count'
+  'RLS-170: an authenticated caller (even an admin) cannot record a push-subscriber count'
 );
 
--- RLS-118: the service role records the count, and it is the right number.
+-- RLS-171: the service role records the count, and it is the right number.
 set local role service_role;
 set local request.jwt.claim.role to 'service_role';
 insert into _tap_log(line) select is(
   public.fn_record_push_subscriber_count(date '2026-09-21'), 3,
-  'RLS-118: the recorder counts P1 once, S16 and G2 — not a removed guardian, not a childless tutor'
+  'RLS-171: the recorder counts P1 once, S16 and G2 — not a removed guardian, not a childless tutor'
 );
 reset role;
 insert into _tap_log(line) select is(
   (select subscribed from public.push_subscriber_counts where week_start = date '2026-09-21'), 3,
-  'RLS-118: …and stores it against that week'
+  'RLS-171: …and stores it against that week'
 );
 
--- RLS-119: re-running for the same week updates the row, never duplicates
+-- RLS-172: re-running for the same week updates the row, never duplicates
 -- it (the scheduler may fire twice); a different week gets its own row.
 update public.users set push_sub = null where id = '92000000-0000-0000-0000-000000000001';  -- G2 opts out
 set local role service_role;
 set local request.jwt.claim.role to 'service_role';
 insert into _tap_log(line) select is(
   public.fn_record_push_subscriber_count(date '2026-09-21'), 2,
-  'RLS-119: a re-run for the same week reflects the opt-out'
+  'RLS-172: a re-run for the same week reflects the opt-out'
 );
 select public.fn_record_push_subscriber_count(date '2026-09-28');
 reset role;
 insert into _tap_log(line) select is(
   (select count(*) from public.push_subscriber_counts where week_start = date '2026-09-21'), 1::bigint,
-  'RLS-119: …and still leaves exactly one row for that week'
+  'RLS-172: …and still leaves exactly one row for that week'
 );
 insert into _tap_log(line) select is(
   (select count(*) from public.push_subscriber_counts
      where week_start in (date '2026-09-21', date '2026-09-28')), 2::bigint,
-  'RLS-119: …while a new week gets its own row'
+  'RLS-172: …while a new week gets its own row'
 );
 
--- RLS-120: the table is admin-read-only. A tutor, a guardian, a 16+
+-- RLS-173: the table is admin-read-only. A tutor, a guardian, a 16+
 -- student and anon see nothing, though rows exist.
 set local role authenticated;
 set local request.jwt.claim.role to 'authenticated';
 set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
 insert into _tap_log(line) select ok(
   (select count(*) from public.push_subscriber_counts) >= 2,
-  'RLS-120: an admin reads push_subscriber_counts'
+  'RLS-173: an admin reads push_subscriber_counts'
 );
 set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';  -- T1
 insert into _tap_log(line) select is(
   (select count(*) from public.push_subscriber_counts), 0::bigint,
-  'RLS-120: a tutor sees no push_subscriber_counts rows'
+  'RLS-173: a tutor sees no push_subscriber_counts rows'
 );
 set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000001';  -- P1
 insert into _tap_log(line) select is(
   (select count(*) from public.push_subscriber_counts), 0::bigint,
-  'RLS-120: a guardian sees no push_subscriber_counts rows'
+  'RLS-173: a guardian sees no push_subscriber_counts rows'
 );
 set local request.jwt.claim.sub to '50000000-0000-0000-0000-000000000001';  -- S16
 insert into _tap_log(line) select is(
   (select count(*) from public.push_subscriber_counts), 0::bigint,
-  'RLS-120: a 16+ student sees no push_subscriber_counts rows'
+  'RLS-173: a 16+ student sees no push_subscriber_counts rows'
 );
 set local role anon;
 set local request.jwt.claim.role to 'anon';
 set local request.jwt.claim.sub to '';
 insert into _tap_log(line) select is(
   (select count(*) from public.push_subscriber_counts), 0::bigint,
-  'RLS-120: anon sees no push_subscriber_counts rows'
+  'RLS-173: anon sees no push_subscriber_counts rows'
 );
 
--- RLS-121: no client can write the table directly — not even an admin,
+-- RLS-174: no client can write the table directly — not even an admin,
 -- which could otherwise rewrite the baseline the KPI is judged against.
 set local role authenticated;
 set local request.jwt.claim.role to 'authenticated';
@@ -4527,25 +4526,25 @@ set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- a
 insert into _tap_log(line) select throws_ok(
   $$ insert into public.push_subscriber_counts (week_start, subscribed) values (date '2026-10-05', 999) $$,
   '42501', null,
-  'RLS-121: an admin cannot insert a push_subscriber_counts row'
+  'RLS-174: an admin cannot insert a push_subscriber_counts row'
 );
 update public.push_subscriber_counts set subscribed = 999;
 insert into _tap_log(line) select is(
   (select count(*) from public.push_subscriber_counts where subscribed = 999), 0::bigint,
-  'RLS-121: …and an admin UPDATE changes nothing'
+  'RLS-174: …and an admin UPDATE changes nothing'
 );
 delete from public.push_subscriber_counts;
 reset role;
 insert into _tap_log(line) select is(
   (select count(*) from public.push_subscriber_counts
      where week_start in (date '2026-09-21', date '2026-09-28')), 2::bigint,
-  'RLS-121: …nor does an admin DELETE (asserted from outside RLS)'
+  'RLS-174: …nor does an admin DELETE (asserted from outside RLS)'
 );
 
 reset role;
 
 -- ======================================================================
--- RLS-122…RLS-142: multi-group enrolment (migration 026, TAD ADR-045,
+-- RLS-175…RLS-142: multi-group enrolment (migration 026, TAD ADR-045,
 -- PRD Feature 8 release 8a)
 --
 -- A student belongs to any number of groups (`class_members`); a group's
@@ -4670,139 +4669,139 @@ insert into public.murajaah_assignments (student_id, tutor_id, surah_num, ayah_f
 set local role authenticated;
 set local request.jwt.claim.role to 'authenticated';
 
--- ---- RLS-122: retired. It asserted migration 026's transitional sync
+-- ---- RLS-175: retired. It asserted migration 026's transitional sync
 -- trigger (students.class_id -> class_members); migration 027, the
 -- contract step of ADR-045(a0), dropped the column and the trigger.
 -- RLS-143 asserts they are gone.
 reset role;
 
--- ---- RLS-123: who reads class_members; only an admin writes it.
+-- ---- RLS-176: who reads class_members; only an admin writes it.
 set local role authenticated;
 set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000001';  -- TY
 insert into _tap_log(line) select is(
   (select count(*) from public.class_members where class_id = 'f8ac0000-0000-0000-0000-000000000001'), 5::bigint,
-  'RLS-123: a tutor reads their own group''s memberships (GY1: K1, K2, K4, K7, SAS)'
+  'RLS-176: a tutor reads their own group''s memberships (GY1: K1, K2, K4, K7, SAS)'
 );
 insert into _tap_log(line) select is(
   (select count(*) from public.class_members where class_id = 'f8ac0000-0000-0000-0000-00000000000a'), 0::bigint,
-  'RLS-123: …and none of a group they do not teach'
+  'RLS-176: …and none of a group they do not teach'
 );
 set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000012';  -- PB
 insert into _tap_log(line) select is(
   (select count(*) from public.class_members), 1::bigint,
-  'RLS-123: a guardian reads only their own child''s memberships'
+  'RLS-176: a guardian reads only their own child''s memberships'
 );
 set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000001';  -- TY
 insert into _tap_log(line) select throws_ok(
   $$ insert into public.class_members (class_id, student_id) values ('f8ac0000-0000-0000-0000-000000000001', 'f8ad0000-0000-0000-0000-000000000005') $$,
-  '42501', null, 'RLS-123: a tutor cannot enrol a student (admin-only)'
+  '42501', null, 'RLS-176: a tutor cannot enrol a student (admin-only)'
 );
 delete from public.class_members where class_id = 'f8ac0000-0000-0000-0000-000000000001';
 reset role;
 insert into _tap_log(line) select is(
   (select count(*) from public.class_members where class_id = 'f8ac0000-0000-0000-0000-000000000001'), 5::bigint,
-  'RLS-123: …nor remove one (a tutor DELETE matches nothing)'
+  'RLS-176: …nor remove one (a tutor DELETE matches nothing)'
 );
 
--- ---- RLS-124: tracking off means no progress WRITES — the core fix.
+-- ---- RLS-177: tracking off means no progress WRITES — the core fix.
 set local role authenticated;
 set local request.jwt.claim.role to 'authenticated';
 set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000002';  -- TQ, Aqidah only
 insert into _tap_log(line) select throws_ok(
   $$ insert into public.yanbua_progress (student_id, tutor_id, jilid, page, mastery)
      values ('f8ad0000-0000-0000-0000-000000000001', 'f8a00000-0000-0000-0000-000000000002', 2, 11, 'lancar') $$,
-  '42501', null, 'RLS-124: an Aqidah-only tutor cannot record Yanbu''a for a shared student'
+  '42501', null, 'RLS-177: an Aqidah-only tutor cannot record Yanbu''a for a shared student'
 );
 insert into _tap_log(line) select throws_ok(
   $$ insert into public.quran_progress (student_id, tutor_id, surah_num, ayah_from, ayah_to, quality)
      values ('f8ad0000-0000-0000-0000-000000000005', 'f8a00000-0000-0000-0000-000000000002', 1, 1, 7, 'jayyid') $$,
-  '42501', null, 'RLS-124: …nor Quran, even for a student who is in no tracking group at all'
+  '42501', null, 'RLS-177: …nor Quran, even for a student who is in no tracking group at all'
 );
 insert into _tap_log(line) select throws_ok(
   $$ insert into public.murajaah_assignments (student_id, tutor_id, surah_num, ayah_from, ayah_to)
      values ('f8ad0000-0000-0000-0000-000000000001', 'f8a00000-0000-0000-0000-000000000002', 113, 1, 5) $$,
-  '42501', null, 'RLS-124: …nor set a Murajaah target'
+  '42501', null, 'RLS-177: …nor set a Murajaah target'
 );
 set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000001';  -- TY, tracking group
 insert into _tap_log(line) select lives_ok(
   $$ insert into public.yanbua_progress (student_id, tutor_id, jilid, page, mastery)
      values ('f8ad0000-0000-0000-0000-000000000001', 'f8a00000-0000-0000-0000-000000000001', 2, 12, 'lancar') $$,
-  'RLS-124: the same child''s Yanbu''a/Quran tutor still records'
+  'RLS-177: the same child''s Yanbu''a/Quran tutor still records'
 );
 
--- ---- RLS-125: any current tutor READS the child's progress history.
+-- ---- RLS-178: any current tutor READS the child's progress history.
 set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000002';  -- TQ
 insert into _tap_log(line) select is(
   (select count(*) from public.yanbua_progress where student_id = 'f8ad0000-0000-0000-0000-000000000001'), 2::bigint,
-  'RLS-125: an Aqidah tutor reads a shared student''s Yanbu''a history'
+  'RLS-178: an Aqidah tutor reads a shared student''s Yanbu''a history'
 );
 insert into _tap_log(line) select is(
   (select count(*) from public.murajaah_assignments where student_id = 'f8ad0000-0000-0000-0000-000000000001'), 1::bigint,
-  'RLS-125: …and their Murajaah targets (massign_tutor_read)'
+  'RLS-178: …and their Murajaah targets (massign_tutor_read)'
 );
 insert into _tap_log(line) select is(
   (select count(*) from public.yanbua_progress where student_id = 'f8ad0000-0000-0000-0000-000000000002'), 0::bigint,
-  'RLS-125: …but nothing for a child they do not teach'
+  'RLS-178: …but nothing for a child they do not teach'
 );
 
--- ---- RLS-126: the attendance TABLE is scoped to the session's group.
+-- ---- RLS-179: the attendance TABLE is scoped to the session's group.
 insert into _tap_log(line) select is(
   (select count(*) from public.attendance where session_id = 'f8ae0000-0000-0000-0000-000000000001'), 0::bigint,
-  'RLS-126: an Aqidah tutor reads no rows of the Yanbu''a group''s register, even for a shared child'
+  'RLS-179: an Aqidah tutor reads no rows of the Yanbu''a group''s register, even for a shared child'
 );
 update public.attendance set status = 'present' where session_id = 'f8ae0000-0000-0000-0000-000000000001';
 insert into _tap_log(line) select is(
   (select count(*) from public.attendance where session_id = 'f8ae0000-0000-0000-0000-00000000000a'), 3::bigint,
-  'RLS-126: …while reading their own group''s register in full'
+  'RLS-179: …while reading their own group''s register in full'
 );
 set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000001';  -- TY
 insert into _tap_log(line) select is(
   (select status::text from public.attendance where session_id = 'f8ae0000-0000-0000-0000-000000000001' and student_id = 'f8ad0000-0000-0000-0000-000000000001'),
-  'absent', 'RLS-126: …and their UPDATE of another group''s register changed nothing'
+  'absent', 'RLS-179: …and their UPDATE of another group''s register changed nothing'
 );
 
--- ---- RLS-127: fn_student_attendance_history — the child's own
+-- ---- RLS-180: fn_student_attendance_history — the child's own
 -- attendance crosses groups, the absence reason never does.
 set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000002';  -- TQ
 insert into _tap_log(line) select is(
   (select count(*) from public.fn_student_attendance_history('f8ad0000-0000-0000-0000-000000000001')), 2::bigint,
-  'RLS-127: an Aqidah tutor sees the shared child''s attendance from both groups'
+  'RLS-180: an Aqidah tutor sees the shared child''s attendance from both groups'
 );
 insert into _tap_log(line) select is(
   (select status::text || '/' || coalesce(reason, 'NULL') from public.fn_student_attendance_history('f8ad0000-0000-0000-0000-000000000001')
      where class_id = 'f8ac0000-0000-0000-0000-000000000001'),
-  'absent/NULL', 'RLS-127: …the other group''s absence shows as absent, with the reason withheld'
+  'absent/NULL', 'RLS-180: …the other group''s absence shows as absent, with the reason withheld'
 );
 set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000001';  -- TY
 insert into _tap_log(line) select is(
   (select reason from public.fn_student_attendance_history('f8ad0000-0000-0000-0000-000000000001')
      where class_id = 'f8ac0000-0000-0000-0000-000000000001'),
-  'MG health reason', 'RLS-127: the session''s own group tutor sees the reason'
+  'MG health reason', 'RLS-180: the session''s own group tutor sees the reason'
 );
 set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000011';  -- PA
 insert into _tap_log(line) select is(
   (select reason from public.fn_student_attendance_history('f8ad0000-0000-0000-0000-000000000001')
      where class_id = 'f8ac0000-0000-0000-0000-000000000001'),
-  'MG health reason', 'RLS-127: the child''s guardian sees the reason'
+  'MG health reason', 'RLS-180: the child''s guardian sees the reason'
 );
 set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000012';  -- PB
 insert into _tap_log(line) select is(
   (select count(*) from public.fn_student_attendance_history('f8ad0000-0000-0000-0000-000000000001')), 0::bigint,
-  'RLS-127: another family gets zero rows, not an error'
+  'RLS-180: another family gets zero rows, not an error'
 );
 
--- ---- RLS-128: a register row needs the student to be a member of THAT
+-- ---- RLS-181: a register row needs the student to be a member of THAT
 -- session's group, not merely of one of the caller's groups.
 set local request.jwt.claim.sub to 'f8a00000-0000-0000-0000-000000000002';  -- TQ
 insert into _tap_log(line) select throws_ok(
   $$ insert into public.attendance (session_id, student_id, status)
      values ('f8ae0000-0000-0000-0000-00000000000a', 'f8ad0000-0000-0000-0000-000000000002', 'present') $$,
-  '42501', null, 'RLS-128: a tutor cannot mark a non-member on their group''s register'
+  '42501', null, 'RLS-181: a tutor cannot mark a non-member on their group''s register'
 );
 insert into _tap_log(line) select lives_ok(
   $$ insert into public.attendance (session_id, student_id, status)
      values ('f8ae0000-0000-0000-0000-00000000000a', 'f8ad0000-0000-0000-0000-00000000000b', 'late') $$,
-  'RLS-128: …and marks a member as before'
+  'RLS-181: …and marks a member as before'
 );
 
 -- ---- RLS-129: homework — the list crosses groups, completion does not.
@@ -5768,6 +5767,270 @@ insert into _tap_log(line) select is((select tutor_id from public.year_end_repor
 reset role;
 
 reset role;
+
+-- ======================================================================
+-- RLS-170…181 — editing Yanbu'a / Quran entries (migration 032, ADR-049)
+-- ======================================================================
+-- Fixtures: T3 is a second tutor of Class A (the co-tutor); Class E is
+-- taught by ASSIST, who is also a santri in it (ADR-023's case). T1
+-- recorded the Yanbu'a/Quran entries under test for P1 Child A.
+reset role;
+insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous, created_at, updated_at)
+values
+  ('ed000000-0000-0000-0000-000000000003', 'authenticated', 'authenticated', 't3@test.local',     '', now(), '{}', '{}', false, false, now(), now()),
+  ('ed000000-0000-0000-0000-000000000005', 'authenticated', 'authenticated', 'assist@test.local', '', now(), '{}', '{}', false, false, now(), now());
+insert into public.users (id, email, full_name, role, locale)
+values
+  ('ed000000-0000-0000-0000-000000000003', 't3@test.local',     'Tutor Three', 'tutor',   'id'),
+  ('ed000000-0000-0000-0000-000000000005', 'assist@test.local', 'Assistant',   'student', 'id');
+update public.classes
+   set tutor_ids = tutor_ids || 'ed000000-0000-0000-0000-000000000003'::uuid
+ where id = 'c0000000-0000-0000-0000-00000000000a';
+insert into public.classes (id, name, schedule, meeting_days, tutor_ids)
+values ('c0000000-0000-0000-0000-0000000000ee', 'Class E (edit test)', 'Sabtu', '{0,1,2,3,4,5,6}',
+        array['ed000000-0000-0000-0000-000000000005']::uuid[]);
+insert into public.students (id, user_id, full_name, date_of_birth)
+values ('ed000000-0000-0000-0000-0000000000a1', 'ed000000-0000-0000-0000-000000000005', 'Assistant Own Record',
+        date '2008-01-01');
+insert into public.class_members (class_id, student_id)
+values ('c0000000-0000-0000-0000-0000000000ee', 'ed000000-0000-0000-0000-0000000000a1');
+insert into public.student_guardians (student_id, user_id)
+values ('ed000000-0000-0000-0000-0000000000a1', '90000000-0000-0000-0000-000000000003');
+
+-- Earlier blocks unlink P1 from Child A; restore it so the parent path is exercised.
+update public.student_guardians set unlinked_at = null
+ where student_id = 'd0000000-0000-0000-0000-000000000001' and user_id = '90000000-0000-0000-0000-000000000001';
+
+insert into public.yanbua_progress (id, student_id, tutor_id, jilid, page, mastery, notes)
+values
+  ('ed000000-0000-0000-0000-0000000000b1', 'd0000000-0000-0000-0000-000000000001', '70000000-0000-0000-0000-000000000001', 3, 15, 'lancar', 'original'),
+  ('ed000000-0000-0000-0000-0000000000b2', 'ed000000-0000-0000-0000-0000000000a1', 'ed000000-0000-0000-0000-000000000005', 1, 5, 'lancar', 'own record');
+insert into public.quran_progress (id, student_id, tutor_id, surah_num, ayah_from, ayah_to, quality, tajweed_notes)
+values
+  ('ed000000-0000-0000-0000-0000000000c1', 'd0000000-0000-0000-0000-000000000001', '70000000-0000-0000-0000-000000000001', 2, 1, 5, 'jayyid', 'original');
+
+-- RLS-170 / 124 (part): the recorder edits; the marker is written by the database.
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';  -- T1
+update public.yanbua_progress set page = 16, notes = 'fixed' where id = 'ed000000-0000-0000-0000-0000000000b1';
+reset role;
+insert into _tap_log(line) select is(
+  (select page::text || '/' || notes from public.yanbua_progress where id = 'ed000000-0000-0000-0000-0000000000b1'),
+  '16/fixed', 'RLS-170: the recorder edits their own Yanbu''a entry'
+);
+insert into _tap_log(line) select is(
+  (select edited_by::text from public.yanbua_progress where id = 'ed000000-0000-0000-0000-0000000000b1'),
+  '70000000-0000-0000-0000-000000000001', 'RLS-177: edited_by is the editor, written by the trigger'
+);
+insert into _tap_log(line) select ok(
+  (select edited_at is not null from public.yanbua_progress where id = 'ed000000-0000-0000-0000-0000000000b1'),
+  'RLS-177: edited_at is set by the trigger'
+);
+
+-- RLS-177: a client cannot write the marker, and a no-op leaves it null.
+set local role authenticated;
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select throws_ok(
+  $$ update public.yanbua_progress set edited_by = null where id = 'ed000000-0000-0000-0000-0000000000b1' $$,
+  '42501', null, 'RLS-177: edited_by is not in the column grant'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ update public.yanbua_progress set edited_at = null where id = 'ed000000-0000-0000-0000-0000000000b1' $$,
+  '42501', null, 'RLS-177: edited_at is not in the column grant'
+);
+reset role;
+update public.quran_progress set edited_at = null, edited_by = null where id = 'ed000000-0000-0000-0000-0000000000c1';
+set local role authenticated;
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';
+update public.quran_progress set quality = quality where id = 'ed000000-0000-0000-0000-0000000000c1';
+reset role;
+insert into _tap_log(line) select ok(
+  (select edited_at is null from public.quran_progress where id = 'ed000000-0000-0000-0000-0000000000c1'),
+  'RLS-177: an update that changes nothing does not mark the entry edited'
+);
+
+-- RLS-171 / 119 / 120 / 121: everyone else matches no row.
+reset role;
+update public.yanbua_progress set page = 16, notes = 'fixed', edited_at = null, edited_by = null
+ where id = 'ed000000-0000-0000-0000-0000000000b1';
+set local role authenticated;
+set local request.jwt.claim.sub to 'ed000000-0000-0000-0000-000000000003';  -- T3, co-tutor of Class A
+update public.yanbua_progress set page = 40 where id = 'ed000000-0000-0000-0000-0000000000b1';
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000002';  -- T2, Class B
+update public.yanbua_progress set page = 41 where id = 'ed000000-0000-0000-0000-0000000000b1';
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000001';  -- P1, the child's parent
+update public.yanbua_progress set page = 42 where id = 'ed000000-0000-0000-0000-0000000000b1';
+set local request.jwt.claim.sub to '50000000-0000-0000-0000-000000000001';  -- S16
+update public.yanbua_progress set page = 43 where id = 'ed000000-0000-0000-0000-0000000000b1';
+reset role;
+insert into _tap_log(line) select is(
+  (select page from public.yanbua_progress where id = 'ed000000-0000-0000-0000-0000000000b1'),
+  16::smallint, 'RLS-171/119/120: a co-tutor, another class''s tutor, a parent and a student all match 0 rows'
+);
+
+set local role authenticated;
+set local request.jwt.claim.sub to 'ed000000-0000-0000-0000-000000000005';  -- ASSIST, about their own record
+update public.yanbua_progress set page = 30 where id = 'ed000000-0000-0000-0000-0000000000b2';
+reset role;
+insert into _tap_log(line) select is(
+  (select page from public.yanbua_progress where id = 'ed000000-0000-0000-0000-0000000000b2'),
+  5::smallint, 'RLS-174: a student assistant cannot edit the entry about themselves (ADR-023)'
+);
+
+-- RLS-175 / 123: admin edits; immutable columns are immutable for everyone.
+set local role authenticated;
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+update public.yanbua_progress set mastery = 'ulang' where id = 'ed000000-0000-0000-0000-0000000000b1';
+reset role;
+insert into _tap_log(line) select is(
+  (select mastery::text || '/' || edited_by::text from public.yanbua_progress where id = 'ed000000-0000-0000-0000-0000000000b1'),
+  'ulang/a0000000-0000-0000-0000-000000000000', 'RLS-175: admin edits any entry and is recorded as the editor'
+);
+set local role authenticated;
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select throws_ok(
+  $$ update public.yanbua_progress set student_id = 'd0000000-0000-0000-0000-000000000002' where id = 'ed000000-0000-0000-0000-0000000000b1' $$,
+  '42501', null, 'RLS-176: student_id is immutable for a tutor'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ update public.yanbua_progress set tutor_id = '70000000-0000-0000-0000-000000000002' where id = 'ed000000-0000-0000-0000-0000000000b1' $$,
+  '42501', null, 'RLS-176: tutor_id is immutable for a tutor'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ update public.yanbua_progress set recorded_at = now() where id = 'ed000000-0000-0000-0000-0000000000b1' $$,
+  '42501', null, 'RLS-176: recorded_at is immutable for a tutor'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ update public.yanbua_progress set client_ref = gen_random_uuid() where id = 'ed000000-0000-0000-0000-0000000000b1' $$,
+  '42501', null, 'RLS-176: client_ref is immutable for a tutor'
+);
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';
+insert into _tap_log(line) select throws_ok(
+  $$ update public.yanbua_progress set recorded_at = now() where id = 'ed000000-0000-0000-0000-0000000000b1' $$,
+  '42501', null, 'RLS-176: …and for admin too'
+);
+
+-- RLS-178: a tutor cannot delete.
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';
+delete from public.yanbua_progress where id = 'ed000000-0000-0000-0000-0000000000b1';
+delete from public.quran_progress  where id = 'ed000000-0000-0000-0000-0000000000c1';
+reset role;
+insert into _tap_log(line) select is(
+  (select (select count(*) from public.yanbua_progress where id = 'ed000000-0000-0000-0000-0000000000b1')
+        + (select count(*) from public.quran_progress  where id = 'ed000000-0000-0000-0000-0000000000c1')),
+  2::bigint, 'RLS-178: a tutor cannot delete a Yanbu''a or Quran entry'
+);
+
+-- RLS-179: the milestone webhook is an INSERT-only trigger.
+insert into _tap_log(line) select ok(
+  (select (tgtype & 4) <> 0 and (tgtype & 16) = 0 from pg_trigger
+    where tgname = 'trg_notify_jilid_milestone' and tgrelid = 'public.yanbua_progress'::regclass),
+  'RLS-179: trg_notify_jilid_milestone fires on INSERT and not on UPDATE, so an edit sends no milestone'
+);
+
+-- RLS-180: the Quran mirror.
+set local role authenticated;
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';
+update public.quran_progress set ayah_to = 7, quality = 'mumtaz', tajweed_notes = 'fixed' where id = 'ed000000-0000-0000-0000-0000000000c1';
+reset role;
+insert into _tap_log(line) select is(
+  (select ayah_to::text || '/' || quality::text || '/' || edited_by::text from public.quran_progress where id = 'ed000000-0000-0000-0000-0000000000c1'),
+  '7/mumtaz/70000000-0000-0000-0000-000000000001', 'RLS-180: the recorder edits their Quran entry and the marker is written'
+);
+set local role authenticated;
+set local request.jwt.claim.sub to 'ed000000-0000-0000-0000-000000000003';
+update public.quran_progress set ayah_to = 9 where id = 'ed000000-0000-0000-0000-0000000000c1';
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';
+insert into _tap_log(line) select throws_ok(
+  $$ update public.quran_progress set ayah_to = 0 where id = 'ed000000-0000-0000-0000-0000000000c1' $$,
+  '23514', null, 'RLS-180: an inverted ayah range is still refused by the CHECK'
+);
+insert into _tap_log(line) select throws_ok(
+  $$ update public.quran_progress set student_id = 'd0000000-0000-0000-0000-000000000002' where id = 'ed000000-0000-0000-0000-0000000000c1' $$,
+  '42501', null, 'RLS-180: student_id is immutable on quran_progress'
+);
+reset role;
+insert into _tap_log(line) select is(
+  (select ayah_to from public.quran_progress where id = 'ed000000-0000-0000-0000-0000000000c1'),
+  7::smallint, 'RLS-180: a co-tutor''s Quran edit matches 0 rows'
+);
+
+-- RLS-181: fn_progress_authors — names only, and only for a student the caller can see.
+set local role authenticated;
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000001';  -- P1, own child
+insert into _tap_log(line) select ok(
+  (select count(*) >= 1 and bool_and(full_name is not null) from public.fn_progress_authors('d0000000-0000-0000-0000-000000000001')),
+  'RLS-181: a parent resolves the recorder name for their own child'
+);
+insert into _tap_log(line) select ok(
+  exists (select 1 from public.fn_progress_authors('d0000000-0000-0000-0000-000000000001') where full_name = 'Tutor One'),
+  'RLS-181: …and the name is the recorder''s'
+);
+insert into _tap_log(line) select ok(
+  exists (select 1 from public.fn_progress_authors('d0000000-0000-0000-0000-000000000001') where full_name = 'Admin Test'),
+  'RLS-181: …and the admin editor''s'
+);
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000002';  -- P2, someone else's child
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_progress_authors('d0000000-0000-0000-0000-000000000001')),
+  0::bigint, 'RLS-181: a parent asking about another family''s child gets zero rows'
+);
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000002';  -- T2, other class
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_progress_authors('d0000000-0000-0000-0000-000000000001')),
+  0::bigint, 'RLS-181: a tutor of another class gets zero rows'
+);
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';  -- T1
+insert into _tap_log(line) select ok(
+  (select count(*) >= 1 from public.fn_progress_authors('d0000000-0000-0000-0000-000000000001')),
+  'RLS-181: a tutor of the class resolves names'
+);
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+insert into _tap_log(line) select ok(
+  (select count(*) >= 1 from public.fn_progress_authors('d0000000-0000-0000-0000-000000000001')),
+  'RLS-181: admin resolves names'
+);
+set local role anon;
+insert into _tap_log(line) select throws_ok(
+  $$ select * from public.fn_progress_authors('d0000000-0000-0000-0000-000000000001') $$,
+  '42501', null, 'RLS-181: anon cannot execute fn_progress_authors'
+);
+reset role;
+insert into _tap_log(line) select is(
+  pg_get_function_result('public.fn_progress_authors(uuid)'::regprocedure),
+  'TABLE(user_id uuid, full_name text)', 'RLS-181: the function returns names only — no e-mail, no role'
+);
+
+-- RLS-182: the tracking switch (migration 026) reaches editing. If the
+-- group stops tracking progress, its tutor can no longer edit (recording
+-- needs a tracking group) but still READS the entries — migration 026
+-- narrows reads only for assistants — so names keep resolving, exactly
+-- as far as the read policy goes; switching it back restores the edit.
+reset role;
+update public.classes set tracks_progress = false where id = 'c0000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';  -- T1
+update public.yanbua_progress set notes = 'blocked' where id = 'ed000000-0000-0000-0000-0000000000b1';
+insert into _tap_log(line) select ok(
+  (select count(*) >= 1 from public.fn_progress_authors('d0000000-0000-0000-0000-000000000001')),
+  'RLS-182: …a non-tracking group''s tutor still reads the entries, so names still resolve'
+);
+reset role;
+insert into _tap_log(line) select isnt(
+  (select notes from public.yanbua_progress where id = 'ed000000-0000-0000-0000-0000000000b1'),
+  'blocked', 'RLS-182: a non-tracking group''s tutor cannot edit (fn_my_recordable_students needs a tracking group)'
+);
+update public.classes set tracks_progress = true where id = 'c0000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+set local request.jwt.claim.sub to '70000000-0000-0000-0000-000000000001';
+update public.yanbua_progress set notes = 'allowed again' where id = 'ed000000-0000-0000-0000-0000000000b1';
+reset role;
+insert into _tap_log(line) select is(
+  (select notes from public.yanbua_progress where id = 'ed000000-0000-0000-0000-0000000000b1'),
+  'allowed again', 'RLS-182: switching tracking back on restores the edit'
+);
 
 -- ---------- done ----------
 reset role;

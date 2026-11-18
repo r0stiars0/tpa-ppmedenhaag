@@ -10,7 +10,16 @@ import { getErrorMessage } from '../../lib/errors'
 import { isNetworkError } from '../../lib/network'
 import { offlineQueue } from '../../lib/offlineQueue'
 import { isJilidComplete, nextJilid, pageRangeForJilid, type JilidRef } from '../../lib/yanbua'
-import { fetchYanbuaHistory, fetchYanbuaJilidRef, insertYanbuaProgress, type YanbuaProgress } from './api'
+import { useIsOnline } from '../../hooks/useIsOnline'
+import { canEditProgressEntry, fetchProgressAuthors, type AuthorMap } from '../../lib/progressEdit'
+import {
+  fetchYanbuaHistory,
+  fetchYanbuaJilidRef,
+  insertYanbuaProgress,
+  updateYanbuaProgress,
+  type YanbuaEdit,
+  type YanbuaProgress,
+} from './api'
 import { CurrentLevelCard } from './CurrentLevelCard'
 import { YanbuaTimeline } from './YanbuaTimeline'
 
@@ -37,6 +46,8 @@ export function TutorYanbuaView() {
   const [selectedStudent, setSelectedStudent] = useState<RosterStudent | null>(null)
   const [history, setHistory] = useState<YanbuaProgress[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
+  const [authors, setAuthors] = useState<AuthorMap>(new Map())
+  const online = useIsOnline()
 
   const [jilid, setJilid] = useState(0)
   // '' is a transient state while the field is empty mid-edit (e.g. the
@@ -89,6 +100,12 @@ export function TutorYanbuaView() {
     setError(null)
     setQueued(false)
     setHistoryLoading(true)
+    setAuthors(new Map())
+    // Names are decoration: a failed lookup falls back to a neutral label
+    // and must not hide the history.
+    fetchProgressAuthors(student.id)
+      .then(setAuthors)
+      .catch(() => setAuthors(new Map()))
     fetchYanbuaHistory(student.id)
       .then((data) => {
         setHistory(data)
@@ -100,6 +117,19 @@ export function TutorYanbuaView() {
       })
       .catch((err) => setError(getErrorMessage(err)))
       .finally(() => setHistoryLoading(false))
+  }
+
+  // The viewer's own name is not in `authors` until the next load, and an
+  // entry they just recorded or edited should not read as an unknown author.
+  function rememberSelf() {
+    if (!profile) return
+    setAuthors((prev) => new Map(prev).set(profile.id, profile.full_name))
+  }
+
+  async function handleEdit(entry: YanbuaProgress, patch: YanbuaEdit) {
+    const updated = await updateYanbuaProgress(entry.id, patch)
+    setHistory((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
+    rememberSelf()
   }
 
   async function handleSave() {
@@ -124,6 +154,7 @@ export function TutorYanbuaView() {
     try {
       const created = await insertYanbuaProgress(row)
       setHistory((prev) => [created, ...prev])
+      rememberSelf()
     } catch (err) {
       if (!isNetworkError(err)) {
         setError(getErrorMessage(err))
@@ -145,8 +176,11 @@ export function TutorYanbuaView() {
         page: row.page,
         mastery: row.mastery,
         notes: row.notes ?? null,
+        edited_at: null,
+        edited_by: null,
       }
       setHistory((prev) => [optimistic, ...prev])
+      rememberSelf()
       setQueued(true)
     }
 
@@ -307,7 +341,16 @@ export function TutorYanbuaView() {
 
       <div>
         <h3 className="mb-2 text-sm font-semibold text-ppme-text/70">{t('yanbua.sessionHistory')}</h3>
-        <YanbuaTimeline entries={history} />
+        <YanbuaTimeline
+          entries={history}
+          authors={authors}
+          editing={{
+            canEdit: (entry) => canEditProgressEntry(entry, profile?.id ?? null, profile?.role === 'admin'),
+            onSave: handleEdit,
+            online,
+            jilidRefs,
+          }}
+        />
       </div>
     </div>
   )

@@ -6,6 +6,7 @@ import { isSelfRecord } from '../../lib/capabilities'
 import { ChildPicker } from '../../components/ChildPicker'
 import type { JilidRef } from '../../lib/yanbua'
 import { getErrorMessage } from '../../lib/errors'
+import { fetchProgressAuthors, type AuthorMap } from '../../lib/progressEdit'
 import { fetchYanbuaHistory, fetchYanbuaJilidRef, type YanbuaProgress } from './api'
 import { CurrentLevelCard } from './CurrentLevelCard'
 import { YanbuaTimeline } from './YanbuaTimeline'
@@ -20,6 +21,7 @@ export function FamilyYanbuaView() {
   const [studentId, setStudentId] = useState<string | null>(null)
   const [history, setHistory] = useState<YanbuaProgress[]>([])
   const [jilidRefs, setJilidRefs] = useState<JilidRef[]>([])
+  const [authors, setAuthors] = useState<AuthorMap>(new Map())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const hasTracking = useHasTrackingGroup(studentId)
@@ -39,6 +41,13 @@ export function FamilyYanbuaView() {
     let active = true
     setLoading(true)
     setError(null)
+    setAuthors(new Map())
+    // Names are decoration: a failed lookup falls back to a neutral label.
+    fetchProgressAuthors(studentId)
+      .then((data) => {
+        if (active) setAuthors(data)
+      })
+      .catch(() => {})
     fetchYanbuaHistory(studentId)
       .then((data) => {
         if (active) setHistory(data)
@@ -84,7 +93,7 @@ export function FamilyYanbuaView() {
 
           <div>
             <h2 className="mb-2 text-sm font-semibold text-ppme-text/70">{t('yanbua.sessionHistory')}</h2>
-            {loading ? <p className="text-ppme-text/60">{t('common.loading')}</p> : <YanbuaTimeline entries={history} />}
+            {loading ? <p className="text-ppme-text/60">{t('common.loading')}</p> : <YanbuaTimeline entries={history} authors={authors} />}
           </div>
         </>
       )}

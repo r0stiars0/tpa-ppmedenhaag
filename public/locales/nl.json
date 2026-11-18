@@ -58,7 +58,13 @@
     "noClassesAssigned": "U bent nog aan geen enkele groep toegewezen",
     "noStudentsInClass": "Nog geen leerlingen in deze groep",
     "moreInfo": "Meer informatie",
-    "noTrackingGroup": "De groepen van deze leerling registreren geen Yanbu'a, Al-Quran of Murajaah (bijvoorbeeld een Aqidah-groep). De geschiedenis verschijnt hier zodra de leerling in een groep zit die dat wel doet."
+    "noTrackingGroup": "De groepen van deze leerling registreren geen Yanbu'a, Al-Quran of Murajaah (bijvoorbeeld een Aqidah-groep). De geschiedenis verschijnt hier zodra de leerling in een groep zit die dat wel doet.",
+    "recordedBy": "Vastgelegd door {{name}}",
+    "recordedByUnknown": "Vastlegger niet beschikbaar",
+    "editedBy": "Gewijzigd door {{name}} · {{date}}",
+    "edited": "Gewijzigd · {{date}}",
+    "editOfflineHint": "Een registratie wijzigen kan alleen online.",
+    "editRefused": "De registratie kon niet worden gewijzigd. Vernieuw de pagina en probeer het opnieuw."
   },
   "attendance": {
     "title": "Aanwezigheid",

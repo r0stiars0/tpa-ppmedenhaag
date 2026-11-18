@@ -530,6 +530,26 @@ A fresh island (`f8c…`): a Yanbu'a group GY (TY), an Aqidah group GA (TA and a
 
 *Total after migration 029: 592 (verified on a stack built from `supabase/migrations`, PASS). That is 566 plus RLS-160…169's 26.*
 
+### 3.12 Editing Yanbu'a / Quran entries (RLS-170…182, migration 032 / ADR-049)
+
+Same fixture set. T1 records the entry under test for a Class A student; T2 teaches Class B.
+
+- [x] RLS-170 — **The recorder can edit their own Yanbu'a entry.** T1 updates `page`, `mastery`, `notes` → 1 row; values changed.
+- [x] RLS-171 — **A co-tutor of the same class cannot.** A second tutor assigned to Class A updates T1's entry → 0 rows, values unchanged.
+- [x] RLS-172 — **A tutor of another class cannot.** T2 updates the entry → 0 rows.
+- [x] RLS-173 — **A parent and a 16+ student cannot.** P1 and S16 updates → 0 rows.
+- [x] RLS-174 — **A student assistant cannot edit their own record** (ADR-023): a tutor who is also a santri in the class they teach updates the entry recorded about themselves → 0 rows.
+- [x] RLS-175 — **Admin can edit any entry.** The admin updates T1's entry → 1 row; `edited_by` is the admin.
+- [x] RLS-176 — **Immutable columns.** `UPDATE … SET student_id / tutor_id / recorded_at / client_ref` as T1 and as admin → `42501` (permission denied for the column).
+- [x] RLS-177 — **The marker is server-written.** After RLS-170, `edited_at` is set and `edited_by = T1`; T1 attempting `SET edited_by` / `SET edited_at` → `42501`; a no-op update (same values) leaves `edited_at` null.
+- [x] RLS-178 — **A tutor cannot delete** a Yanbu'a or Quran entry → 0 rows.
+- [x] RLS-179 — **An edit sends no milestone.** Updating an entry to a jilid-completing page queues no `notify-milestone` webhook call (the trigger is `after insert` only).
+- [x] RLS-180 — **Quran mirror.** RLS-170/171/175/176/177 repeated on `quran_progress` (surah, ayah range, quality, tajweed notes; `ayah_to < ayah_from` → `23514`).
+- [x] RLS-181 — **`fn_progress_authors`.** T1, P1 (own child), S16 (own record) and admin get the recorder and editor names for a student they may see; P2 asking about P1's child, and T2 asking about a Class A student, get zero rows; the result has only `user_id` and `full_name`.
+- [x] RLS-182 — **The tracking switch reaches editing (migration 026).** With Class A's `tracks_progress` off, T1 cannot edit (`fn_my_recordable_students()` needs a tracking group) but still reads the entries, so `fn_progress_authors` still resolves names — it follows the read policy, which narrows only assistants; switching tracking back on restores the edit.
+
+*All of RLS-170…182 are implemented in `supabase/tests/database/rls.test.sql`; `supabase test db` reports `Result: PASS` on a clean `supabase db reset`.*
+
 ## 4. Unit tests (Vitest)
 
 ### 4.1 Streak logic
@@ -886,6 +906,22 @@ the `student_guardians` `ON DELETE RESTRICT` invariant is in §3.8 RLS-116.
     - 409 naming the empty sections;
     - only an admin may omit them.
 - [x] `tests/unit/reports.test.ts`: the PDF prints each section as a titled block (group, tutor, grade, attendance, narrative), and no block without sections.
+### 4.5q Editing progress entries (TAD ADR-049)
+
+`tests/unit/progressEdit.test.ts`, against `src/lib/progressEdit.ts` and the two `update…Progress` API functions. This project's unit tests run in a node environment with no DOM, so the rendering rows below are exercised in the live click-through (§4.5q-live), not in Vitest.
+
+- [x] `canEditProgressEntry`: true for the recorder and for admin; false for another tutor, a parent, a student, a signed-out viewer, and for an entry that is still an offline-queued stand-in (`isQueuedStandIn`: its `id` is its `client_ref`)
+- [x] `updateYanbuaProgress` / `updateQuranProgress` send only the content columns (never `student_id`, `tutor_id`, `recorded_at`, `edited_*`), key the update by `id`, surface a zero-row result as `ProgressEditRefusedError` rather than success, and rethrow a database error
+- [x] `authorLabel` returns a name, or `null` — never a uuid or a blank — for a user that cannot be resolved; `editedMarker` is `null` for a never-edited entry and still reports an edit whose editor account was since deleted
+- [x] `fetchProgressAuthors` calls `fn_progress_authors` with the student id and returns an id → name lookup; an error is thrown
+
+### 4.5q-live Editing entries — live click-through (against the local stack)
+
+- [ ] as T1: **Edit** appears only on T1's own entries; edit page → saved in place (same position, no new row), "Diubah oleh T1 · date" appears; co-tutor T3 sees the entry with no **Edit** button
+- [ ] the edit form blocks a page above the jilid's page count and an inverted ayah range before any request
+- [ ] DevTools → Offline: **Edit** is disabled with the hint; an offline-queued entry has no **Edit** until it has synced
+- [ ] as P1 (parent): recorder name and the edited marker are visible on both timelines, no controls; as S16: same for their own record
+- [ ] no console errors and no unexpected failed requests; no notification row after an edit that completes a jilid
 
 ### 4.6 Access control and delivery inside the Functions
 
