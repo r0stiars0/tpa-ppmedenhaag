@@ -93,6 +93,14 @@ Vijf vaste tabbladen, hetzelfde voor elke rol inclusief beheerder:
 ### Weergaveschakelaar (Scope Switch)
 Verschijnt boven de inhoud, **alleen voor accounts met meer dan één relatie** (bijvoorbeeld een docent die ook ouder is), en **alleen** op deze zes schermen: Aanwezig, Huiswerk, Yanbu'a, Al-Quran, Murajaah, Rapport. Hij heeft dezelfde vorm als de schakelaar **Leerlingen | Docenten** van de beheerder: de weergaveschakelaar staat altijd boven de schermtitel, Leerlingen | Docenten eronder. Zie [§14](#14-accounts-met-een-dubbele-rol) voor de volledige uitleg.
 
+### Groepen & docenten (gezinsweergave)
+
+Op elk scherm van de gezinsweergave — Aanwezig, Huiswerk, Yanbu'a, Al-Quran, Murajaah, Rapport — staat direct onder **Kies kind** een klein vak met de groepen van uw kind en de namen van de docenten, bijvoorbeeld **"Grup A · Ustadz Ahmad, Ustadzah Aminah"**. Eén regel per groep; tik op de groepsnaam om de pagina van die groep te openen (zie [§11](#11-mededelingen--lesmateriaal)).
+
+- Op **Yanbu'a, Al-Quran en Murajaah** staan alleen groepen die **voortgang bijhouden** — de docent van bijvoorbeeld een Aqidah-groep staat niet naast een Yanbu'a-geschiedenis. Op **Aanwezig, Huiswerk en Rapport** staan alle actieve groepen.
+- Gearchiveerde groepen staan er niet bij. Een leerling-assistent wordt nooit als docent genoemd. Een groep zonder docent toont "Nog geen docent".
+- Een leerling van 16+ die de eigen gegevens bekijkt, ziet hetzelfde vak.
+
 ---
 
 ## 4. Startscherm
@@ -125,6 +133,8 @@ Hetzelfde als hierboven, plus een kaart **"Deze week"** met een samenvatting van
 | Murajaah | Aantal murajaah-bevestigingen deze week. |
 
 Deze kaart wordt automatisch **verborgen** als er die week helemaal geen activiteit is geweest — een rustige week wordt niet getoond als een kaart vol nullen. Bij meerdere kinderen krijgt elk kind met activiteit een eigen kaart.
+
+Onder de kaart "Deze week" staat ook een vak **groepen & docenten** voor elk kind (met de voornaam van het kind als u er meer dan één heeft) — hetzelfde als op de andere schermen, met alle actieve groepen van dat kind.
 
 ### 4.3 Weergave voor een beheerder
 
@@ -331,7 +341,7 @@ Alleen om te bekijken.
 |---|---|
 | **Kies kind** | Zoals bij andere schermen. |
 | Kaart **Huidig niveau** | Actuele jilid, pagina en beheersing. |
-| **Sessiegeschiedenis** | Net als bij de docentweergave — de volledige geschiedenis, met de naam van de docent die het heeft vastgelegd en de vermelding **"Gewijzigd door …"** als een registratie is gecorrigeerd, zonder mogelijkheid om iets te wijzigen. |
+| **Sessiegeschiedenis** | Net als bij de docentweergave — de volledige geschiedenis, met de naam van de docent die het heeft vastgelegd en de vermelding **"Gewijzigd door …"** als een registratie is gecorrigeerd, zonder mogelijkheid om iets te wijzigen. Een registratie van een leerling-assistent toont **"Vastgelegd door een assistent"**, zonder naam. |
 
 Zit het kind alleen in groepen die Yanbu'a/Al-Quran/Murajaah niet registreren (bijvoorbeeld alleen een Aqidah-groep), dan tonen de schermen Yanbu'a, Al-Quran en Murajaah in plaats van een lege geschiedenis een korte uitleg:
 

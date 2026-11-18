@@ -60,6 +60,8 @@
     "moreInfo": "Meer informatie",
     "noTrackingGroup": "De groepen van deze leerling registreren geen Yanbu'a, Al-Quran of Murajaah (bijvoorbeeld een Aqidah-groep). De geschiedenis verschijnt hier zodra de leerling in een groep zit die dat wel doet.",
     "recordedBy": "Vastgelegd door {{name}}",
+    "recordedByAssistant": "Vastgelegd door een assistent",
+    "editedByAssistant": "Gewijzigd door een assistent · {{date}}",
     "recordedByUnknown": "Vastlegger niet beschikbaar",
     "editedBy": "Gewijzigd door {{name}} · {{date}}",
     "edited": "Gewijzigd · {{date}}",

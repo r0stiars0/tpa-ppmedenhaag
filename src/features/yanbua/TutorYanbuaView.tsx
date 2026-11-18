@@ -123,7 +123,7 @@ export function TutorYanbuaView() {
   // entry they just recorded or edited should not read as an unknown author.
   function rememberSelf() {
     if (!profile) return
-    setAuthors((prev) => new Map(prev).set(profile.id, profile.full_name))
+    setAuthors((prev) => new Map(prev).set(profile.id, { name: profile.full_name, assistant: false }))
   }
 
   async function handleEdit(entry: YanbuaProgress, patch: YanbuaEdit) {

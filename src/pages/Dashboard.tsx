@@ -5,6 +5,7 @@ import { useViewScope } from '../context/ViewScopeContext'
 import { capabilityLabelKeys } from '../lib/viewScope'
 import { NAV_TABS } from '../components/tabs'
 import { WeeklySummary } from '../features/dashboard/WeeklySummary'
+import { FamilyGroupTutors } from '../features/groups/FamilyGroupTutors'
 
 const TILE_CLASS =
   'min-h-11 rounded-lg bg-white p-4 text-center font-medium text-ppme-text shadow-sm transition-colors hover:bg-ppme-bg-alt'
@@ -55,6 +56,9 @@ export function Dashboard() {
           only say a summary is ready, so the summary lives here. Renders
           nothing for a tutor or admin, and nothing in a quiet week. */}
       <WeeklySummary />
+
+      {/* PRD Feature 8 FR-011: who teaches each child, one block per child. */}
+      <FamilyGroupTutors />
 
       <div className="grid grid-cols-2 gap-3">
         {NAV_TABS.map(({ to, key }) => (

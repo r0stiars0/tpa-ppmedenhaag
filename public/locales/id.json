@@ -60,6 +60,8 @@
     "moreInfo": "Info lebih lanjut",
     "noTrackingGroup": "Grup santri ini tidak mencatat Yanbu'a, Al-Quran atau Murajaah (misalnya grup Aqidah). Riwayat akan muncul di sini jika santri bergabung dengan grup yang mencatatnya.",
     "recordedBy": "Dicatat oleh {{name}}",
+    "recordedByAssistant": "Dicatat oleh asisten",
+    "editedByAssistant": "Diubah oleh asisten · {{date}}",
     "recordedByUnknown": "Pencatat tidak tersedia",
     "editedBy": "Diubah oleh {{name}} · {{date}}",
     "edited": "Diubah · {{date}}",

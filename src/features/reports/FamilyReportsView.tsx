@@ -4,6 +4,7 @@ import { useMyStudents } from '../../hooks/useMyStudents'
 import { useViewScope } from '../../context/ViewScopeContext'
 import { isSelfRecord } from '../../lib/capabilities'
 import { ChildPicker } from '../../components/ChildPicker'
+import { GroupTutorsHeader } from '../groups/GroupTutorsHeader'
 import { getErrorMessage } from '../../lib/errors'
 import { fetchReportsForStudents, type YearEndReport } from './api'
 import { ReportCard } from './ReportCard'
@@ -67,6 +68,7 @@ export function FamilyReportsView() {
       <h1 className="text-lg font-bold text-ppme-primary">{title}</h1>
 
       <ChildPicker students={students} value={studentId} onChange={setStudentId} />
+      <GroupTutorsHeader studentId={studentId} kind="all" />
 
       {error && <p className="rounded-lg bg-ppme-danger/10 p-3 text-sm text-ppme-danger">{error}</p>}
 

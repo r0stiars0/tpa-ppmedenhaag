@@ -5999,7 +5999,7 @@ insert into _tap_log(line) select throws_ok(
 reset role;
 insert into _tap_log(line) select is(
   pg_get_function_result('public.fn_progress_authors(uuid)'::regprocedure),
-  'TABLE(user_id uuid, full_name text)', 'RLS-181: the function returns names only — no e-mail, no role'
+  'TABLE(user_id uuid, full_name text, is_assistant boolean)', 'RLS-181: the function returns names (and the assistant flag, migration 033) only — no e-mail, no role'
 );
 
 -- RLS-182: the tracking switch (migration 026) reaches editing. If the
@@ -6031,6 +6031,63 @@ insert into _tap_log(line) select is(
   (select notes from public.yanbua_progress where id = 'ed000000-0000-0000-0000-0000000000b1'),
   'allowed again', 'RLS-182: switching tracking back on restores the edit'
 );
+
+-- ======================================================================
+-- RLS-183…188 — a student assistant's name is staff-only (migration 033,
+-- ADR-050(d)). ASSIST (a 16+ santri who tutors Class E) records an entry
+-- for another Class E child, whose guardian is P2. T3 is added as a
+-- second tutor of Class E.
+-- ======================================================================
+reset role;
+update public.classes
+   set tutor_ids = tutor_ids || 'ed000000-0000-0000-0000-000000000003'::uuid
+ where id = 'c0000000-0000-0000-0000-0000000000ee';
+insert into public.students (id, full_name, date_of_birth)
+values ('ed000000-0000-0000-0000-0000000000a2', 'Class E Child', date '2016-03-03');
+insert into public.class_members (class_id, student_id)
+values ('c0000000-0000-0000-0000-0000000000ee', 'ed000000-0000-0000-0000-0000000000a2');
+insert into public.student_guardians (student_id, user_id)
+values ('ed000000-0000-0000-0000-0000000000a2', '90000000-0000-0000-0000-000000000002');
+insert into public.yanbua_progress (id, student_id, tutor_id, jilid, page, mastery)
+values ('ed000000-0000-0000-0000-0000000000b3', 'ed000000-0000-0000-0000-0000000000a2',
+        'ed000000-0000-0000-0000-000000000005', 1, 60, 'lancar');
+
+set local role authenticated;
+set local request.jwt.claim.role to 'authenticated';
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000002';  -- P2, the child's guardian
+insert into _tap_log(line) select is(
+  (select is_assistant::text || '/' || coalesce(full_name, '<null>') from public.fn_progress_authors('ed000000-0000-0000-0000-0000000000a2')
+    where user_id = 'ed000000-0000-0000-0000-000000000005'),
+  'true/<null>', 'RLS-183: a family gets the assistant flag but no name for an entry an assistant recorded'
+);
+set local request.jwt.claim.sub to 'ed000000-0000-0000-0000-000000000003';  -- T3, tutor of Class E
+insert into _tap_log(line) select is(
+  (select full_name from public.fn_progress_authors('ed000000-0000-0000-0000-0000000000a2')
+    where user_id = 'ed000000-0000-0000-0000-000000000005'),
+  'Assistant', 'RLS-184: a tutor of the group still sees the assistant''s name'
+);
+set local request.jwt.claim.sub to 'a0000000-0000-0000-0000-000000000000';  -- admin
+insert into _tap_log(line) select is(
+  (select full_name from public.fn_progress_authors('ed000000-0000-0000-0000-0000000000a2')
+    where user_id = 'ed000000-0000-0000-0000-000000000005'),
+  'Assistant', 'RLS-185: an admin sees the assistant''s name'
+);
+set local request.jwt.claim.sub to '90000000-0000-0000-0000-000000000001';  -- P1, Child A (recorded by T1)
+insert into _tap_log(line) select is(
+  (select is_assistant::text || '/' || full_name from public.fn_progress_authors('d0000000-0000-0000-0000-000000000001')
+    where user_id = '70000000-0000-0000-0000-000000000001'),
+  'false/Tutor One', 'RLS-186: an ordinary tutor''s name still reaches the family'
+);
+insert into _tap_log(line) select is(
+  (select count(*) from public.fn_progress_authors('ed000000-0000-0000-0000-0000000000a2')),
+  0::bigint, 'RLS-187: another family still gets zero rows'
+);
+set local role anon;
+insert into _tap_log(line) select throws_ok(
+  $$ select * from public.fn_progress_authors('ed000000-0000-0000-0000-0000000000a2') $$,
+  '42501', null, 'RLS-188: anon still cannot execute the recreated function'
+);
+reset role;
 
 -- ---------- done ----------
 reset role;
