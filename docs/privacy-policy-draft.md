@@ -202,6 +202,15 @@ voornaam van uw kind en de naam van de groep, niet de inhoud. Op de
 groepspagina staan de namen van de volwassen docenten van de groep en van
 wie iets plaatste; de naam van een leerling-assistent wordt daar niet
 getoond. U kunt niet reageren op een mededeling.
+**Wie heeft een registratie gemaakt of gewijzigd.** Bij elke Yanbu'a- en
+Quran-registratie staat de naam van de docent die haar heeft vastgelegd.
+Corrigeert die docent (of een beheerder) de registratie achteraf, dan
+staat er ook "gewijzigd door", met naam en datum van de laatste wijziging.
+Deze namen zijn zichtbaar voor iedereen die de registratie zelf mag zien:
+de docenten van de groep, de beheerders, de ouders en de leerling van 16+.
+Alleen de naam wordt getoond — geen e-mailadres en geen andere gegevens
+van de docent. Een eerdere versie van een gecorrigeerde registratie wordt
+niet bewaard.
 
 **Aanwezigheid van docenten.** Op dezelfde presentielijst wordt ook
 vastgelegd of de docenten van de groep aanwezig waren, zodat de
@@ -481,6 +490,14 @@ baru, Anda menerima notifikasi yang menyebut nama depan anak Anda dan
 nama grupnya, bukan isinya. Halaman grup menampilkan nama guru dewasa
 grup tersebut dan nama orang yang mengunggah; nama santri asisten tidak
 ditampilkan di sana. Anda tidak dapat membalas pengumuman.
+**Siapa yang membuat atau mengubah catatan.** Pada setiap catatan
+Yanbu'a dan Al-Quran tertera nama guru yang mencatatnya. Bila guru itu
+(atau admin) kemudian memperbaiki catatan tersebut, tertera pula
+"diubah oleh", dengan nama dan tanggal perubahan terakhir. Nama-nama ini
+terlihat oleh siapa pun yang berhak melihat catatan itu sendiri: guru di
+kelas tersebut, admin, orang tua, dan santri berusia 16+. Hanya nama yang
+ditampilkan — tanpa e-mail atau data lain milik guru. Versi sebelumnya
+dari catatan yang diperbaiki tidak disimpan.
 
 **Kehadiran guru.** Pada daftar hadir yang sama juga dicatat apakah
 para guru kelas itu hadir, agar pimpinan TPA dapat meninjaunya secara

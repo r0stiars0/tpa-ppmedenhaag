@@ -307,7 +307,17 @@ Registratiescherm (na het kiezen van een leerling):
 | **Beheersing** | Lancar (vloeiend) / Kurang Lancar (nog niet vloeiend) / Ulang (herhalen). |
 | **Notities** | Vrije tekst, optioneel. |
 | **Voortgang vastleggen** | Slaat een nieuwe registratie op. Als de geregistreerde pagina de laatste pagina van die jilid is **én** de beheersing "Lancar" is, verschijnt een felicitatiebericht **"Jilid {n} voltooid! 🎉"** en springt het formulier automatisch naar de volgende jilid, met de pagina al ingevuld op de eerste pagina van die jilid (niet pagina 1) — klaar voor de volgende sessie. |
-| **Sessiegeschiedenis** | Lijst van alle eerdere registraties voor deze leerling, met datum. |
+| **Sessiegeschiedenis** | Lijst van alle eerdere registraties voor deze leerling, met datum, **de naam van wie het heeft vastgelegd** ("Vastgelegd door …") en een knop **Bewerken** bij registraties die u mag wijzigen. |
+
+**Een registratie wijzigen**: pagina of beheersing verkeerd ingevoerd? Tik bij die registratie in de Sessiegeschiedenis op **Bewerken**, corrigeer jilid, pagina, beheersing of notitie en tik op **Opslaan** (of **Annuleren**). De regels:
+
+- Alleen **de docent die de registratie heeft gemaakt** (en een beheerder) ziet de knop **Bewerken**. Andere docenten van dezelfde groep kunnen alleen kijken.
+- Er is geen tijdslimiet — ook een oude registratie kan worden gecorrigeerd.
+- De leerling, de datum en de oorspronkelijke vastlegger veranderen niet, dus de volgorde van de geschiedenis blijft gelijk. Een registratie kan **niet worden verwijderd**; corrigeer door te bewerken.
+- Een gewijzigde registratie toont **"Gewijzigd door {naam} · {datum}"** (alleen de laatste wijziging). Ouders en leerlingen zien ook de naam van de vastlegger en deze vermelding.
+- Wijzigen **stuurt geen melding** naar ouders, ook niet de melding dat een jilid is afgerond.
+- Wijzigen kan alleen **online**. Offline is de knop **Bewerken** uitgeschakeld; een registratie die nog op verzending wacht, kan pas worden gewijzigd nadat ze is verzonden.
+- Wijzigen kan alleen een docent van een groep die **voortgang bijhoudt** (niet een groep zoals Aqidah die geen Yanbu'a/Al-Quran vastlegt).
 
 **Offline-status**: net als bij Aanwezigheid — als het versturen mislukt door een netwerkprobleem, worden de gegevens lokaal opgeslagen en automatisch verstuurd zodra de verbinding terugkeert.
 
@@ -321,7 +331,7 @@ Alleen om te bekijken.
 |---|---|
 | **Kies kind** | Zoals bij andere schermen. |
 | Kaart **Huidig niveau** | Actuele jilid, pagina en beheersing. |
-| **Sessiegeschiedenis** | Net als bij de docentweergave — de volledige geschiedenis, zonder mogelijkheid om iets te wijzigen. |
+| **Sessiegeschiedenis** | Net als bij de docentweergave — de volledige geschiedenis, met de naam van de docent die het heeft vastgelegd en de vermelding **"Gewijzigd door …"** als een registratie is gecorrigeerd, zonder mogelijkheid om iets te wijzigen. |
 
 Zit het kind alleen in groepen die Yanbu'a/Al-Quran/Murajaah niet registreren (bijvoorbeeld alleen een Aqidah-groep), dan tonen de schermen Yanbu'a, Al-Quran en Murajaah in plaats van een lege geschiedenis een korte uitleg:
 
@@ -351,7 +361,9 @@ Registratiescherm:
 | **Kwaliteit** | Mumtaz / Jayyid Jiddan / Jayyid / Maqbul / Verbetering nodig (van beste naar verbetering nodig). |
 | **Tajweed-notities** | Vrije tekst, optioneel. |
 | **Tilawah vastleggen** | Slaat de registratie op. In tegenstelling tot Yanbu'a is er hier **geen** automatisch felicitatiebericht of automatische sprong naar de volgende surah — de velden surah/ayah/kwaliteit blijven staan zoals ze waren voor de volgende registratie. |
-| **Tilawah-geschiedenis** | Lijst van alle eerdere registraties. |
+| **Tilawah-geschiedenis** | Lijst van alle eerdere registraties, met **de naam van de vastlegger** en een knop **Bewerken** bij registraties die u mag wijzigen. |
+
+**Een registratie wijzigen**: net als bij Yanbu'a (zie [§7.1](#71-docentweergave--voortgang-registreren)) — tik op **Bewerken**, corrigeer surah, versbereik, kwaliteit of tajweed-notitie en tik op **Opslaan**. Alleen de docent die de registratie heeft gemaakt (en een beheerder) kan haar wijzigen; geen tijdslimiet; geen verwijderen; geen melding; alleen online. Een gewijzigde registratie toont **"Gewijzigd door {naam} · {datum}"**.
 
 **Offline-status**: zelfde als bij Aanwezigheid/Yanbu'a.
 
@@ -359,7 +371,7 @@ Registratiescherm:
 
 <img src="./screenshots/nl/quran-family.png" width="360" alt="Al-Quran — ouderweergave">
 
-Alleen om te bekijken: kaart **Huidige positie** + **Tilawah-geschiedenis**, net als bij Yanbu'a.
+Alleen om te bekijken: kaart **Huidige positie** + **Tilawah-geschiedenis** (met de naam van de vastlegger en de vermelding "Gewijzigd door …"), net als bij Yanbu'a.
 
 ---
 

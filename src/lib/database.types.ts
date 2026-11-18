@@ -629,6 +629,8 @@ export type Database = {
       }
       quran_progress: {
         Row: {
+          edited_at: string | null
+          edited_by: string | null
           ayah_from: number
           ayah_to: number
           client_ref: string | null
@@ -641,6 +643,8 @@ export type Database = {
           tutor_id: string
         }
         Insert: {
+          edited_at?: string | null
+          edited_by?: string | null
           ayah_from: number
           ayah_to: number
           client_ref?: string | null
@@ -653,6 +657,8 @@ export type Database = {
           tutor_id: string
         }
         Update: {
+          edited_at?: string | null
+          edited_by?: string | null
           ayah_from?: number
           ayah_to?: number
           client_ref?: string | null
@@ -665,6 +671,13 @@ export type Database = {
           tutor_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "quran_progress_edited_by_fkey"
+            columns: ["edited_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quran_progress_student_id_fkey"
             columns: ["student_id"]
@@ -1009,6 +1022,8 @@ export type Database = {
       }
       yanbua_progress: {
         Row: {
+          edited_at: string | null
+          edited_by: string | null
           client_ref: string | null
           id: string
           jilid: number
@@ -1020,6 +1035,8 @@ export type Database = {
           tutor_id: string
         }
         Insert: {
+          edited_at?: string | null
+          edited_by?: string | null
           client_ref?: string | null
           id?: string
           jilid: number
@@ -1031,6 +1048,8 @@ export type Database = {
           tutor_id: string
         }
         Update: {
+          edited_at?: string | null
+          edited_by?: string | null
           client_ref?: string | null
           id?: string
           jilid?: number
@@ -1042,6 +1061,13 @@ export type Database = {
           tutor_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "yanbua_progress_edited_by_fkey"
+            columns: ["edited_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "yanbua_progress_jilid_fkey"
             columns: ["jilid"]
@@ -1412,6 +1438,13 @@ export type Database = {
           email: string
           full_name: string
           id: string
+        }[]
+      }
+      fn_progress_authors: {
+        Args: { p_student: string }
+        Returns: {
+          full_name: string
+          user_id: string
         }[]
       }
       fn_post_webhook: {

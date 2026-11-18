@@ -58,7 +58,13 @@
     "noClassesAssigned": "Anda belum ditugaskan ke grup manapun",
     "noStudentsInClass": "Belum ada santri di grup ini",
     "moreInfo": "Info lebih lanjut",
-    "noTrackingGroup": "Grup santri ini tidak mencatat Yanbu'a, Al-Quran atau Murajaah (misalnya grup Aqidah). Riwayat akan muncul di sini jika santri bergabung dengan grup yang mencatatnya."
+    "noTrackingGroup": "Grup santri ini tidak mencatat Yanbu'a, Al-Quran atau Murajaah (misalnya grup Aqidah). Riwayat akan muncul di sini jika santri bergabung dengan grup yang mencatatnya.",
+    "recordedBy": "Dicatat oleh {{name}}",
+    "recordedByUnknown": "Pencatat tidak tersedia",
+    "editedBy": "Diubah oleh {{name}} · {{date}}",
+    "edited": "Diubah · {{date}}",
+    "editOfflineHint": "Mengubah catatan hanya bisa dilakukan saat online.",
+    "editRefused": "Catatan tidak dapat diubah. Muat ulang halaman, lalu coba lagi."
   },
   "attendance": {
     "title": "Kehadiran",

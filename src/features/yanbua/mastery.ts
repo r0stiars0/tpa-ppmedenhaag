@@ -16,3 +16,5 @@ export const MASTERY_LABEL_KEY: Record<YanbuahMastery, string> = {
   kurang_lancar: 'yanbua.masteryKurangLancar',
   ulang: 'yanbua.masteryUlang',
 }
+
+export const MASTERY_OPTIONS: YanbuahMastery[] = ['lancar', 'kurang_lancar', 'ulang']

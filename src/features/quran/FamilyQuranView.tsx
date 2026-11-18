@@ -6,6 +6,7 @@ import { isSelfRecord } from '../../lib/capabilities'
 import { ChildPicker } from '../../components/ChildPicker'
 import type { SurahRef } from '../../lib/quran'
 import { getErrorMessage } from '../../lib/errors'
+import { fetchProgressAuthors, type AuthorMap } from '../../lib/progressEdit'
 import { fetchQuranHistory, fetchSurahs, type QuranProgress } from './api'
 import { CurrentPositionCard } from './CurrentPositionCard'
 import { QuranTimeline } from './QuranTimeline'
@@ -20,6 +21,7 @@ export function FamilyQuranView() {
   const [studentId, setStudentId] = useState<string | null>(null)
   const [history, setHistory] = useState<QuranProgress[]>([])
   const [surahs, setSurahs] = useState<SurahRef[]>([])
+  const [authors, setAuthors] = useState<AuthorMap>(new Map())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const hasTracking = useHasTrackingGroup(studentId)
@@ -39,6 +41,13 @@ export function FamilyQuranView() {
     let active = true
     setLoading(true)
     setError(null)
+    setAuthors(new Map())
+    // Names are decoration: a failed lookup falls back to a neutral label.
+    fetchProgressAuthors(studentId)
+      .then((data) => {
+        if (active) setAuthors(data)
+      })
+      .catch(() => {})
     fetchQuranHistory(studentId)
       .then((data) => {
         if (active) setHistory(data)
@@ -87,7 +96,7 @@ export function FamilyQuranView() {
             {loading ? (
               <p className="text-ppme-text/60">{t('common.loading')}</p>
             ) : (
-              <QuranTimeline entries={history} surahs={surahs} />
+              <QuranTimeline entries={history} surahs={surahs} authors={authors} />
             )}
           </div>
         </>
