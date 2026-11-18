@@ -790,7 +790,7 @@ Tracks each student's progression through the Yanbu'a curriculum (a structured m
 - A student assistant cannot edit their own record (same boundary as TAD ADR-023).
 - Editing sends no notification, including the jilid-completion milestone of FR-006, which fires on first entry only.
 - Editing needs a connection; it is not added to the offline write queue.
-- Every entry shows who recorded it, by name, to everyone who can see it (tutors, admin, parents, 16+ students). An edited entry carries an "edited" marker with the editor's name and the time of the last edit; only the latest edit is kept, not a history. An entry recorded by an admin shows the admin's name.
+- Every entry shows who recorded it, by name, to everyone who can see it (tutors, admin, parents, 16+ students) — except that a student assistant's name is shown only to tutors and admins; families see "recorded by an assistant" (Feature 8 FR-011). An edited entry carries an "edited" marker with the editor's name and the time of the last edit; only the latest edit is kept, not a history. An entry recorded by an admin shows the admin's name.
 
 #### 3.4. Non-Functional Requirements
 *   **Performance:** Progress entry must save within 2 seconds
@@ -1558,6 +1558,16 @@ A group with tracking off otherwise behaves like any other group. It has meeting
 - **Deferred to a later release:** a bulk "move these students from group A to group B" action. It is named here so the need is recorded. Until then, the admin archives the old group and uses FR-009 on the new one.
 - *Implementation status: **built — release 8a** (TAD ADR-045, migration 026).*
 
+**FR-011: Group Tutors on Every Family Screen**
+- Priority: Medium
+- Each family screen shows, under the child picker, the child's groups and the tutors of each, e.g. "Grup A · Ustadz Ahmad, Ustadzah Aminah", so a parent always knows who teaches their child without opening the "Pengumuman & Materi" page. One line per group; tutors in alphabetical order; each group name links to that group's page (FR-007).
+- Screens: Hadir, Tugas, Yanbu'a, Al-Quran, Murajaah, Rapor, and the Dashboard (which has no child picker, so it shows one block per child).
+- Which groups: on Yanbu'a, Al-Quran and Murajaah only the groups with progress tracking on (FR-001), so an Aqidah tutor does not appear beside a Yanbu'a history; on Hadir, Tugas, Rapor and the Dashboard every active group. Archived groups (FR-010) are left out everywhere.
+- A student assistant is not named as a tutor — the same rule the group page already applies (FR-007). A group with no tutor shows "Belum ada guru" / "Nog geen docent".
+- A 16+ student viewing their own record sees the same header.
+- Display only: no notification, no new data.
+- Decided with it: a Yanbu'a/Quran entry recorded or edited by a student assistant no longer shows the assistant's name to families. Parents and students see "Dicatat oleh asisten" / "Vastgelegd door een assistent" instead; tutors and admins still see the name. This brings Yanbu'a FR-007 / Quran FR-006 in line with the group page and the privacy policy.
+
 #### 8.4. Non-Functional Requirements
 *   **Security/Privacy:** every rule in FR-006 is enforced in the database (RLS). File downloads are authorised by the storage service against the same rule before it issues a 5-minute download link (TAD ADR-045(f)). Cross-family isolation is re-verified live. Course materials are **teaching content and must not contain images or personal data of children**. This is confirmed by PPME, and the tutor upload screen states it. The DPIA and privacy policy (both languages) are updated **in release 8a**, before cross-group reading goes live, since families must be told that a child's tutors in other groups can read their progress and attendance status. They are updated again in 8b for announcements, stored files and the accepted-risk entry above.
 *   **Audit:** every enrolment change is logged (FR-009). Group archiving and unarchiving are logged the same way.
@@ -1728,6 +1738,16 @@ A group with tracking off otherwise behaves like any other group. It has meeting
 - **Given:** total storage use crosses 80% of the 1 GB allowance
 - **When:** any admin opens Beheer
 - **Then:** a warning banner shows the percentage used and what to do; tutors and families see no banner
+
+**AC-026:** Group tutors on a family screen
+- **Given:** a child in Grup A (tracking on; tutors Ustadz Ahmad and Ustadzah Aminah) and an Aqidah group (tracking off; tutor Ustadzah Maryam)
+- **When:** the parent opens Hadir, then Yanbu'a
+- **Then:** Hadir lists both groups with their tutors; Yanbu'a lists only Grup A; each group name opens that group's page
+
+**AC-027:** An assistant's entry, seen by a family
+- **Given:** a 16+ student assistant recorded a Yanbu'a entry for a child in the group they assist
+- **When:** the child's parent opens Yanbu'a
+- **Then:** the entry reads "Dicatat oleh asisten", with no name; the group's tutor sees the assistant's name on the same entry
 
 #### 8.9. Sequence Diagrams
 

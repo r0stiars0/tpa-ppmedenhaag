@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { GroupTutorsHeader } from '../groups/GroupTutorsHeader'
 import { useMyStudents } from '../../hooks/useMyStudents'
 import { useViewScope } from '../../context/ViewScopeContext'
 import { isSelfRecord } from '../../lib/capabilities'
@@ -194,6 +195,8 @@ export function FamilyAttendanceView() {
           onSelect={setStudentId}
         />
       )}
+
+      <GroupTutorsHeader studentId={studentId} kind="all" />
 
       <div className="rounded-lg bg-white p-4 text-center shadow-sm">
         {!selfOnly && selectedName && (

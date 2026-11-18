@@ -17,7 +17,7 @@ const {
   canEditProgressEntry,
   isQueuedStandIn,
   authorMap,
-  authorLabel,
+  authorDisplay,
   editedMarker,
   fetchProgressAuthors,
   ProgressEditRefusedError,
@@ -69,16 +69,26 @@ describe('canEditProgressEntry', () => {
 })
 
 describe('names', () => {
+  const ASSIST = '50000000-0000-4000-8000-000000000005'
   const authors = authorMap([
-    { user_id: T1, full_name: 'Ustadzah Aminah' },
-    { user_id: ADMIN, full_name: 'Admin Test' },
+    { user_id: T1, full_name: 'Ustadzah Aminah', is_assistant: false },
+    { user_id: ADMIN, full_name: 'Admin Test', is_assistant: false },
+    // What a family gets for a student assistant (migration 033): the flag, no name.
+    { user_id: ASSIST, full_name: null, is_assistant: true },
   ])
-  it('resolves a recorder', () => {
-    expect(authorLabel(T1, authors)).toBe('Ustadzah Aminah')
+  it('resolves a recorder by name', () => {
+    expect(authorDisplay(T1, authors)).toEqual({ kind: 'name', name: 'Ustadzah Aminah' })
   })
-  it('returns null — not a uuid, not blank — for a name that cannot be resolved', () => {
-    expect(authorLabel(T2, authors)).toBeNull()
-    expect(authorLabel(null, authors)).toBeNull()
+  it('shows a student assistant as an assistant, never by name, when the name is withheld', () => {
+    expect(authorDisplay(ASSIST, authors)).toEqual({ kind: 'assistant' })
+  })
+  it('still names an assistant for staff, who get the name', () => {
+    const staff = authorMap([{ user_id: ASSIST, full_name: 'Aisyah', is_assistant: true }])
+    expect(authorDisplay(ASSIST, staff)).toEqual({ kind: 'name', name: 'Aisyah' })
+  })
+  it('is unknown — not a uuid, not blank — for a person that cannot be resolved', () => {
+    expect(authorDisplay(T2, authors)).toEqual({ kind: 'unknown' })
+    expect(authorDisplay(null, authors)).toEqual({ kind: 'unknown' })
   })
 })
 
@@ -102,10 +112,10 @@ describe('editedMarker', () => {
 
 describe('fetchProgressAuthors', () => {
   it('asks the names-only function for the student and returns a lookup', async () => {
-    supabaseMock.rpc.mockResolvedValue({ data: [{ user_id: T1, full_name: 'Aminah' }], error: null })
+    supabaseMock.rpc.mockResolvedValue({ data: [{ user_id: T1, full_name: 'Aminah', is_assistant: false }], error: null })
     const map = await fetchProgressAuthors('stu-1')
     expect(supabaseMock.rpc).toHaveBeenCalledWith('fn_progress_authors', { p_student: 'stu-1' })
-    expect(map.get(T1)).toBe('Aminah')
+    expect(authorDisplay(T1, map)).toEqual({ kind: 'name', name: 'Aminah' })
   })
   it('throws on an error', async () => {
     supabaseMock.rpc.mockResolvedValue({ data: null, error: new Error('boom') })

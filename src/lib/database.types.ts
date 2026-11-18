@@ -1444,6 +1444,7 @@ export type Database = {
         Args: { p_student: string }
         Returns: {
           full_name: string
+          is_assistant: boolean
           user_id: string
         }[]
       }

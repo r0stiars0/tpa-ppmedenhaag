@@ -93,6 +93,14 @@ Menu **Rapor** dan **Kelola** (khusus admin) tidak ada di bilah bawah — keduan
 ### Saklar Tampilan (Scope Switch)
 Muncul di atas konten, **hanya untuk akun dengan lebih dari satu hubungan** (misalnya guru yang juga orang tua), dan **hanya** pada enam layar berikut: Hadir, Tugas, Yanbu'a, Al-Quran, Murajaah, Rapor. Bentuknya sama dengan saklar **Santri | Guru** admin: saklar tampilan selalu di atas judul layar, saklar Santri | Guru di bawahnya. Lihat [§14](#14-akun-dengan-peran-ganda) untuk detail lengkap.
 
+### Grup & Guru (tampilan keluarga)
+
+Di setiap layar tampilan keluarga — Hadir, Tugas, Yanbu'a, Al-Quran, Murajaah, Rapor — tepat di bawah **Pilih Anak** tampil kotak kecil berisi grup anak dan nama guru-gurunya, misalnya **"Grup A · Ustadz Ahmad, Ustadzah Aminah"**. Satu baris per grup; tekan nama grup untuk membuka halaman grup itu (lihat [§11](#11-pengumuman--materi)).
+
+- Di **Yanbu'a, Al-Quran, dan Murajaah** hanya tampil grup yang **mencatat progres** — guru grup seperti Aqidah tidak ditampilkan di samping riwayat Yanbu'a. Di **Hadir, Tugas, dan Rapor** semua grup aktif tampil.
+- Grup yang sudah diarsipkan tidak ditampilkan. Santri asisten tidak pernah disebut sebagai guru. Grup tanpa guru menampilkan "Belum ada guru".
+- Santri 16+ yang melihat catatannya sendiri melihat kotak yang sama.
+
 ---
 
 ## 4. Beranda
@@ -125,6 +133,8 @@ Sama seperti di atas, ditambah kartu **"Minggu ini"** yang merangkum aktivitas a
 | Murajaah | Jumlah konfirmasi murajaah minggu ini. |
 
 Kartu ini otomatis **tersembunyi** jika tidak ada aktivitas sama sekali minggu itu — minggu yang sepi tidak ditampilkan sebagai kartu penuh angka nol. Jika anak memiliki lebih dari satu, setiap anak dengan aktivitas mendapat kartunya sendiri.
+
+Di bawah kartu "Minggu ini" tampil juga kotak **grup & guru** untuk setiap anak (dengan nama depan anak jika ada lebih dari satu) — sama seperti di layar-layar lain, berisi semua grup aktif anak itu.
 
 ### 4.3 Tampilan Admin
 
@@ -331,7 +341,7 @@ Hanya untuk melihat.
 |---|---|
 | **Pilih Anak** | Sama seperti layar lain. |
 | Kartu **Level sekarang** | Jilid, halaman, dan penguasaan terkini. |
-| **Riwayat Sesi** | Sama seperti tampilan guru — daftar seluruh riwayat, dengan nama guru yang mencatat dan keterangan **"Diubah oleh …"** bila entri pernah diperbaiki, tanpa kemampuan mengubah apa pun. |
+| **Riwayat Sesi** | Sama seperti tampilan guru — daftar seluruh riwayat, dengan nama guru yang mencatat dan keterangan **"Diubah oleh …"** bila entri pernah diperbaiki, tanpa kemampuan mengubah apa pun. Entri yang dicatat oleh santri asisten tertulis **"Dicatat oleh asisten"**, tanpa nama. |
 
 Jika anak hanya ikut grup yang tidak mencatat Yanbu'a/Al-Quran/Murajaah (misalnya hanya grup Aqidah), layar Yanbu'a, Al-Quran dan Murajaah menampilkan penjelasan singkat sebagai ganti riwayat kosong:
 

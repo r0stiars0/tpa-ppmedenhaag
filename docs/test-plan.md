@@ -550,6 +550,19 @@ Same fixture set. T1 records the entry under test for a Class A student; T2 teac
 
 *All of RLS-170…182 are implemented in `supabase/tests/database/rls.test.sql`; `supabase test db` reports `Result: PASS` on a clean `supabase db reset`.*
 
+### 3.13 Assistant names in the attribution (RLS-183…188, migration 033 / ADR-050)
+
+ASSIST, a 16+ santri who tutors Class E, records an entry for another Class E child (guardian P2); T3 is a second tutor of Class E.
+
+- [x] RLS-183 — **A family gets the flag, not the name.** P2's `fn_progress_authors` row for ASSIST has `is_assistant = true` and `full_name` null.
+- [x] RLS-184 — **A tutor of the group still sees the name.** T3 gets `full_name = 'Assistant'`.
+- [x] RLS-185 — **An admin sees the name.**
+- [x] RLS-186 — **An ordinary tutor's name still reaches the family.** P1 gets `is_assistant = false`, `full_name = 'Tutor One'` for Child A.
+- [x] RLS-187 — **Another family still gets zero rows.**
+- [x] RLS-188 — **`anon` still cannot execute** the recreated function (`42501`). RLS-181 now pins the three-column signature.
+
+*A fresh `supabase db reset` + `supabase test db` is the gate: CI's `rls` job runs exactly that. Locally, RLS-14 and RLS-96 count all students/admins and fail whenever `dev-fixture.sql` has been loaded on top — reset first.*
+
 ## 4. Unit tests (Vitest)
 
 ### 4.1 Streak logic
@@ -922,6 +935,21 @@ the `student_guardians` `ON DELETE RESTRICT` invariant is in §3.8 RLS-116.
 - [ ] DevTools → Offline: **Edit** is disabled with the hint; an offline-queued entry has no **Edit** until it has synced
 - [ ] as P1 (parent): recorder name and the edited marker are visible on both timelines, no controls; as S16: same for their own record
 - [ ] no console errors and no unexpected failed requests; no notification row after an edit that completes a jilid
+
+### 4.5r Group tutors on family screens (TAD ADR-050)
+
+`tests/unit/groupTutors.test.ts` (`headerGroups`) and `tests/unit/progressEdit.test.ts` (`authorDisplay`).
+
+- [x] `headerGroups(groups, 'all')` keeps every active group; `'progress'` keeps only groups with `tracks_progress`; both sort by name and do not mutate their input; a child in no tracking group gets an empty progress header
+- [x] `authorDisplay`: a name when one is returned; `{ kind: 'assistant' }` for a student assistant whose name was withheld; the name again for staff, who get it; `{ kind: 'unknown' }` — never a uuid or blank — for anyone unresolvable
+
+### 4.5r-live Group tutors — live click-through (against the local stack, dev fixture)
+
+- [x] Ibu Siti / Ali: Hadir, Tugas and Rapor list "Aqidah 9–11 th · Ustadzah Maryam" and "Grup A · …"; Yanbu'a, Al-Quran and Murajaah list Grup A only; Aisyah (a santri who assists) is never listed; a group name opens `/groups/:id`
+- [x] Dashboard: one block per child for a family; none for a tutor-only account (Ustadz Baru)
+- [x] Umar's entry recorded by Aisyah reads "Dicatat oleh asisten" for Ibu Siti and "Dicatat oleh Aisyah" for Ustadz Baru (tutor of Grup B)
+- [x] Fatimah (16+, own record) sees the Grup A header on Yanbu'aku
+- [x] no console errors, no 4xx/5xx
 
 ### 4.6 Access control and delivery inside the Functions
 

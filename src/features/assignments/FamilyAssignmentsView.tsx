@@ -4,6 +4,7 @@ import { useMyStudents } from '../../hooks/useMyStudents'
 import { useViewScope } from '../../context/ViewScopeContext'
 import { isSelfRecord } from '../../lib/capabilities'
 import { ChildPicker } from '../../components/ChildPicker'
+import { GroupTutorsHeader } from '../groups/GroupTutorsHeader'
 import { getErrorMessage } from '../../lib/errors'
 import { computeDisplayStatus, type AssignmentDisplayStatus } from '../../lib/assignments'
 import {
@@ -126,6 +127,7 @@ export function FamilyAssignmentsView() {
       <h1 className="text-lg font-bold text-ppme-primary">{title}</h1>
 
       <ChildPicker students={students} value={studentId} onChange={setStudentId} />
+      <GroupTutorsHeader studentId={studentId} kind="all" />
 
       {!loading && displayItems.length > 0 && (
         <p className="text-sm font-medium text-ppme-text/70">

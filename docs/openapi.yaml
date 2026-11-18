@@ -448,11 +448,14 @@ paths:
       tags: [yanbua, quran]
       summary: Names of the people who recorded or edited a student's progress entries
       description: |
-        TAD ADR-049(e). `security definer`; returns `(user_id, full_name)`
-        only — no e-mail, no role — for the distinct recorders and editors of
-        the student's Yanbu'a and Quran entries. Zero rows unless the caller
-        may see the student (tutor of the class, guardian, the student
-        themselves, or admin). Not executable by `anon`.
+        TAD ADR-049(e), ADR-050(d) (migration 033). `security definer`;
+        returns `(user_id, full_name, is_assistant)` only — no e-mail, no role
+        — for the distinct recorders and editors of the student's Yanbu'a and
+        Quran entries. Zero rows unless the caller may see the student (a
+        tutor who reads the student's progress, guardian, the student
+        themselves, or admin). For a student assistant (`is_assistant`),
+        `full_name` is null unless the caller is that tutor or an admin.
+        Not executable by `anon`.
       requestBody:
         required: true
         content:
@@ -473,7 +476,8 @@ paths:
                   type: object
                   properties:
                     user_id: { type: string, format: uuid }
-                    full_name: { type: string }
+                    full_name: { type: string, nullable: true, description: Null for a student assistant when the caller is not staff. }
+                    is_assistant: { type: boolean }
 
   /murajaah_assignments:
     get:

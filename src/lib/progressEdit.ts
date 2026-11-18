@@ -49,15 +49,35 @@ export function canEditProgressEntry(
   return isAdmin || entry.tutor_id === viewerId
 }
 
-export type AuthorMap = Map<string, string>
-
-export function authorMap(rows: { user_id: string; full_name: string }[]): AuthorMap {
-  return new Map(rows.map((r) => [r.user_id, r.full_name]))
+/**
+ * A recorder or editor. `name` is null for a student assistant when the
+ * viewer is not staff — migration 033 withholds it in the database
+ * (ADR-050(d)) — and `assistant` says why.
+ */
+export interface Author {
+  name: string | null
+  assistant: boolean
 }
 
-/** A name, or null when it cannot be resolved — never a uuid or a blank. */
-export function authorLabel(userId: string | null, authors: AuthorMap): string | null {
-  return userId ? (authors.get(userId) ?? null) : null
+export type AuthorMap = Map<string, Author>
+
+export function authorMap(
+  rows: { user_id: string; full_name: string | null; is_assistant: boolean }[],
+): AuthorMap {
+  return new Map(rows.map((r) => [r.user_id, { name: r.full_name, assistant: r.is_assistant }]))
+}
+
+export type AuthorDisplay = { kind: 'name'; name: string } | { kind: 'assistant' } | { kind: 'unknown' }
+
+/**
+ * How to show a recorder/editor: by name, as "an assistant" (a student
+ * assistant seen by a family), or as unknown — never a uuid or a blank.
+ */
+export function authorDisplay(userId: string | null, authors: AuthorMap): AuthorDisplay {
+  const author = userId ? authors.get(userId) : undefined
+  if (author?.name) return { kind: 'name', name: author.name }
+  if (author?.assistant) return { kind: 'assistant' }
+  return { kind: 'unknown' }
 }
 
 /** The latest edit, or null for an entry that was never edited. */
@@ -68,7 +88,8 @@ export function editedMarker(entry: EditableEntry): { editorId: string | null; a
 /**
  * Names of everyone who recorded or edited this student's entries, via the
  * names-only `fn_progress_authors` (`public.users` is not readable for
- * other people). Zero rows if the caller may not see the student.
+ * other people). Zero rows if the caller may not see the student; a
+ * student assistant comes back nameless for a non-staff caller.
  */
 export async function fetchProgressAuthors(studentId: string): Promise<AuthorMap> {
   const { data, error } = await supabase.rpc('fn_progress_authors', { p_student: studentId })
